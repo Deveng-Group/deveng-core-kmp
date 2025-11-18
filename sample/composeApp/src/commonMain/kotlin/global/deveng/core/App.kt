@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import core.presentation.component.CustomButton
 import global.deveng.core.theme.AppTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -23,22 +24,8 @@ internal fun App() = AppTheme {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(
-            onClick = {
 
-            }
-        ) {
-            Text("Initialize SDK")
-        }
-
-        Button(
-            onClick = {
-
-
-            }
-        ) {
-            Text("Test SDK")
-        }
+        CustomButton {  }
 
 
     }

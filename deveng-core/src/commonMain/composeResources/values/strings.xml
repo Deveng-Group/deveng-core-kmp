@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <string name="shared_content_desc_icon_heart_favorite">Favori butonu</string>
+    <string name="shared_content_desc_profile_photo">Profil fotoğrafı</string>
+    <string name="shared_content_desc_icon_left">Geri dön ikonu</string>
+    <string name="shared_currency_text">TL</string>
+    <string name="shared_understand">Anladım</string>
+    <string name="shared_phone_number">Telefon Numarası</string>
+    <string name="shared_please_enter_a_valid_phone_number">Lütfen geçerli bir telefon numarası giriniz.</string>
+    <string name="shared_cont_desc_icon_chose_country_code">Ülke kodunu seçme ikonu</string>
+    <string name="shared_cont_desc_icon_rectangle_divider">Dikdörtgen ayraç ikonu</string>
+    <string name="shared_login">Giriş Yap</string>
+    <string name="shared_cont_desc_icon_check_box">Onay kutusu simgesi</string>
+    <string name="shared_email">E-Posta</string>
+    <string name="shared_cont_desc_camera_icon">kamera ikonu</string>
+    <string name="shared_ok">Tamam</string>
+    <string name="shared_cancel">İptal</string>
+    <string name="shared_content_desc_icon_direction">Detay ikonu</string>
+    <string name="shared_clarification_notice">Aydınlatma Metni</string>
+    <string name="shared_read_and_approve_text">’ni okudum, onaylıyorum.</string>
+    <string name="shared_kvkk_notice">KVKK Metni</string>
+    <string name="shared_make_reservation">Rezervasyon Yap</string>
+    <string name="shared_description">Açıklama</string>
+    <string name="shared_content_desc_icon_send">Gönder İkonu</string>
+    <string name="shared_save">Kaydet</string>
+    <string name="shared_feat_starting_from">dan başlayan fiyatlar</string>
+    <string name="shared_feat_cont_desc_product_image">Ürün Görseli</string>
+</resources>

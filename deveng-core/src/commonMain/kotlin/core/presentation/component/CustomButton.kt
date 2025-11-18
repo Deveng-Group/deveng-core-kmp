@@ -1,0 +1,116 @@
+package core.presentation.component
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonElevation
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import core.presentation.theme.SemiBoldTextStyle
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+@Composable
+fun CustomButton(
+    modifier: Modifier = Modifier
+        .height(50.dp)
+        .width(200.dp),
+    text: String? = null,
+    textStyle: TextStyle = SemiBoldTextStyle().copy(
+        fontSize = 18.sp,
+        textAlign = TextAlign.Center
+    ),
+    textModifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: CornerBasedShape = RoundedCornerShape(8.dp),
+    containerColor: Color = MaterialTheme.colorScheme.secondary,
+    disabledContainerColor: Color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f),
+    disabledContentColor: Color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    elevation: ButtonElevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
+    trailingIconModifier: Modifier = Modifier,
+    trailingIcon: DrawableResource? = null,
+    trailingIconTint: Color = Color.Black,
+    trailingIconContentDescription: String? = null,
+    leadingIconModifier: Modifier = Modifier,
+    leadingIcon: DrawableResource? = null,
+    leadingIconTint: Color = Color.Black,
+    leadingIconContentDescription: String? = null,
+    contentArrangement: Arrangement.Horizontal = Arrangement.Center,
+    onClick: () -> Unit
+) {
+    Button(
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContentColor = disabledContentColor,
+            disabledContainerColor = disabledContainerColor
+        ),
+        elevation = elevation,
+        shape = shape,
+        onClick = onClick
+    ) {
+        Row(
+            horizontalArrangement = contentArrangement,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            leadingIcon?.let {
+                Icon(
+                    modifier = leadingIconModifier,
+                    painter = painterResource(leadingIcon),
+                    contentDescription = leadingIconContentDescription,
+                    tint = leadingIconTint
+                )
+
+                Spacer(modifier = Modifier.width(15.dp))
+            }
+
+            if (text != null) {
+                Text(
+                    modifier = textModifier,
+                    text = text,
+                    style = textStyle
+                )
+            }
+
+            trailingIcon?.let {
+                Spacer(modifier = Modifier.width(18.dp))
+
+                Icon(
+                    modifier = trailingIconModifier,
+                    painter = painterResource(trailingIcon),
+                    contentDescription = trailingIconContentDescription,
+                    tint = trailingIconTint
+                )
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CustomButtonPreview() {
+    CustomButton(
+        text = "Custom Button",
+        onClick = {}
+    )
+}

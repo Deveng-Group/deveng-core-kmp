@@ -1,32 +1,35 @@
 [versions]
+agp = "8.10.1"
 android-minSdk = "24"
 android-targetSdk = "35"
 android-compileSdk = "35"
 app-version-major = "1"
 app-version-code = "1"
-app-minor-version = "0"
+app-minor-version = "1"
 
-kotlin = "2.1.20"
-compose = "1.8.1"
-agp = "8.9.3"
 androidx-activityCompose = "1.10.1"
-hotReload = "1.0.0-alpha09"
-vanniktech = "0.30.0"
-kotlinx-coroutines-swing = "1.10.1"
+compose-plugin = "1.9.0"
+kotlin = "2.2.10"
 
+
+vanniktech = "0.30.0"
+kotlinx-coroutines-swing = "1.10.2"
+serialization = "1.8.0"
+datetime = "0.7.1"
 
 [libraries]
 
 androidx-activityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines-swing" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 
 [plugins]
 
 multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-hotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "hotReload" }
 vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

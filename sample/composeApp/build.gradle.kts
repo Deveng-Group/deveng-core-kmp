@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose)
     alias(libs.plugins.android.application)
-    alias(libs.plugins.hotReload)
 }
 
 kotlin {
@@ -57,6 +56,7 @@ kotlin {
         val desktopMain by getting
 
         commonMain.dependencies {
+            implementation(project(":deveng-core"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

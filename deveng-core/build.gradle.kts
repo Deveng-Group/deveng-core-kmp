@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.vanniktech.mavenPublish)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 group = "global.deveng"
@@ -53,8 +54,6 @@ kotlin {
         }
     }
 
-    explicitApi()
-
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -62,6 +61,9 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+
         }
 
         androidMain.dependencies {
