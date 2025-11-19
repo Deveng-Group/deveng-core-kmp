@@ -24,34 +24,58 @@ fun UrbanistTextFont() = FontFamily(
     Font(resource = Res.font.urbanistbold, weight = BOLD_FONT_WEIGHT)
 )
 
+/**
+ * Returns a regular weight (400) text style.
+ * Uses the font family from ComponentTheme if provided, otherwise uses Urbanist.
+ */
 @Composable
 fun RegularTextStyle(): TextStyle {
+    val componentTheme = LocalComponentTheme.current
+    val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
-        fontFamily = UrbanistTextFont(),
+        fontFamily = fontFamily,
         fontWeight = REGULAR_FONT_WEIGHT
     )
 }
 
+/**
+ * Returns a medium weight (500) text style.
+ * Uses the font family from ComponentTheme if provided, otherwise uses Urbanist.
+ */
 @Composable
 fun MediumTextStyle(): TextStyle {
+    val componentTheme = LocalComponentTheme.current
+    val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
-        fontFamily = UrbanistTextFont(),
+        fontFamily = fontFamily,
         fontWeight = MEDIUM_FONT_WEIGHT
     )
 }
 
+/**
+ * Returns a semi-bold weight (600) text style.
+ * Uses the font family from ComponentTheme if provided, otherwise uses Urbanist.
+ */
 @Composable
 fun SemiBoldTextStyle(): TextStyle {
+    val componentTheme = LocalComponentTheme.current
+    val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
-        fontFamily = UrbanistTextFont(),
+        fontFamily = fontFamily,
         fontWeight = SEMI_BOLD_FONT_WEIGHT
     )
 }
 
+/**
+ * Returns a bold weight (700) text style.
+ * Uses the font family from ComponentTheme if provided, otherwise uses Urbanist.
+ */
 @Composable
 fun BoldTextStyle(): TextStyle {
+    val componentTheme = LocalComponentTheme.current
+    val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
-        fontFamily = UrbanistTextFont(),
+        fontFamily = fontFamily,
         fontWeight = BOLD_FONT_WEIGHT
     )
 }

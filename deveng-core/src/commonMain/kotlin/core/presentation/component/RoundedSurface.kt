@@ -11,21 +11,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import core.presentation.theme.AppTheme
+import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun RoundedSurface(
     modifier: Modifier = Modifier,
     borderStroke: BorderStroke = BorderStroke(0.dp, Color.Transparent),
-    color: Color = Color.White,
+    color: Color? = null,
     shape: Shape = MaterialTheme.shapes.medium,
-    contentColor: Color = contentColorFor(color),
+    contentColor: Color? = null,
     content: Slot
 ) {
+    val componentTheme = LocalComponentTheme.current
+    val surfaceTheme = componentTheme.surface
+    
+    val finalColor = color ?: surfaceTheme.defaultColor
+    val finalContentColor = contentColor ?: surfaceTheme.defaultContentColor
     Surface(
         modifier = modifier,
-        color = color,
-        contentColor = contentColor,
+        color = finalColor,
+        contentColor = finalContentColor,
         shape = shape,
         border = borderStroke
     ) {

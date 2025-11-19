@@ -22,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import core.presentation.theme.LocalComponentTheme
 import core.presentation.theme.SemiBoldTextStyle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -33,17 +34,14 @@ fun CustomButton(
         .height(50.dp)
         .width(200.dp),
     text: String? = null,
-    textStyle: TextStyle = SemiBoldTextStyle().copy(
-        fontSize = 18.sp,
-        textAlign = TextAlign.Center
-    ),
+    textStyle: TextStyle? = null,
     textModifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: CornerBasedShape = RoundedCornerShape(8.dp),
-    containerColor: Color = MaterialTheme.colorScheme.secondary,
-    disabledContainerColor: Color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f),
-    disabledContentColor: Color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    containerColor: Color? = null,
+    disabledContainerColor: Color? = null,
+    disabledContentColor: Color? = null,
+    contentColor: Color? = null,
     elevation: ButtonElevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
     trailingIconModifier: Modifier = Modifier,
     trailingIcon: DrawableResource? = null,
@@ -56,14 +54,25 @@ fun CustomButton(
     contentArrangement: Arrangement.Horizontal = Arrangement.Center,
     onClick: () -> Unit
 ) {
+    val componentTheme = LocalComponentTheme.current
+    val buttonTheme = componentTheme.button
+    
+    val finalTextStyle = textStyle ?: SemiBoldTextStyle().copy(
+        fontSize = buttonTheme.defaultTextStyle.fontSize,
+        textAlign = buttonTheme.defaultTextStyle.textAlign
+    )
+    val finalContainerColor = containerColor ?: buttonTheme.containerColor
+    val finalDisabledContainerColor = disabledContainerColor ?: buttonTheme.disabledContainerColor
+    val finalContentColor = contentColor ?: buttonTheme.contentColor
+    val finalDisabledContentColor = disabledContentColor ?: buttonTheme.disabledContentColor
     Button(
         modifier = modifier,
         enabled = enabled,
         colors = ButtonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-            disabledContentColor = disabledContentColor,
-            disabledContainerColor = disabledContainerColor
+            containerColor = finalContainerColor,
+            contentColor = finalContentColor,
+            disabledContentColor = finalDisabledContentColor,
+            disabledContainerColor = finalDisabledContainerColor
         ),
         elevation = elevation,
         shape = shape,
@@ -88,7 +97,7 @@ fun CustomButton(
                 Text(
                     modifier = textModifier,
                     text = text,
-                    style = textStyle
+                    style = finalTextStyle
                 )
             }
 

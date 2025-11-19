@@ -26,6 +26,7 @@ import core.presentation.theme.AppTheme
 import core.presentation.theme.BoldTextStyle
 import core.presentation.theme.CustomBlackColor
 import core.presentation.theme.CustomDividerColor
+import core.presentation.theme.LocalComponentTheme
 import core.presentation.theme.MediumTextStyle
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_ic_arrow_left
@@ -46,35 +47,48 @@ fun CustomAlertDialog(
     iconDescription: String? = null,
     iconTint: Color? = null,
     title: String? = null,
-    titleColor: Color = CustomBlackColor,
-    headerColor: Color = Color.White,
+    titleColor: Color? = null,
+    headerColor: Color? = null,
     description: String? = null,
-    descriptionColor: Color = CustomBlackColor,
-    bodyColor: Color = Color.White,
+    descriptionColor: Color? = null,
+    bodyColor: Color? = null,
     positiveButtonText: String? = null,
-    positiveButtonColor: Color = Color.White,
-    positiveButtonTextColor: Color = CustomBlackColor,
+    positiveButtonColor: Color? = null,
+    positiveButtonTextColor: Color? = null,
     onPositiveButtonClick: () -> Unit = {},
     negativeButtonText: String? = null,
-    negativeButtonColor: Color = Color.White,
-    negativeButtonTextColor: Color = CustomBlackColor,
+    negativeButtonColor: Color? = null,
+    negativeButtonTextColor: Color? = null,
     onNegativeButtonClick: () -> Unit = {},
     onDismissRequest: () -> Unit = {},
     content: Slot? = null
 ) {
+    val componentTheme = LocalComponentTheme.current
+    val alertDialogTheme = componentTheme.alertDialog
+    
+    val finalHeaderColor = headerColor ?: alertDialogTheme.headerColor
+    val finalBodyColor = bodyColor ?: alertDialogTheme.bodyColor
+    val finalTitleColor = titleColor ?: alertDialogTheme.titleColor
+    val finalDescriptionColor = descriptionColor ?: alertDialogTheme.descriptionColor
+    val finalDividerColor = alertDialogTheme.dividerColor
+    val finalPositiveButtonColor = positiveButtonColor ?: alertDialogTheme.positiveButtonColor
+    val finalPositiveButtonTextColor = positiveButtonTextColor ?: alertDialogTheme.positiveButtonTextColor
+    val finalNegativeButtonColor = negativeButtonColor ?: alertDialogTheme.negativeButtonColor
+    val finalNegativeButtonTextColor = negativeButtonTextColor ?: alertDialogTheme.negativeButtonTextColor
+    val finalIconTint = iconTint ?: alertDialogTheme.iconColor
     if (isDialogVisible) {
         CustomDialog(
             modifier = dialogModifier,
             header = {
                 CustomDialogHeader(
                     modifier = headerModifier
-                        .background(color = headerColor)
+                        .background(color = finalHeaderColor)
                         .padding(top = 15.dp),
                     title = title,
-                    texColor = titleColor,
+                    texColor = finalTitleColor,
                     icon = headerIcon,
                     iconDescription = iconDescription,
-                    iconTint = iconTint
+                    iconTint = finalIconTint
                 )
             },
             onDismissRequest = {
@@ -83,7 +97,7 @@ fun CustomAlertDialog(
         ) {
             Column(
                 modifier = contentModifier
-                    .background(color = bodyColor)
+                    .background(color = finalBodyColor)
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -96,9 +110,12 @@ fun CustomAlertDialog(
                                 horizontal = 30.dp
                             ),
                         text = description,
-                        style = MediumTextStyle().copy(fontSize = 16.sp),
+                        style = MediumTextStyle().copy(
+                            fontSize = alertDialogTheme.descriptionTextStyle.fontSize,
+                            textAlign = TextAlign.Center
+                        ),
                         textAlign = TextAlign.Center,
-                        color = descriptionColor
+                        color = finalDescriptionColor
                     )
                 }
 
@@ -109,7 +126,7 @@ fun CustomAlertDialog(
                 if (negativeButtonText != null || positiveButtonText != null) {
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = CustomDividerColor
+                        color = finalDividerColor
                     )
                 }
 
@@ -122,10 +139,10 @@ fun CustomAlertDialog(
                             modifier = negativeButtonModifier.weight(1f),
                             text = negativeButtonText,
                             textStyle = BoldTextStyle().copy(
-                                fontSize = 16.sp,
-                                color = negativeButtonTextColor
+                                fontSize = alertDialogTheme.buttonTextStyle.fontSize,
+                                color = finalNegativeButtonTextColor
                             ),
-                            containerColor = negativeButtonColor,
+                            containerColor = finalNegativeButtonColor,
                             elevation = ButtonDefaults.buttonElevation(0.dp),
                             shape = RoundedCornerShape(0.dp),
                             onClick = { onNegativeButtonClick() }
@@ -135,7 +152,7 @@ fun CustomAlertDialog(
                     if (negativeButtonText != null && positiveButtonText != null) {
                         VerticalDivider(
                             thickness = 1.dp,
-                            color = CustomDividerColor
+                            color = finalDividerColor
                         )
                     }
 
@@ -144,10 +161,10 @@ fun CustomAlertDialog(
                             modifier = positiveButtonModifier.weight(1f),
                             text = positiveButtonText,
                             textStyle = BoldTextStyle().copy(
-                                fontSize = 16.sp,
-                                color = positiveButtonTextColor
+                                fontSize = alertDialogTheme.buttonTextStyle.fontSize,
+                                color = finalPositiveButtonTextColor
                             ),
-                            containerColor = positiveButtonColor,
+                            containerColor = finalPositiveButtonColor,
                             elevation = ButtonDefaults.buttonElevation(0.dp),
                             shape = RoundedCornerShape(0.dp),
                             onClick = { onPositiveButtonClick() }

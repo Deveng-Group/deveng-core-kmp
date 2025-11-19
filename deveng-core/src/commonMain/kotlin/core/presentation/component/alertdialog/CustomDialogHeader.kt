@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.theme.AppTheme
+import core.presentation.theme.LocalComponentTheme
 import core.presentation.theme.SemiBoldTextStyle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -26,20 +27,28 @@ fun CustomDialogHeader(
     iconTint: Color? = null,
     iconDescription: String? = null,
     modifier: Modifier = Modifier,
-    style: TextStyle = SemiBoldTextStyle().copy(fontSize = 16.sp),
-    texColor: Color
+    style: TextStyle? = null,
+    texColor: Color? = null
 ) {
+    val componentTheme = LocalComponentTheme.current
+    val dialogHeaderTheme = componentTheme.dialogHeader
+    
+    val finalStyle = style ?: SemiBoldTextStyle().copy(
+        fontSize = dialogHeaderTheme.titleTextStyle.fontSize
+    )
+    val finalTextColor = texColor ?: dialogHeaderTheme.titleColor
+    val finalIconTint = iconTint ?: dialogHeaderTheme.iconTint
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         icon?.let {
-            iconTint?.let {
+            finalIconTint?.let {
                 Icon(
                     painter = painterResource(icon),
                     contentDescription = iconDescription,
-                    tint = iconTint
+                    tint = finalIconTint
                 )
             }
         }
@@ -47,8 +56,8 @@ fun CustomDialogHeader(
         title?.let {
             Text(
                 text = title,
-                style = style,
-                color = texColor,
+                style = finalStyle,
+                color = finalTextColor,
                 textAlign = TextAlign.Center
             )
         }
