@@ -45,7 +45,7 @@ fun Modifier.debouncedCombinedClickable(
     )
 }
 
-internal fun Modifier.disableSplitMotionEvents() =
+fun Modifier.disableSplitMotionEvents() =
     pointerInput(Unit) {
         coroutineScope {
             var currentId: Long = -1L
