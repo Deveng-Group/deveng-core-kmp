@@ -16,7 +16,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-internal fun Modifier.debouncedCombinedClickable(
+fun Modifier.debouncedCombinedClickable(
     debounceMillis: Long = 600L,
     enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
