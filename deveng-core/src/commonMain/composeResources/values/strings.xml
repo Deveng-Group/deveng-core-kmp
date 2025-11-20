@@ -25,4 +25,10 @@
     <string name="shared_save">Kaydet</string>
     <string name="shared_feat_starting_from">dan başlayan fiyatlar</string>
     <string name="shared_feat_cont_desc_product_image">Ürün Görseli</string>
+    <string name="shared_cont_desc_icon_password_visible">Şifreyi göster</string>
+    <string name="shared_cont_desc_icon_password_invisible">Şifreyi gizle</string>
+    <string name="char_count">%1$d/%2$d</string>
+    <string name="date_picker">Tarih seçici</string>
+    <string name="shared_content_desc_icon_right">Sağ ikon</string>
+    <string name="shared_content_desc_header_center_icon">Başlık merkezi ikonu</string>
 </resources>

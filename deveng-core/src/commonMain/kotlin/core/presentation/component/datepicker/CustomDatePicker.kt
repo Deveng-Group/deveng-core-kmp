@@ -1,0 +1,191 @@
+package core.presentation.component.datepicker
+
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import core.presentation.component.PickerField
+import core.presentation.theme.AppTheme
+import core.presentation.theme.LocalComponentTheme
+import core.util.datetime.CustomSelectableDates
+import core.util.datetime.TargetDates
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.date_picker
+import global.deveng.deveng_core.generated.resources.shared_cancel
+import global.deveng.deveng_core.generated.resources.shared_ic_calendar
+import global.deveng.deveng_core.generated.resources.shared_ok
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@Composable
+fun CustomDatePicker(
+    modifier: Modifier = Modifier,
+    trailingIconModifier: Modifier = Modifier,
+    selectedDate: LocalDate?,
+    onDateChange: (LocalDate) -> Unit,
+    targetDates: TargetDates = TargetDates.PAST,
+    title: String,
+    placeholderText: String = "-",
+    dateFormatter: (LocalDate) -> String = { it.toString() },
+    errorMessage: String? = null,
+    selectableDates: CustomSelectableDates,
+    trailingIconTint: Color? = null,
+    dialogContainerColor: Color? = null,
+    dialogContentColor: Color? = null,
+    selectedDayContainerColor: Color? = null,
+    selectedDayContentColor: Color? = null,
+    selectedYearContainerColor: Color? = null,
+    selectedYearContentColor: Color? = null,
+    todayContentColor: Color? = null,
+    todayDateBorderColor: Color? = null,
+    confirmButtonTextColor: Color? = null,
+    dismissButtonTextColor: Color? = null
+) {
+    val componentTheme = LocalComponentTheme.current
+    val datePickerTheme = componentTheme.datePicker
+
+    val finalTrailingIconTint = trailingIconTint ?: datePickerTheme.trailingIconTint
+    val finalDialogContainerColor =
+        dialogContainerColor ?: datePickerTheme.dialogContainerColor
+    val finalDialogContentColor =
+        dialogContentColor ?: datePickerTheme.dialogContentColor
+    val finalSelectedDayContainerColor =
+        selectedDayContainerColor ?: datePickerTheme.selectedDayContainerColor
+    val finalSelectedDayContentColor =
+        selectedDayContentColor ?: datePickerTheme.selectedDayContentColor
+    val finalSelectedYearContainerColor =
+        selectedYearContainerColor ?: datePickerTheme.selectedYearContainerColor
+    val finalSelectedYearContentColor =
+        selectedYearContentColor ?: datePickerTheme.selectedYearContentColor
+    val finalTodayContentColor = todayContentColor ?: datePickerTheme.todayContentColor
+    val finalTodayDateBorderColor =
+        todayDateBorderColor ?: datePickerTheme.todayDateBorderColor
+    val finalConfirmButtonColor =
+        confirmButtonTextColor ?: datePickerTheme.confirmButtonTextColor
+    val finalDismissButtonColor =
+        dismissButtonTextColor ?: datePickerTheme.dismissButtonTextColor
+
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(targetDates) {
+        selectableDates.setTargetDates(targetDates)
+    }
+
+    if (showDialog) {
+        val timeZone = TimeZone.currentSystemDefault()
+        val startOfDayInstant = selectedDate?.atStartOfDayIn(timeZone)
+        val epochMilliseconds = startOfDayInstant?.toEpochMilliseconds()
+
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = epochMilliseconds,
+            selectableDates = selectableDates
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val newDate = Instant.fromEpochMilliseconds(millis)
+                            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                        onDateChange(newDate)
+                    }
+                    showDialog = false
+                }) {
+                    Text(
+                        text = stringResource(Res.string.shared_ok),
+                        color = finalConfirmButtonColor
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(
+                        text = stringResource(Res.string.shared_cancel),
+                        color = finalDismissButtonColor
+                    )
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = finalDialogContainerColor
+            )
+        ) {
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    containerColor = finalDialogContainerColor,
+                    titleContentColor = finalDialogContentColor,
+                    headlineContentColor = finalDialogContentColor,
+                    weekdayContentColor = finalDialogContentColor,
+                    subheadContentColor = finalDialogContentColor,
+                    navigationContentColor = finalDialogContentColor,
+                    dayContentColor = finalDialogContentColor,
+                    selectedDayContentColor = finalSelectedDayContentColor,
+                    selectedDayContainerColor = finalSelectedDayContainerColor,
+                    todayContentColor = finalTodayContentColor,
+                    todayDateBorderColor = finalTodayDateBorderColor,
+                    yearContentColor = finalDialogContentColor,
+                    currentYearContentColor = finalDialogContentColor,
+                    selectedYearContentColor = finalSelectedYearContentColor,
+                    selectedYearContainerColor = finalSelectedYearContainerColor,
+                    dividerColor = finalDialogContentColor
+                )
+            )
+        }
+    }
+
+    val displayText = selectedDate?.let(dateFormatter)
+
+    PickerField(
+        modifier = modifier,
+        text = displayText,
+        hint = placeholderText,
+        title = title,
+        trailingSlot =
+            {
+                Icon(
+                    modifier = trailingIconModifier,
+                    painter = painterResource(Res.drawable.shared_ic_calendar),
+                    tint = finalTrailingIconTint,
+                    contentDescription = stringResource(Res.string.date_picker)
+                )
+            },
+        errorMessage = errorMessage,
+        onClick = { showDialog = true },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun CustomDatePickerPreview() {
+    AppTheme {
+        CustomDatePicker(
+            selectedDate = LocalDate.parse("2023-01-01"),
+            onDateChange = {},
+            title = "takvim",
+            selectableDates = CustomSelectableDates()
+        )
+    }
+}
+

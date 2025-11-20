@@ -25,4 +25,10 @@
     <string name="shared_save">Save</string>
     <string name="shared_feat_starting_from">starting from</string>
     <string name="shared_feat_cont_desc_product_image">Product Image</string>
+    <string name="shared_cont_desc_icon_password_visible">Show password</string>
+    <string name="shared_cont_desc_icon_password_invisible">Hide password</string>
+    <string name="char_count">%1$d/%2$d</string>
+    <string name="date_picker">Date picker</string>
+    <string name="shared_content_desc_icon_right">Right icon</string>
+    <string name="shared_content_desc_header_center_icon">Header center icon</string>
 </resources>

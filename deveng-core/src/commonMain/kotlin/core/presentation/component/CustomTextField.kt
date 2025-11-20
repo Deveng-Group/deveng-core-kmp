@@ -1,0 +1,305 @@
+package core.presentation.component
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import core.presentation.theme.AppTheme
+import core.presentation.theme.CustomGrayHintColor
+import core.presentation.theme.LocalComponentTheme
+import core.util.EMPTY
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.char_count
+import global.deveng.deveng_core.generated.resources.shared_cont_desc_icon_password_invisible
+import global.deveng.deveng_core.generated.resources.shared_cont_desc_icon_password_visible
+import global.deveng.deveng_core.generated.resources.shared_ic_password_invisible
+import global.deveng.deveng_core.generated.resources.shared_ic_password_visible
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+@Composable
+fun CustomTextField(
+    textFieldModifier: Modifier = Modifier,
+    value: String,
+    hint: String = String.EMPTY,
+    containerModifier: Modifier = Modifier,
+    leadingSlot: Slot? = null,
+    trailingSlot: Slot? = null,
+    textStyle: TextStyle? = null,
+    isBorderActive: Boolean? = null,
+    shape: CornerBasedShape? = null,
+    borderStroke: BorderStroke? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    singleLine: Boolean = true,
+    isEditable: Boolean = true,
+    readOnly: Boolean = false,
+    maxLength: Int = 254,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(
+        keyboardType = keyboardType, imeAction = ImeAction.Done
+    ),
+    isPasswordToggleDisplayed: Boolean = keyboardType == KeyboardType.Password,
+    isPasswordVisible: Boolean = false,
+    onPasswordToggleClick: (Boolean) -> Unit = {},
+    errorMessage: String? = null,
+    title: String? = null,
+    titleColor: Color? = null,
+    titleTextStyle: TextStyle? = null,
+    charCountTextStyle: TextStyle? = null,
+    isTextCharCountVisible: Boolean = false,
+    onDone: (() -> Unit)? = null,
+    onFocusCleared: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    requestFocus: Boolean = false,
+    containerColor: Color? = null,
+    disabledContainerColor: Color? = null,
+    textColor: Color? = null,
+    disabledTextColor: Color? = null,
+    readOnlyTextColor: Color? = null,
+    hintTextStyle: TextStyle? = null,
+    errorTextStyle: TextStyle? = null,
+    onValueChange: (String) -> Unit
+) {
+    val componentTheme = LocalComponentTheme.current
+    val customTextFieldTheme = componentTheme.customTextField
+    val finalTextStyle = textStyle ?: customTextFieldTheme.textStyle
+    val finalTitleTextStyleBase = titleTextStyle ?: customTextFieldTheme.titleTextStyle
+    val finalTitleTextStyle = titleColor?.let { finalTitleTextStyleBase.copy(color = it) }
+        ?: finalTitleTextStyleBase
+    val finalCharCountTextStyle =
+        charCountTextStyle ?: customTextFieldTheme.charCountTextStyle
+    val finalHintStyle = hintTextStyle ?: customTextFieldTheme.hintTextStyle
+    val finalErrorStyle = errorTextStyle ?: customTextFieldTheme.errorTextStyle
+    val finalShape = shape ?: customTextFieldTheme.containerShape
+    val finalBorderStroke = borderStroke ?: customTextFieldTheme.borderStroke
+    val borderEnabled = isBorderActive ?: customTextFieldTheme.isBorderActive
+    val appliedBorderStroke =
+        if (borderEnabled) finalBorderStroke else BorderStroke(0.dp, Color.Transparent)
+    val finalContainerColor = containerColor ?: customTextFieldTheme.containerColor
+    val finalDisabledContainerColor =
+        disabledContainerColor ?: customTextFieldTheme.disabledContainerColor
+    val finalEnabledTextColor = textColor ?: customTextFieldTheme.textColor
+    val finalDisabledTextColor = disabledTextColor ?: customTextFieldTheme.disabledTextColor
+    val finalReadOnlyTextColor = readOnlyTextColor ?: customTextFieldTheme.readOnlyTextColor
+
+    val textFieldColors = TextFieldDefaults.colors(
+        disabledIndicatorColor = Color.Transparent,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        disabledTextColor = finalDisabledTextColor,
+        disabledContainerColor = finalDisabledContainerColor,
+        focusedContainerColor = finalContainerColor,
+        unfocusedContainerColor = finalContainerColor
+    )
+
+    val visualTransformation = if (!isPasswordVisible && isPasswordToggleDisplayed) {
+        PasswordVisualTransformation()
+    } else {
+        VisualTransformation.None
+    }
+
+    val focusRequester = remember { FocusRequester() }
+
+    var isFocused by remember { mutableStateOf(false) }
+    var wasFocused by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(key1 = requestFocus) {
+        if (requestFocus) {
+            focusRequester.requestFocus()
+        }
+    }
+
+    Column(modifier = containerModifier) {
+        if (title != null || isTextCharCountVisible) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (title != null) {
+                    Text(
+                        text = title,
+                        style = finalTitleTextStyle
+                    )
+                }
+
+                if (isTextCharCountVisible) {
+                    Text(
+                        text = stringResource(Res.string.char_count, value.length, maxLength),
+                        style = finalCharCountTextStyle
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        RoundedSurface(
+            borderStroke = appliedBorderStroke,
+            color = if (enabled) finalContainerColor else finalDisabledContainerColor,
+            shape = finalShape
+        ) {
+            Box {
+                TextField(
+                    value = value,
+                    onValueChange = {
+                        if (isEditable && it.length <= maxLength) {
+                            onValueChange(it)
+                        }
+                    },
+                    modifier = textFieldModifier
+                        .fillMaxWidth()
+                        .onFocusEvent {
+                            isFocused = it.isFocused
+                            if (wasFocused && !it.isFocused) {
+                                onFocusCleared?.invoke()
+                            }
+                            wasFocused = it.isFocused
+                        }
+                        .align(Alignment.CenterStart)
+                        .focusRequester(focusRequester),
+                    enabled = enabled,
+                    readOnly = readOnly,
+                    textStyle = finalTextStyle.copy(
+                        color = when {
+                            !enabled -> finalDisabledTextColor
+                            readOnly -> finalReadOnlyTextColor
+                            else -> finalEnabledTextColor
+                        }
+                    ),
+                    placeholder = {
+                        Text(
+                            text = hint,
+                            style = finalHintStyle,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon = leadingSlot,
+                    trailingIcon = if (isPasswordToggleDisplayed) {
+                        {
+                            IconButton(
+                                onClick = {
+                                    onPasswordToggleClick(!isPasswordVisible)
+                                }) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isPasswordVisible) Res.drawable.shared_ic_password_visible else Res.drawable.shared_ic_password_invisible
+                                    ),
+                                    tint = CustomGrayHintColor,
+                                    contentDescription = stringResource(
+                                        if (isPasswordVisible) Res.string.shared_cont_desc_icon_password_visible else Res.string.shared_cont_desc_icon_password_invisible
+                                    )
+                                )
+                            }
+                        }
+                    } else trailingSlot,
+                    visualTransformation = visualTransformation,
+                    keyboardOptions = keyboardOptions,
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            onDone?.invoke()
+                        }),
+                    maxLines = maxLines,
+                    singleLine = singleLine,
+                    colors = textFieldColors,
+                )
+            }
+        }
+
+        errorMessage?.let {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = it,
+                style = finalErrorStyle
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CustomTextFieldPreview() {
+    AppTheme {
+        CustomTextField(
+            value = "test", onValueChange = {})
+    }
+}
+
+@Preview
+@Composable
+fun CustomTextFieldWithErrorPreview() {
+    AppTheme {
+        CustomTextField(
+            value = "test",
+            onValueChange = {},
+            errorMessage = "Error message",
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomTextFieldLightSurfacePreview() {
+    AppTheme {
+        CustomTextField(value = "test", onValueChange = {}, trailingSlot = {
+            Icon(
+                painter = painterResource(Res.drawable.shared_ic_password_invisible),
+                contentDescription = ""
+            )
+        })
+    }
+}
+
+@Preview
+@Composable
+fun CustomTextFieldWithErrorLightSurfacePreview() {
+    AppTheme {
+        CustomTextField(
+            value = "test",
+            onValueChange = {},
+            errorMessage = "Error message",
+            trailingSlot = {
+                Icon(
+                    painter = painterResource(Res.drawable.shared_ic_password_invisible),
+                    contentDescription = ""
+                )
+            })
+    }
+}

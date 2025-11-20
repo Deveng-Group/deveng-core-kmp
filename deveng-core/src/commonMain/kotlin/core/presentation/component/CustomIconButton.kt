@@ -1,0 +1,104 @@
+package core.presentation.component
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import core.presentation.theme.AppTheme
+import core.presentation.theme.CustomBlackColor
+import core.presentation.theme.LocalComponentTheme
+import core.presentation.theme.PrimaryColor
+import core.util.debouncedCombinedClickable
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.shared_ic_arrow_next
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+@Composable
+fun CustomIconButton(
+    modifier: Modifier = Modifier,
+    isEnable: Boolean = true,
+    buttonSize: Dp? = null,
+    iconModifier: Modifier = Modifier,
+    backgroundColor: Color? = null,
+    shape: Shape? = null,
+    icon: DrawableResource,
+    iconDescription: String,
+    iconTint: Color? = null,
+    shadowElevation: Dp? = null,
+    onClick: () -> Unit
+) {
+    val componentTheme = LocalComponentTheme.current
+    val iconButtonTheme = componentTheme.iconButton
+    val finalButtonSize = buttonSize ?: iconButtonTheme.buttonSize
+    val finalBackgroundColor = backgroundColor ?: iconButtonTheme.backgroundColor
+    val finalIconTint = iconTint ?: iconButtonTheme.iconTint
+    val finalShadowElevation = shadowElevation ?: iconButtonTheme.shadowElevation
+    val finalShape = shape ?: iconButtonTheme.shape
+
+    Box(
+        modifier = modifier
+            .size(finalButtonSize)
+            .shadow(
+                elevation = finalShadowElevation,
+                shape = finalShape
+            )
+            .background(
+                color = finalBackgroundColor,
+                shape = finalShape
+            )
+            .clip(shape = finalShape)
+            .debouncedCombinedClickable {
+                if (isEnable) {
+                    onClick()
+                }
+            }
+    ) {
+        Icon(
+            modifier = iconModifier
+                .align(Alignment.Center),
+            painter = painterResource(icon),
+            contentDescription = iconDescription,
+            tint = if (isEnable) finalIconTint else finalIconTint.copy(alpha = 0.4f)
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomIconButtonPreview() {
+    AppTheme {
+        CustomIconButton(
+            modifier = Modifier
+                .border(
+                    width = 1.dp,
+                    color = CustomBlackColor,
+                    shape = CircleShape
+                ),
+            iconModifier = Modifier
+                .size(
+                    height = 16.dp,
+                    width = 10.dp
+                ),
+            buttonSize = 66.dp,
+            backgroundColor = PrimaryColor,
+            icon = Res.drawable.shared_ic_arrow_next,
+            iconDescription = "",
+            iconTint = Color.White,
+            onClick = {}
+        )
+    }
+}
+

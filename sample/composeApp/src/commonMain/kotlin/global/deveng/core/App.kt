@@ -1,22 +1,83 @@
 package global.deveng.core
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
+import core.presentation.component.CustomHeader
+import core.presentation.component.CustomIconButton
+import core.presentation.component.CustomTextField
+import core.presentation.component.LabeledSwitch
+import core.presentation.component.PickerField
 import core.presentation.component.RoundedSurface
+import core.presentation.component.SearchField
 import core.presentation.component.alertdialog.CustomAlertDialog
-import core.presentation.theme.*
+import core.presentation.component.datepicker.CustomDatePicker
+import core.presentation.component.datepicker.CustomDateRangePicker
+import core.presentation.component.optionitemlist.OptionItemLazyListDialog
+import core.presentation.component.optionitemlist.OptionItemList
+import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
+import core.presentation.component.progressindicatorbars.IndicatorType
+import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
+import core.presentation.component.scrollbar.scrollbarWithLazyListState
+import core.presentation.theme.AlertDialogTheme
+import core.presentation.theme.AppTheme
+import core.presentation.theme.BoldTextStyle
+import core.presentation.theme.ButtonTheme
+import core.presentation.theme.ComponentTheme
+import core.presentation.theme.CustomTextFieldTheme
+import core.presentation.theme.DatePickerTheme
+import core.presentation.theme.DateRangePickerTheme
+import core.presentation.theme.HeaderTheme
+import core.presentation.theme.IconButtonTheme
+import core.presentation.theme.LabeledSwitchTheme
+import core.presentation.theme.MediumTextStyle
+import core.presentation.theme.OptionItemListTheme
+import core.presentation.theme.OptionItemTheme
+import core.presentation.theme.ProgressIndicatorBarsTheme
+import core.presentation.theme.RegularTextStyle
+import core.presentation.theme.ScrollbarWithLazyListStateTheme
+import core.presentation.theme.ScrollbarWithScrollStateTheme
+import core.presentation.theme.SearchFieldTheme
+import core.presentation.theme.SemiBoldTextStyle
+import core.presentation.theme.SurfaceTheme
+import core.presentation.theme.TypographyTheme
+import core.util.datetime.CustomSelectableDates
+import core.util.datetime.TargetDates
+import core.util.datetime.formatDateRange
+import core.util.datetime.slashDateFormat
+import deveng_core_kmp.sample.composeapp.generated.resources.Res
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Preview
@@ -59,6 +120,111 @@ internal fun App() {
         surface = SurfaceTheme(
             defaultColor = Color(0xFFF9F9F9),
             defaultContentColor = Color(0xFF1A1C1C)
+        ),
+        iconButton = IconButtonTheme(
+            buttonSize = 48.dp,
+            backgroundColor = Color(0xFFFDECEA),
+            iconTint = Color(0xFFD32F2F),
+            shadowElevation = 4.dp
+        ),
+        labeledSwitch = LabeledSwitchTheme(
+            labelTextStyle = MediumTextStyle().copy(
+                fontSize = 15.sp,
+                color = Color(0xFF0F172A)
+            ),
+            checkedTrackColor = Color(0xFF1976D2),
+            uncheckedTrackColor = Color(0xFFE0E7FF),
+            uncheckedBorderColor = Color(0xFF1976D2),
+            switchScale = 0.85f
+        ),
+        optionItem = OptionItemTheme(
+            backgroundColor = Color.White,
+            textStyle = MediumTextStyle().copy(
+                fontSize = 16.sp,
+                color = Color(0xFF0F172A)
+            ),
+            boldLeadingTextStyle = BoldTextStyle().copy(
+                fontSize = 16.sp,
+                color = Color(0xFFD32F2F),
+                textDecoration = TextDecoration.Underline
+            ),
+            checkIconTint = Color(0xFFD32F2F)
+        ),
+        optionItemList = OptionItemListTheme(
+            containerColor = Color(0xFFFFF3E0),
+            dividerColor = Color(0xFFFFCC80),
+            containerShape = RoundedCornerShape(24.dp),
+            lazyListScrollbarColor = Color.Red,
+            lazyListScrollbarWidth = 6.dp
+        ),
+        customTextField = CustomTextFieldTheme(
+            containerShape = RoundedCornerShape(20.dp),
+            borderStroke = BorderStroke(1.dp, Color(0xFFE0E7FF)),
+            containerColor = Color.White,
+            textStyle = MediumTextStyle().copy(
+                fontSize = 16.sp,
+                color = Color(0xFF0F172A)
+            ),
+            hintTextStyle = MediumTextStyle().copy(
+                fontSize = 16.sp,
+                color = Color(0xFF94A3B8)
+            )
+        ),
+        datePicker = DatePickerTheme(
+            trailingIconTint = Color(0xFF1976D2),
+            dialogContainerColor = Color(0xFF0F172A),
+            dialogContentColor = Color.White,
+            selectedDayContainerColor = Color.White,
+            selectedDayContentColor = Color(0xFF0F172A),
+            selectedYearContainerColor = Color.White,
+            selectedYearContentColor = Color(0xFF0F172A)
+        ),
+        dateRangePicker = DateRangePickerTheme(
+            trailingIconTint = Color(0xFF1976D2),
+            dialogContainerColor = Color.White,
+            titleContentColor = Color(0xFF1976D2),
+            selectedDayContainerColor = Color(0xFF1976D2),
+            selectedDayContentColor = Color.White,
+            todayContentColor = Color(0xFF1976D2),
+            todayDateBorderColor = Color(0xFF1976D2),
+            selectedYearContainerColor = Color(0xFF1976D2),
+            selectedYearContentColor = Color.White,
+            confirmButtonTextColor = Color(0xFF1976D2),
+            dismissButtonTextColor = Color(0xFF1976D2)
+        ),
+        scrollbarWithScrollState = ScrollbarWithScrollStateTheme(
+            scrollBarColor = Color.Red,
+            scrollBarWidth = 15.dp,
+            alwaysShowScrollBar = true
+        ),
+        scrollbarWithLazyListState = ScrollbarWithLazyListStateTheme(
+            scrollBarColor = Color.Red,
+            scrollBarWidth = 15.dp,
+            alwaysShowScrollBar = true
+        ),
+        header = HeaderTheme(
+            containerPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            backgroundColor = Color(0xFFF5F5F5),
+            leftIconTint = Color(0xFF1976D2),
+            rightIconTint = Color(0xFF1976D2),
+            leftIconBackgroundColor = Color(0xFFE3F2FD),
+            rightIconBackgroundColor = Color(0xFFE3F2FD),
+            iconButtonSize = 48.dp
+        ),
+        searchField = SearchFieldTheme(
+            buttonSize = 42.dp,
+            buttonShape = RoundedCornerShape(16.dp),
+            buttonBackgroundColor = Color(0xFF1976D2),
+            buttonIconTint = Color.White,
+            buttonShadowElevation = 0.dp,
+            defaultButtonIconDescription = "Search"
+        ),
+        progressIndicatorBars = ProgressIndicatorBarsTheme(
+            filledIndicatorColor = Color(0xFF1976D2),
+            defaultIndicatorColor = Color(0xFFE0E7FF),
+            indicatorHeight = 8.dp,
+            indicatorSpacing = 3.dp,
+            indicatorCornerRadius = 3.dp
         )
     )
 
@@ -72,170 +238,516 @@ internal fun App() {
 private fun ThemingDemo() {
     var showDialog by remember { mutableStateOf(false) }
     var showDefaultDialog by remember { mutableStateOf(false) }
+    var showOptionDialog by remember { mutableStateOf(false) }
+    var showMultiSelectDialog by remember { mutableStateOf(false) }
+    val sampleOptions = remember {
+        listOf(
+            "Themed option A",
+            "Themed option B",
+            "Themed option C",
+            "Themed option D"
+        )
+    }
+    var selectedOption by remember { mutableStateOf(sampleOptions.first()) }
+    var selectedOptions by remember { mutableStateOf(setOf<String>()) }
+    var labeledSwitchEnabled by remember { mutableStateOf(true) }
+    var labeledSwitchCustom by remember { mutableStateOf(false) }
+    var textFieldValue by remember { mutableStateOf("") }
+    var passwordValue by remember { mutableStateOf("") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var pickerSelection by remember { mutableStateOf<String?>(null) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
+    var searchText by remember { mutableStateOf("") }
+    var currentPage by remember { mutableStateOf(0) }
+    val selectableDates = remember { CustomSelectableDates() }
+    val selectableDatesPast = remember { CustomSelectableDates() }
+    val selectableDatesFuture = remember { CustomSelectableDates() }
+    val lazyListState = rememberLazyListState()
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .scrollbarWithLazyListState(lazyListState),
+        state = lazyListState,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(16.dp),
     ) {
-        // Title
-        Text(
-            text = "ComponentTheme Demo",
-            style = BoldTextStyle().copy(fontSize = 24.sp),
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-
-        // Section 1: CustomButton Examples
-        SectionTitle("CustomButton Examples")
-        
-        // Default themed button
-        CustomButton(
-            text = "Themed Button",
-            onClick = { }
-        )
-
-        // Override theme at component level
-        CustomButton(
-            text = "Overridden Color",
-            containerColor = Color(0xFFE91E63), // Overrides theme
-            onClick = { }
-        )
-
-        // Custom typography
-        CustomButton(
-            text = "Custom Typography",
-            textStyle = BoldTextStyle().copy(fontSize = 20.sp),
-            onClick = { }
-        )
-
-        // Disabled button
-        CustomButton(
-            text = "Disabled Button",
-            enabled = false,
-            onClick = { }
-        )
-
-        // Section 2: RoundedSurface Examples
-        SectionTitle("RoundedSurface Examples")
-        
-        // Default themed surface
-        RoundedSurface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+        item {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Themed Surface",
+                    text = "ComponentTheme Demo",
+                    style = BoldTextStyle().copy(fontSize = 24.sp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SectionTitle("CustomButton Examples")
+
+                CustomButton(
+                    text = "Themed Button",
+                    onClick = { }
+                )
+
+                CustomButton(
+                    text = "Overridden Color",
+                    containerColor = Color(0xFFE91E63),
+                    onClick = { }
+                )
+
+                CustomButton(
+                    text = "Custom Typography",
+                    textStyle = BoldTextStyle().copy(fontSize = 20.sp),
+                    onClick = { }
+                )
+
+                CustomButton(
+                    text = "Disabled Button",
+                    enabled = false,
+                    onClick = { }
+                )
+
+                SectionTitle("RoundedSurface Examples")
+
+                RoundedSurface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Themed Surface",
+                            style = MediumTextStyle().copy(fontSize = 16.sp)
+                        )
+                    }
+                }
+
+                RoundedSurface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    color = Color(0xFFE3F2FD),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Custom Color Surface",
+                            style = SemiBoldTextStyle().copy(fontSize = 16.sp)
+                        )
+                    }
+                }
+
+                SectionTitle("Typography Examples")
+
+                Text(
+                    text = "Regular Text (400)",
+                    style = RegularTextStyle().copy(fontSize = 16.sp)
+                )
+
+                Text(
+                    text = "Medium Text (500)",
+                    style = MediumTextStyle().copy(fontSize = 16.sp)
+                )
+
+                Text(
+                    text = "SemiBold Text (600)",
+                    style = SemiBoldTextStyle().copy(fontSize = 16.sp)
+                )
+
+                Text(
+                    text = "Bold Text (700)",
+                    style = BoldTextStyle().copy(fontSize = 16.sp)
+                )
+
+                Text(
+                    text = "Custom Styled Text",
+                    style = SemiBoldTextStyle().copy(
+                        fontSize = 18.sp,
+                        color = Color(0xFF1976D2)
+                    )
+                )
+
+                SectionTitle("CustomAlertDialog Examples")
+
+                CustomButton(
+                    text = "Show Themed Dialog",
+                    onClick = { showDialog = true }
+                )
+
+                CustomButton(
+                    text = "Show Default Dialog",
+                    containerColor = Color(0xFF4CAF50),
+                    onClick = { showDefaultDialog = true }
+                )
+
+                CustomAlertDialog(
+                    isDialogVisible = showDialog,
+                    title = "Themed Dialog",
+                    description = "This dialog uses colors and typography from ComponentTheme. All text uses the custom font family.",
+                    positiveButtonText = "OK",
+                    negativeButtonText = "Cancel",
+                    onPositiveButtonClick = { showDialog = false },
+                    onNegativeButtonClick = { showDialog = false },
+                    onDismissRequest = { showDialog = false }
+                )
+
+                CustomAlertDialog(
+                    isDialogVisible = showDefaultDialog,
+                    title = "Default Dialog",
+                    description = "This dialog overrides theme colors at component level.",
+                    titleColor = Color(0xFF4CAF50),
+                    descriptionColor = Color(0xFF666666),
+                    positiveButtonText = "Confirm",
+                    positiveButtonColor = Color(0xFF4CAF50),
+                    positiveButtonTextColor = Color.White,
+                    negativeButtonText = "Cancel",
+                    onPositiveButtonClick = { showDefaultDialog = false },
+                    onNegativeButtonClick = { showDefaultDialog = false },
+                    onDismissRequest = { showDefaultDialog = false }
+                )
+
+                SectionTitle("Scrollbar Examples")
+
+                Text(
+                    text = "Entire page now uses a LazyColumn with the red 15.dp scrollbar.",
+                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                SectionTitle("OptionItemList Examples")
+
+                OptionItemList(
+                    optionList = sampleOptions,
+                    optionText = { it },
+                    optionId = { it.hashCode() },
+                    isCheckIconsVisible = true,
+                    selectedOption = selectedOption,
+                    onOptionItemClick = {
+                        selectedOption = it
+                    }
+                )
+
+                CustomButton(
+                    text = "Show Option Dialog",
+                    onClick = { showOptionDialog = true }
+                )
+
+                SectionTitle("LabeledSwitch Examples")
+
+                LabeledSwitch(
+                    label = "Notifications",
+                    isChecked = labeledSwitchEnabled,
+                    onSwitchClick = { labeledSwitchEnabled = it }
+                )
+
+                LabeledSwitch(
+                    label = "Custom Colored Switch",
+                    isChecked = labeledSwitchCustom,
+                    checkedTrackColor = Color(0xFFE91E63),
+                    uncheckedThumbColor = Color(0xFFE91E63),
+                    uncheckedTrackColor = Color.White,
+                    switchScale = 1f,
+                    onSwitchClick = { labeledSwitchCustom = it }
+                )
+
+                SectionTitle("CustomTextField Examples")
+
+                val shouldShowNameError =
+                    textFieldValue.isNotEmpty() && textFieldValue.length < 3
+
+                CustomTextField(
+                    title = "Name",
+                    value = textFieldValue,
+                    hint = "Enter at least 3 characters",
+                    isTextCharCountVisible = true,
+                    errorMessage = if (shouldShowNameError) "Minimum 3 characters" else null,
+                    onValueChange = { textFieldValue = it }
+                )
+
+                CustomTextField(
+                    title = "Password",
+                    value = passwordValue,
+                    hint = "Password",
+                    keyboardType = KeyboardType.Password,
+                    isPasswordVisible = isPasswordVisible,
+                    onPasswordToggleClick = { isPasswordVisible = it },
+                    onValueChange = { passwordValue = it }
+                )
+
+                SectionTitle("SearchField Examples")
+
+                SearchField(
+                    searchText = searchText,
+                    onSearchTextChange = { searchText = it },
+                    onSearchButtonClick = { },
+                    searchBarHint = "Search...",
+                    buttonIcon = Res.drawable.ic_cyclone,
+                    buttonIconDescription = "Search"
+                )
+
+                SearchField(
+                    searchText = searchText,
+                    onSearchTextChange = { searchText = it },
+                    onSearchButtonClick = { },
+                    searchBarHint = "Search with button at start",
+                    isButtonAtEnd = false,
+                    buttonIcon = Res.drawable.ic_cyclone,
+                    buttonIconDescription = "Search",
+                    buttonBackgroundColor = Color(0xFFE91E63),
+                    buttonIconTint = Color.White
+                )
+
+                SearchField(
+                    searchText = searchText,
+                    onSearchTextChange = { searchText = it },
+                    onSearchButtonClick = { },
+                    searchBarHint = "Custom styled search",
+                    buttonIcon = Res.drawable.ic_cyclone,
+                    buttonIconDescription = "Search",
+                    buttonSize = 50.dp,
+                    buttonShape = RoundedCornerShape(12.dp),
+                    buttonBackgroundColor = Color(0xFF4CAF50),
+                    textFieldShape = RoundedCornerShape(20.dp)
+                )
+
+                SectionTitle("PickerField Examples")
+
+                PickerField(
+                    title = "Select Option",
+                    text = pickerSelection,
+                    hint = "Tap to choose",
+                    onClick = {
+                        pickerSelection = sampleOptions.random()
+                    }
+                )
+
+                PickerField(
+                    title = "Unavailable Field",
+                    text = null,
+                    hint = "Coming soon",
+                    isEnabled = false,
+                    errorMessage = "Currently unavailable",
+                    onClick = {}
+                )
+
+                SectionTitle("CustomDatePicker Examples")
+
+                CustomDatePicker(
+                    title = "Select a future date",
+                    selectedDate = selectedDate,
+                    placeholderText = "Tap to choose",
+                    targetDates = TargetDates.FUTURE,
+                    selectableDates = selectableDates,
+                    onDateChange = { selectedDate = it }
+                )
+
+                SectionTitle("CustomDateRangePicker Examples")
+
+                val dateRangeText = remember(selectedStartDate, selectedEndDate) {
+                    formatDateRange(selectedStartDate, selectedEndDate, slashDateFormat)
+                }
+
+                CustomDateRangePicker(
+                    title = "Past Date Range",
+                    rangeText = dateRangeText,
+                    initialSelectedStartDate = selectedStartDate,
+                    initialSelectedEndDate = selectedEndDate,
+                    targetDates = TargetDates.PAST,
+                    selectableDates = selectableDatesPast,
+                    onRangeChange = { start, end ->
+                        selectedStartDate = start
+                        selectedEndDate = end
+                    }
+                )
+
+                CustomDateRangePicker(
+                    title = "Future Date Range",
+                    rangeText = dateRangeText,
+                    initialSelectedStartDate = selectedStartDate,
+                    initialSelectedEndDate = selectedEndDate,
+                    targetDates = TargetDates.FUTURE,
+                    selectableDates = selectableDatesFuture,
+                    enabledBorderWidth = 1.dp,
+                    enabledBorderColor = Color(0xFF1976D2),
+                    onRangeChange = { start, end ->
+                        selectedStartDate = start
+                        selectedEndDate = end
+                    }
+                )
+
+                SectionTitle("OptionItem Multi-Select Dialog")
+
+                Text(
+                    text = "Selected items: ${selectedOptions.joinToString().ifBlank { "None" }}",
+                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                CustomButton(
+                    text = "Show Multi-Select Dialog",
+                    onClick = { showMultiSelectDialog = true }
+                )
+
+                SectionTitle("CustomHeader Examples")
+
+                CustomHeader(
+                    onLeftIconClick = { }
+                )
+
+                CustomHeader(
+                    isRightIconButtonVisible = true,
+                    rightIcon = Res.drawable.ic_cyclone,
+                    rightIconDescription = "Right Action",
+                    onLeftIconClick = { },
+                    onRightIconClick = { }
+                )
+
+                CustomHeader(
+                    backgroundColor = Color(0xFF1976D2),
+                    leftIconTint = Color.White,
+                    leftIconBackgroundColor = Color(0xFF0D47A1),
+                    onLeftIconClick = { }
+                )
+
+                CustomHeader(
+                    isLeftIconButtonVisible = false,
+                    isRightIconButtonVisible = true,
+                    rightIcon = Res.drawable.ic_cyclone,
+                    rightIconDescription = "Menu",
+                    onRightIconClick = { }
+                )
+
+                SectionTitle("CustomIconButton Examples")
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CustomIconButton(
+                        icon = Res.drawable.ic_cyclone,
+                        iconDescription = "Forward",
+                        onClick = { }
+                    )
+
+                    CustomIconButton(
+                        buttonSize = 60.dp,
+                        backgroundColor = Color(0xFF1976D2),
+                        iconTint = Color.White,
+                        shadowElevation = 6.dp,
+                        icon = Res.drawable.ic_cyclone,
+                        iconDescription = "Primary Forward",
+                        onClick = { }
+                    )
+                }
+
+                Text(
+                    text = "Scrollbar Example",
+                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                SectionTitle("ProgressIndicatorBars Examples")
+
+                ProgressIndicatorBars(
+                    pageCount = 5,
+                    currentPage = currentPage,
+                    indicatorType = IndicatorType.HIGH_LIGHT_CURRENT
+                )
+
+                ProgressIndicatorBars(
+                    pageCount = 5,
+                    currentPage = currentPage,
+                    indicatorType = IndicatorType.HIGH_LIGHT_UNTIL_CURRENT
+                )
+
+                ProgressIndicatorBars(
+                    pageCount = 3,
+                    currentPage = currentPage,
+                    indicatorType = IndicatorType.HIGH_LIGHT_CURRENT,
+                    filledIndicatorColor = Color(0xFFE91E63),
+                    defaultIndicatorColor = Color(0xFFFFCDD2),
+                    indicatorHeight = 10.dp,
+                    indicatorSpacing = 5.dp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CustomButton(
+                        text = "Previous",
+                        enabled = currentPage > 0,
+                        onClick = { if (currentPage > 0) currentPage-- }
+                    )
+                    CustomButton(
+                        text = "Next",
+                        enabled = currentPage < 4,
+                        onClick = { if (currentPage < 4) currentPage++ }
+                    )
+                }
+            }
+        }
+
+        items(30) { index ->
+            RoundedSurface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Scrollable item #$index",
+                    modifier = Modifier.padding(16.dp),
                     style = MediumTextStyle().copy(fontSize = 16.sp)
                 )
             }
         }
 
-        // Override surface color
-        RoundedSurface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            color = Color(0xFFE3F2FD), // Overrides theme
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Custom Color Surface",
-                    style = SemiBoldTextStyle().copy(fontSize = 16.sp)
-                )
-            }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        // Section 3: Typography Examples
-        SectionTitle("Typography Examples")
-        
-        Text(
-            text = "Regular Text (400)",
-            style = RegularTextStyle().copy(fontSize = 16.sp)
-        )
-        
-        Text(
-            text = "Medium Text (500)",
-            style = MediumTextStyle().copy(fontSize = 16.sp)
-        )
-        
-        Text(
-            text = "SemiBold Text (600)",
-            style = SemiBoldTextStyle().copy(fontSize = 16.sp)
-        )
-        
-        Text(
-            text = "Bold Text (700)",
-            style = BoldTextStyle().copy(fontSize = 16.sp)
-        )
-
-        // Custom typography with color
-        Text(
-            text = "Custom Styled Text",
-            style = SemiBoldTextStyle().copy(
-                fontSize = 18.sp,
-                color = Color(0xFF1976D2)
-            )
-        )
-
-        // Section 4: AlertDialog Examples
-        SectionTitle("CustomAlertDialog Examples")
-        
-        CustomButton(
-            text = "Show Themed Dialog",
-            onClick = { showDialog = true }
-        )
-
-        CustomButton(
-            text = "Show Default Dialog",
-            containerColor = Color(0xFF4CAF50),
-            onClick = { showDefaultDialog = true }
-        )
-
-        // Themed AlertDialog
-        CustomAlertDialog(
-            isDialogVisible = showDialog,
-            title = "Themed Dialog",
-            description = "This dialog uses colors and typography from ComponentTheme. All text uses the custom font family.",
-            positiveButtonText = "OK",
-            negativeButtonText = "Cancel",
-            onPositiveButtonClick = { showDialog = false },
-            onNegativeButtonClick = { showDialog = false },
-            onDismissRequest = { showDialog = false }
-        )
-
-        // Default AlertDialog (overrides theme)
-        CustomAlertDialog(
-            isDialogVisible = showDefaultDialog,
-            title = "Default Dialog",
-            description = "This dialog overrides theme colors at component level.",
-            titleColor = Color(0xFF4CAF50),
-            descriptionColor = Color(0xFF666666),
-            positiveButtonText = "Confirm",
-            positiveButtonColor = Color(0xFF4CAF50),
-            positiveButtonTextColor = Color.White,
-            negativeButtonText = "Cancel",
-            onPositiveButtonClick = { showDefaultDialog = false },
-            onNegativeButtonClick = { showDefaultDialog = false },
-            onDismissRequest = { showDefaultDialog = false }
-        )
-
-        // Spacer at bottom
-        Spacer(modifier = Modifier.height(16.dp))
     }
+
+    OptionItemLazyListDialog(
+        optionsList = sampleOptions,
+        optionText = { it },
+        optionId = { it.hashCode() },
+        isDialogVisible = showOptionDialog,
+        selectedOption = selectedOption,
+        onOptionItemClick = {
+            selectedOption = it
+            showOptionDialog = false
+        },
+        onDismissRequest = { showOptionDialog = false }
+    )
+
+    OptionItemMultiSelectLazyListDialog(
+        optionsList = sampleOptions,
+        optionText = { it },
+        optionId = { it.hashCode() },
+        isDialogVisible = showMultiSelectDialog,
+        selectedOptions = selectedOptions.toList(),
+        onOptionItemClick = { item ->
+            selectedOptions = if (selectedOptions.contains(item)) {
+                selectedOptions - item
+            } else {
+                selectedOptions + item
+            }
+        },
+        onSaveButtonClick = { showMultiSelectDialog = false },
+        onDismissRequest = { showMultiSelectDialog = false }
+    )
 }
 
 @Composable
