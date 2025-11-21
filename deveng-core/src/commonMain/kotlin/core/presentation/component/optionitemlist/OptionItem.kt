@@ -1,0 +1,122 @@
+package core.presentation.component.optionitemlist
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import core.presentation.component.CustomIconButton
+import core.presentation.component.Slot
+import core.presentation.theme.LocalComponentTheme
+import core.util.debouncedCombinedClickable
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.shared_cont_desc_icon_check_box
+import global.deveng.deveng_core.generated.resources.shared_ic_checked_circle
+import global.deveng.deveng_core.generated.resources.shared_ic_unchecked_circle
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+@Composable
+fun OptionItem(
+    text: String,
+    boldLeadingText: String? = null,
+    isCheckIconVisible: Boolean = true,
+    isSelected: Boolean = false,
+    leadingIcon: DrawableResource? = null,
+    leadingSlot: Slot? = null,
+    onCheckboxClick: () -> Unit = {},
+    onItemClick: () -> Unit,
+    backgroundColor: Color? = null,
+    horizontalPadding: Dp? = null
+) {
+    val componentTheme = LocalComponentTheme.current
+    val optionItemTheme = componentTheme.optionItem
+    val finalBackgroundColor = backgroundColor ?: optionItemTheme.backgroundColor
+    val finalHorizontalPadding = horizontalPadding ?: optionItemTheme.horizontalPadding
+
+    Row(
+        modifier = Modifier
+            .background(color = finalBackgroundColor)
+            .height(optionItemTheme.rowHeight)
+            .padding(horizontal = finalHorizontalPadding)
+            .fillMaxWidth()
+            .debouncedCombinedClickable { onItemClick() },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        if (leadingSlot != null) {
+            leadingSlot()
+        }
+
+        if (leadingIcon != null) {
+            Icon(
+                modifier = Modifier.size(20.dp),
+                painter = painterResource(leadingIcon),
+                tint = optionItemTheme.leadingIconTint,
+                contentDescription = text
+            )
+
+            Spacer(modifier = Modifier.width(11.dp))
+        }
+
+        Text(
+            text = buildAnnotatedString {
+                if (boldLeadingText != null) {
+                    withStyle(
+                        style = optionItemTheme.boldLeadingTextStyle.toSpanStyle()
+                    ) {
+                        append(boldLeadingText)
+                    }
+                    append(" ")
+                }
+                append(text)
+            },
+            modifier = Modifier.weight(1f),
+            style = optionItemTheme.textStyle,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        if (isCheckIconVisible) {
+            Spacer(modifier = Modifier.width(8.dp))
+
+            CustomIconButton(
+                icon = if (isSelected) {
+                    Res.drawable.shared_ic_checked_circle
+                } else {
+                    Res.drawable.shared_ic_unchecked_circle
+                },
+                iconModifier = Modifier,
+                backgroundColor = optionItemTheme.checkIconBackgroundColor,
+                iconDescription = stringResource(Res.string.shared_cont_desc_icon_check_box),
+                iconTint = optionItemTheme.checkIconTint,
+                onClick = { onCheckboxClick() }
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ReportOptionItemPreview() {
+    OptionItem(
+        text = "test 1",
+        onItemClick = {}
+    )
+}

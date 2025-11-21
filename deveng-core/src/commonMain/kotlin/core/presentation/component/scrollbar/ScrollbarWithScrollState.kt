@@ -9,53 +9,71 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import core.presentation.theme.CustomGrayHintColor
+import core.presentation.theme.LocalComponentTheme
 
 @Composable
 fun Modifier.scrollbarWithScrollState(
     scrollState: ScrollState,
-    alwaysShowScrollBar: Boolean = false,
-    width: Dp = 5.dp,
-    isScrollBarTrackVisible: Boolean = true,
-    scrollBarTrackColor: Color = Color.Gray,
-    scrollBarColor: Color = CustomGrayHintColor,
-    scrollBarCornerRadius: Float = 4f,
-    endPadding: Float = 12f,
-    topPadding: Dp = 0.dp,
-    bottomPadding: Dp = 0.dp
+    alwaysShowScrollBar: Boolean? = null,
+    width: Dp? = null,
+    isScrollBarTrackVisible: Boolean? = null,
+    scrollBarTrackColor: Color? = null,
+    scrollBarColor: Color? = null,
+    scrollBarCornerRadius: Float? = null,
+    endPadding: Float? = null,
+    topPadding: Dp? = null,
+    bottomPadding: Dp? = null
 ): Modifier {
-    val shouldShowScrollbar = alwaysShowScrollBar || isContentSizeEnoughToShowScrollbar(scrollState)
+    val componentTheme = LocalComponentTheme.current
+    val scrollbarTheme = componentTheme.scrollbarWithScrollState
+
+    val finalAlwaysShowScrollbar = alwaysShowScrollBar ?: scrollbarTheme.alwaysShowScrollBar
+    val finalWidth = width ?: scrollbarTheme.scrollBarWidth
+    val finalIsTrackVisible =
+        isScrollBarTrackVisible ?: scrollbarTheme.isScrollBarTrackVisible
+    val finalTrackColor = scrollBarTrackColor ?: scrollbarTheme.scrollBarTrackColor
+    val finalScrollBarColor = scrollBarColor ?: scrollbarTheme.scrollBarColor
+    val finalCornerRadius = scrollBarCornerRadius ?: scrollbarTheme.scrollBarCornerRadius
+    val finalEndPadding = endPadding ?: scrollbarTheme.scrollBarEndPadding
+    val finalTopPadding = topPadding ?: scrollbarTheme.scrollBarTopPadding
+    val finalBottomPadding = bottomPadding ?: scrollbarTheme.scrollBarBottomPadding
+
+    val shouldShowScrollbar =
+        finalAlwaysShowScrollbar || isContentSizeEnoughToShowScrollbar(scrollState)
 
     return if (shouldShowScrollbar) {
         this.then(
             drawWithContent {
                 drawContent()
 
-                val viewportHeight = this.size.height - (topPadding.toPx() + bottomPadding.toPx())
-                val totalContentHeight = scrollState.maxValue.toFloat() + viewportHeight
+                val viewportHeight = this.size.height -
+                        (finalTopPadding.toPx() + finalBottomPadding.toPx())
+                val totalScrollRange = scrollState.maxValue.toFloat()
+                val totalContentHeight = viewportHeight + totalScrollRange
                 val scrollValue = scrollState.value.toFloat()
 
                 val scrollBarHeight =
-                    (viewportHeight / totalContentHeight) * viewportHeight
+                    (viewportHeight / totalContentHeight.coerceAtLeast(viewportHeight)) * viewportHeight
+                val scrollableHeight = (viewportHeight - scrollBarHeight).coerceAtLeast(0f)
 
                 val scrollBarStartOffset =
-                    (scrollValue / totalContentHeight) * viewportHeight + topPadding.toPx()
+                    (scrollValue / totalScrollRange.coerceAtLeast(1f)) * scrollableHeight +
+                            finalTopPadding.toPx()
 
-                if (isScrollBarTrackVisible) {
+                if (finalIsTrackVisible) {
                     drawRoundRect(
-                        cornerRadius = CornerRadius(scrollBarCornerRadius),
-                        color = scrollBarTrackColor,
-                        topLeft = Offset(this.size.width - endPadding, topPadding.toPx()),
-                        size = Size(width.toPx(), viewportHeight),
+                        cornerRadius = CornerRadius(finalCornerRadius),
+                        color = finalTrackColor,
+                        topLeft = Offset(this.size.width - finalEndPadding, finalTopPadding.toPx()),
+                        size = Size(finalWidth.toPx(), viewportHeight),
                     )
                 }
 
                 drawRoundRect(
-                    cornerRadius = CornerRadius(scrollBarCornerRadius),
-                    color = scrollBarColor,
-                    topLeft = Offset(this.size.width - endPadding, scrollBarStartOffset),
-                    size = Size(width.toPx(), scrollBarHeight)
+                    cornerRadius = CornerRadius(finalCornerRadius),
+                    color = finalScrollBarColor,
+                    topLeft = Offset(this.size.width - finalEndPadding, scrollBarStartOffset),
+                    size = Size(finalWidth.toPx(), scrollBarHeight)
                 )
             }
         )
@@ -66,8 +84,5 @@ fun Modifier.scrollbarWithScrollState(
 
 @Composable
 fun isContentSizeEnoughToShowScrollbar(scrollState: ScrollState): Boolean {
-    val viewportHeight = scrollState.maxValue.toFloat() + scrollState.value.toFloat()
-    val totalContentHeight = scrollState.maxValue.toFloat() + viewportHeight
-
-    return totalContentHeight > viewportHeight
+    return scrollState.maxValue > 0
 }
