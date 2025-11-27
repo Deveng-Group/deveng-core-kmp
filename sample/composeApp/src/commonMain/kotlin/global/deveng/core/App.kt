@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
 import core.presentation.component.CustomHeader
 import core.presentation.component.CustomIconButton
-import core.presentation.component.CustomTextField
+import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.LabeledSwitch
 import core.presentation.component.PickerField
 import core.presentation.component.RoundedSurface
@@ -78,6 +78,7 @@ import core.util.datetime.slashDateFormat
 import deveng_core_kmp.sample.composeapp.generated.resources.Res
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.format
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Preview
@@ -260,6 +261,7 @@ private fun ThemingDemo() {
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var searchText by remember { mutableStateOf("") }
+    var amountValue by remember { mutableStateOf("125") }
     var currentPage by remember { mutableStateOf(0) }
     val selectableDates = remember { CustomSelectableDates() }
     val selectableDatesPast = remember { CustomSelectableDates() }
@@ -485,6 +487,29 @@ private fun ThemingDemo() {
                     onValueChange = { passwordValue = it }
                 )
 
+                CustomTextField(
+                    title = "Inline Suffix Field",
+                    value = amountValue,
+                    hint = "Enter amount",
+                    inlineSuffix = " kg",
+                    suffixSlot = {
+                        Text(
+                            text = "kg",
+                            style = MediumTextStyle().copy(color = Color(0xFF0F172A))
+                        )
+                    },
+                    titleTrailingSlot = {
+                        Text(
+                            text = "Max 3 digits",
+                            style = RegularTextStyle().copy(fontSize = 12.sp, color = Color(0xFF94A3B8))
+                        )
+                    },
+                    maxLength = 3,
+                    onValueChange = { newValue ->
+                        amountValue = newValue.filter { it.isDigit() }
+                    }
+                )
+
                 SectionTitle("SearchField Examples")
 
                 SearchField(
@@ -543,11 +568,16 @@ private fun ThemingDemo() {
 
                 SectionTitle("CustomDatePicker Examples")
 
+                val selectedDateText = remember(selectedDate) {
+                    selectedDate?.format(slashDateFormat)
+                }
+
                 CustomDatePicker(
                     title = "Select a future date",
                     selectedDate = selectedDate,
                     placeholderText = "Tap to choose",
                     targetDates = TargetDates.FUTURE,
+                    selectedDateText = selectedDateText,
                     selectableDates = selectableDates,
                     onDateChange = { selectedDate = it }
                 )
@@ -602,7 +632,8 @@ private fun ThemingDemo() {
                 SectionTitle("CustomHeader Examples")
 
                 CustomHeader(
-                    onLeftIconClick = { }
+                    onLeftIconClick = { },
+                    centerIcon = Res.drawable.ic_cyclone
                 )
 
                 CustomHeader(

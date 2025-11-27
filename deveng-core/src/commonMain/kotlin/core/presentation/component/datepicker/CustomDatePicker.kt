@@ -46,7 +46,7 @@ fun CustomDatePicker(
     targetDates: TargetDates = TargetDates.PAST,
     title: String,
     placeholderText: String = "-",
-    dateFormatter: (LocalDate) -> String = { it.toString() },
+    selectedDateText: String?,
     errorMessage: String? = null,
     selectableDates: CustomSelectableDates,
     trailingIconTint: Color? = null,
@@ -59,7 +59,9 @@ fun CustomDatePicker(
     todayContentColor: Color? = null,
     todayDateBorderColor: Color? = null,
     confirmButtonTextColor: Color? = null,
-    dismissButtonTextColor: Color? = null
+    dismissButtonTextColor: Color? = null,
+    leadingSlot: @Composable (() -> Unit)? = null,
+    trailingSlot: @Composable (() -> Unit)? = null
 ) {
     val componentTheme = LocalComponentTheme.current
     val datePickerTheme = componentTheme.datePicker
@@ -154,22 +156,22 @@ fun CustomDatePicker(
         }
     }
 
-    val displayText = selectedDate?.let(dateFormatter)
+    val defaultTrailingSlot: @Composable () -> Unit = {
+        Icon(
+            modifier = trailingIconModifier,
+            painter = painterResource(Res.drawable.shared_ic_calendar),
+            tint = finalTrailingIconTint,
+            contentDescription = stringResource(Res.string.date_picker)
+        )
+    }
 
     PickerField(
         modifier = modifier,
-        text = displayText,
+        text = selectedDateText,
         hint = placeholderText,
         title = title,
-        trailingSlot =
-            {
-                Icon(
-                    modifier = trailingIconModifier,
-                    painter = painterResource(Res.drawable.shared_ic_calendar),
-                    tint = finalTrailingIconTint,
-                    contentDescription = stringResource(Res.string.date_picker)
-                )
-            },
+        leadingSlot = leadingSlot,
+        trailingSlot = trailingSlot ?: defaultTrailingSlot,
         errorMessage = errorMessage,
         onClick = { showDialog = true },
     )
@@ -184,6 +186,7 @@ fun CustomDatePickerPreview() {
             selectedDate = LocalDate.parse("2023-01-01"),
             onDateChange = {},
             title = "takvim",
+            selectedDateText = "01/01/2023",
             selectableDates = CustomSelectableDates()
         )
     }

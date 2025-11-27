@@ -1,4 +1,4 @@
-package core.presentation.component
+package core.presentation.component.textfield
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,6 +37,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import core.presentation.component.RoundedSurface
+import core.presentation.component.Slot
 import core.presentation.theme.AppTheme
 import core.presentation.theme.CustomGrayHintColor
 import core.presentation.theme.LocalComponentTheme
@@ -58,6 +61,8 @@ fun CustomTextField(
     containerModifier: Modifier = Modifier,
     leadingSlot: Slot? = null,
     trailingSlot: Slot? = null,
+    suffixSlot: Slot? = null,
+    titleTrailingSlot: Slot? = null,
     textStyle: TextStyle? = null,
     isBorderActive: Boolean? = null,
     shape: CornerBasedShape? = null,
@@ -74,6 +79,7 @@ fun CustomTextField(
     isPasswordToggleDisplayed: Boolean = keyboardType == KeyboardType.Password,
     isPasswordVisible: Boolean = false,
     onPasswordToggleClick: (Boolean) -> Unit = {},
+    inlineSuffix: String? = null,
     errorMessage: String? = null,
     title: String? = null,
     titleColor: Color? = null,
@@ -114,6 +120,11 @@ fun CustomTextField(
     val finalEnabledTextColor = textColor ?: customTextFieldTheme.textColor
     val finalDisabledTextColor = disabledTextColor ?: customTextFieldTheme.disabledTextColor
     val finalReadOnlyTextColor = readOnlyTextColor ?: customTextFieldTheme.readOnlyTextColor
+    val resolvedTextColor = when {
+        !enabled -> finalDisabledTextColor
+        readOnly -> finalReadOnlyTextColor
+        else -> finalEnabledTextColor
+    }
 
     val textFieldColors = TextFieldDefaults.colors(
         disabledIndicatorColor = Color.Transparent,
@@ -125,10 +136,22 @@ fun CustomTextField(
         unfocusedContainerColor = finalContainerColor
     )
 
-    val visualTransformation = if (!isPasswordVisible && isPasswordToggleDisplayed) {
-        PasswordVisualTransformation()
-    } else {
-        VisualTransformation.None
+    val inlineSuffixTransformation = remember(
+        inlineSuffix,
+        resolvedTextColor,
+        finalTextStyle
+    ) {
+        inlineSuffix?.takeIf { it.isNotEmpty() }?.let {
+            InlineSuffixTransformation(it, finalTextStyle.copy(color = resolvedTextColor))
+        }
+    }
+
+    val shouldShowInlineSuffix = inlineSuffixTransformation != null && value.isNotBlank()
+
+    val visualTransformation = when {
+        !isPasswordVisible && isPasswordToggleDisplayed -> PasswordVisualTransformation()
+        shouldShowInlineSuffix -> inlineSuffixTransformation!!
+        else -> VisualTransformation.None
     }
 
     val focusRequester = remember { FocusRequester() }
@@ -145,17 +168,29 @@ fun CustomTextField(
     }
 
     Column(modifier = containerModifier) {
-        if (title != null || isTextCharCountVisible) {
+        if (title != null || titleTrailingSlot != null || isTextCharCountVisible) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if (title != null) {
-                    Text(
-                        text = title,
-                        style = finalTitleTextStyle
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    if (title != null) {
+                        Text(
+                            text = title,
+                            style = finalTitleTextStyle
+                        )
+                    }
+
+                    if (titleTrailingSlot != null) {
+                        if (title != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        titleTrailingSlot()
+                    }
                 }
 
                 if (isTextCharCountVisible) {
@@ -195,13 +230,7 @@ fun CustomTextField(
                         .focusRequester(focusRequester),
                     enabled = enabled,
                     readOnly = readOnly,
-                    textStyle = finalTextStyle.copy(
-                        color = when {
-                            !enabled -> finalDisabledTextColor
-                            readOnly -> finalReadOnlyTextColor
-                            else -> finalEnabledTextColor
-                        }
-                    ),
+                    textStyle = finalTextStyle.copy(color = resolvedTextColor),
                     placeholder = {
                         Text(
                             text = hint,
@@ -228,6 +257,7 @@ fun CustomTextField(
                             }
                         }
                     } else trailingSlot,
+                    suffix = suffixSlot,
                     visualTransformation = visualTransformation,
                     keyboardOptions = keyboardOptions,
                     keyboardActions = KeyboardActions(

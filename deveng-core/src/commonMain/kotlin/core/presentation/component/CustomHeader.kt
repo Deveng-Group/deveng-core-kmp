@@ -2,6 +2,7 @@ package core.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
@@ -34,15 +36,15 @@ fun CustomHeader(
     rightIconDescription: String = stringResource(Res.string.shared_content_desc_icon_right),
     centerIconDescription: String = stringResource(Res.string.shared_content_desc_header_center_icon),
     isLeftIconButtonVisible: Boolean = true,
-    isRightIconButtonVisible: Boolean = false,
-    isCenterIconVisible: Boolean = centerIcon != null,
-    containerPadding: androidx.compose.foundation.layout.PaddingValues? = null,
+    isRightIconButtonVisible: Boolean = rightIcon != null,
+    isCenterIconVisible: Boolean = true,
+    containerPadding: PaddingValues? = null,
     backgroundColor: Color? = null,
     leftIconTint: Color? = null,
     rightIconTint: Color? = null,
     leftIconBackgroundColor: Color? = null,
     rightIconBackgroundColor: Color? = null,
-    iconButtonSize: androidx.compose.ui.unit.Dp? = null,
+    iconButtonSize: Dp? = null,
     onLeftIconClick: () -> Unit = {},
     onRightIconClick: () -> Unit = {}
 ) {
@@ -66,8 +68,7 @@ fun CustomHeader(
     ) {
         if (isLeftIconButtonVisible) {
             CustomIconButton(
-                modifier = Modifier
-                    .align(Alignment.CenterStart),
+                modifier = Modifier.align(Alignment.CenterStart),
                 iconModifier = Modifier,
                 buttonSize = finalIconButtonSize,
                 backgroundColor = finalLeftBackground,
@@ -92,8 +93,7 @@ fun CustomHeader(
 
         if (isRightIconButtonVisible && rightIcon != null) {
             CustomIconButton(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd),
+                modifier = Modifier.align(Alignment.CenterEnd),
                 iconModifier = Modifier,
                 buttonSize = finalIconButtonSize,
                 backgroundColor = finalRightBackground,

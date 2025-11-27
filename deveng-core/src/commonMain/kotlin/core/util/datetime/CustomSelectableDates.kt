@@ -44,7 +44,7 @@ class CustomSelectableDates : SelectableDates {
         val currentYear = Clock.System.now().toLocalDateTime(timeZone).year
 
         val isTargetYear = when (targetDates) {
-            TargetDates.PAST -> oldestDateTime.year <= year && year <= currentYear // 👈 < yerine <=
+            TargetDates.PAST -> oldestDateTime.year <= year && year <= currentYear
             TargetDates.FUTURE -> year >= currentYear
         }
 
