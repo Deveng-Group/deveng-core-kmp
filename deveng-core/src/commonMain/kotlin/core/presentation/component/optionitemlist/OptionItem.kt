@@ -44,12 +44,14 @@ fun OptionItem(
     onCheckboxClick: () -> Unit = {},
     onItemClick: () -> Unit,
     backgroundColor: Color? = null,
-    horizontalPadding: Dp? = null
+    horizontalPadding: Dp? = null,
+    checkIconTint: Color? = null
 ) {
     val componentTheme = LocalComponentTheme.current
     val optionItemTheme = componentTheme.optionItem
     val finalBackgroundColor = backgroundColor ?: optionItemTheme.backgroundColor
     val finalHorizontalPadding = horizontalPadding ?: optionItemTheme.horizontalPadding
+    val finalCheckIconTint = checkIconTint ?: optionItemTheme.checkIconTint
 
     Row(
         modifier = Modifier
@@ -105,7 +107,7 @@ fun OptionItem(
                 iconModifier = Modifier,
                 backgroundColor = optionItemTheme.checkIconBackgroundColor,
                 iconDescription = stringResource(Res.string.shared_cont_desc_icon_check_box),
-                iconTint = optionItemTheme.checkIconTint,
+                iconTint = finalCheckIconTint,
                 onClick = { onCheckboxClick() }
             )
         }

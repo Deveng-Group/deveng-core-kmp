@@ -33,9 +33,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
+import core.presentation.component.CustomDropDownMenu
 import core.presentation.component.CustomHeader
 import core.presentation.component.CustomIconButton
-import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.LabeledSwitch
 import core.presentation.component.PickerField
 import core.presentation.component.RoundedSurface
@@ -43,12 +43,15 @@ import core.presentation.component.SearchField
 import core.presentation.component.alertdialog.CustomAlertDialog
 import core.presentation.component.datepicker.CustomDatePicker
 import core.presentation.component.datepicker.CustomDateRangePicker
+import core.presentation.component.json.JsonViewer
 import core.presentation.component.optionitemlist.OptionItemLazyListDialog
 import core.presentation.component.optionitemlist.OptionItemList
 import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
+import core.presentation.component.textfield.CustomTextField
+import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
 import core.presentation.theme.AppTheme
 import core.presentation.theme.BoldTextStyle
@@ -59,6 +62,7 @@ import core.presentation.theme.DatePickerTheme
 import core.presentation.theme.DateRangePickerTheme
 import core.presentation.theme.HeaderTheme
 import core.presentation.theme.IconButtonTheme
+import core.presentation.theme.JsonViewerTheme
 import core.presentation.theme.LabeledSwitchTheme
 import core.presentation.theme.MediumTextStyle
 import core.presentation.theme.OptionItemListTheme
@@ -226,6 +230,11 @@ internal fun App() {
             indicatorHeight = 8.dp,
             indicatorSpacing = 3.dp,
             indicatorCornerRadius = 3.dp
+        ),
+        jsonViewer = JsonViewerTheme(
+            containerColor = Color(0xFFF9F9F9),
+            buttonBackgroundColor = Color(0xFF1976D2),
+            buttonTextColor = Color.White
         )
     )
 
@@ -262,10 +271,33 @@ private fun ThemingDemo() {
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var searchText by remember { mutableStateOf("") }
     var amountValue by remember { mutableStateOf("125") }
+    var borderOverrideValue by remember { mutableStateOf("") }
+    var dateTimeValue by remember { mutableStateOf("") }
+    var isJsonCopied by remember { mutableStateOf(false) }
     var currentPage by remember { mutableStateOf(0) }
     val selectableDates = remember { CustomSelectableDates() }
     val selectableDatesPast = remember { CustomSelectableDates() }
     val selectableDatesFuture = remember { CustomSelectableDates() }
+    val priorityOptions = remember {
+        listOf("Critical", "High", "Medium", "Low")
+    }
+    val statusOptions = remember {
+        listOf(
+            "Open",
+            "In Progress",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved",
+            "Resolved"
+        )
+    }
+    var selectedPriority by remember { mutableStateOf<String?>(null) }
+    var selectedStatus by remember { mutableStateOf<String?>(null) }
     val lazyListState = rememberLazyListState()
 
     LazyColumn(
@@ -501,13 +533,114 @@ private fun ThemingDemo() {
                     titleTrailingSlot = {
                         Text(
                             text = "Max 3 digits",
-                            style = RegularTextStyle().copy(fontSize = 12.sp, color = Color(0xFF94A3B8))
+                            style = RegularTextStyle().copy(
+                                fontSize = 12.sp,
+                                color = Color(0xFF94A3B8)
+                            )
                         )
                     },
                     maxLength = 3,
                     onValueChange = { newValue ->
                         amountValue = newValue.filter { it.isDigit() }
                     }
+                )
+
+                CustomTextField(
+                    title = "Border Overrides",
+                    value = borderOverrideValue,
+                    hint = "Custom focus colors",
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF94A3B8),
+                    focusedBorderWidth = 2.dp,
+                    unfocusedBorderWidth = 1.dp,
+                    onValueChange = { borderOverrideValue = it }
+                )
+
+                CustomTextField(
+                    title = "Date Time",
+                    value = dateTimeValue,
+                    hint = "DD-MM-YYYY HH:MM",
+                    maxLength = 12,
+                    keyboardType = KeyboardType.Number,
+                    visualTransformation = DateTimeVisualTransformation(),
+                    onValueChange = { newValue ->
+                        dateTimeValue = newValue.filter { it.isDigit() }
+                    }
+                )
+
+                SectionTitle("CustomDropDownMenu Examples")
+
+                CustomDropDownMenu(
+                    title = "Priority",
+                    hintMessage = "Select priority",
+                    items = priorityOptions,
+                    selectedItem = selectedPriority,
+                    onItemSelected = { selectedPriority = it },
+                    isScrollBarVisible = false
+                )
+
+                CustomDropDownMenu(
+                    title = "Status",
+                    hintMessage = "Pick status",
+                    backgroundColor = Color(0xFF111827),
+                    textColor = Color(0xFFF8FAFC),
+                    unfocusedBorderColor = Color(0xFF475569),
+                    focusedBorderColor = Color(0xFF38BDF8),
+                    dividerColor = Color(0xFF1E293B),
+                    scrollBarColor = Color(0xFF38BDF8),
+                    isScrollBarVisible = true,
+                    items = statusOptions,
+                    selectedItem = selectedStatus,
+                    onItemSelected = { selectedStatus = it }
+                )
+
+                SectionTitle("JsonViewer Examples")
+
+                val sampleJson = remember {
+                    """
+                    {
+                        "id": 1,
+                        "name": "John Doe",
+                        "email": "john@example.com",
+                        "age": 28,
+                        "isActive": true,
+                        "address": {
+                            "street": "123 Main St",
+                            "city": "New York",
+                            "zipCode": "10001"
+                        },
+                        "tags": ["developer", "kotlin", "compose"]
+                    }
+                    """.trimIndent()
+                }
+
+                JsonViewer(
+                    title = "User Data",
+                    json = sampleJson,
+                    copyText = "Copy",
+                    copyIcon = Res.drawable.ic_cyclone,
+                    copyIconDescription = "",
+                    copiedText = "Copied",
+                    copiedIcon = Res.drawable.ic_cyclone,
+                    copiedIconDescription = "",
+                    isJsonCopied = isJsonCopied,
+                    onClickCopyJsonIcon = { isJsonCopied = true }
+                )
+
+                JsonViewer(
+                    title = "Custom Styled JSON",
+                    json = """{"status":"success","data":{"count":42}}""",
+                    containerColor = Color(0xFFF5F5F5),
+                    buttonColor = Color(0xFF1976D2),
+                    buttonTextColor = Color.White,
+                    copyText = "Copy JSON",
+                    copyIcon = Res.drawable.ic_cyclone,
+                    copyIconDescription = "",
+                    copiedText = "Copied!",
+                    copiedIcon = Res.drawable.ic_cyclone,
+                    copiedIconDescription = "",
+                    isJsonCopied = isJsonCopied,
+                    onClickCopyJsonIcon = { isJsonCopied = true }
                 )
 
                 SectionTitle("SearchField Examples")

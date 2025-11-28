@@ -29,6 +29,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.component.RoundedSurface
 import core.presentation.component.Slot
@@ -67,6 +69,8 @@ fun CustomTextField(
     isBorderActive: Boolean? = null,
     shape: CornerBasedShape? = null,
     borderStroke: BorderStroke? = null,
+    focusedBorderWidth: Dp? = null,
+    unfocusedBorderWidth: Dp? = null,
     maxLines: Int = Int.MAX_VALUE,
     singleLine: Boolean = true,
     isEditable: Boolean = true,
@@ -97,6 +101,9 @@ fun CustomTextField(
     readOnlyTextColor: Color? = null,
     hintTextStyle: TextStyle? = null,
     errorTextStyle: TextStyle? = null,
+    focusedBorderColor: Color? = null,
+    unfocusedBorderColor: Color? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     onValueChange: (String) -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
@@ -112,8 +119,6 @@ fun CustomTextField(
     val finalShape = shape ?: customTextFieldTheme.containerShape
     val finalBorderStroke = borderStroke ?: customTextFieldTheme.borderStroke
     val borderEnabled = isBorderActive ?: customTextFieldTheme.isBorderActive
-    val appliedBorderStroke =
-        if (borderEnabled) finalBorderStroke else BorderStroke(0.dp, Color.Transparent)
     val finalContainerColor = containerColor ?: customTextFieldTheme.containerColor
     val finalDisabledContainerColor =
         disabledContainerColor ?: customTextFieldTheme.disabledContainerColor
@@ -148,7 +153,8 @@ fun CustomTextField(
 
     val shouldShowInlineSuffix = inlineSuffixTransformation != null && value.isNotBlank()
 
-    val visualTransformation = when {
+    val finalVisualTransformation = when {
+        visualTransformation != VisualTransformation.None -> visualTransformation
         !isPasswordVisible && isPasswordToggleDisplayed -> PasswordVisualTransformation()
         shouldShowInlineSuffix -> inlineSuffixTransformation!!
         else -> VisualTransformation.None
@@ -165,6 +171,22 @@ fun CustomTextField(
         if (requestFocus) {
             focusRequester.requestFocus()
         }
+    }
+
+    val focusedBorderBrushOverride = focusedBorderColor?.let { SolidColor(it) }
+    val unfocusedBorderBrushOverride = unfocusedBorderColor?.let { SolidColor(it) }
+    val focusedStroke = BorderStroke(
+        width = focusedBorderWidth ?: finalBorderStroke.width,
+        brush = focusedBorderBrushOverride ?: finalBorderStroke.brush
+    )
+    val unfocusedStroke = BorderStroke(
+        width = unfocusedBorderWidth ?: finalBorderStroke.width,
+        brush = unfocusedBorderBrushOverride ?: finalBorderStroke.brush
+    )
+    val appliedBorderStroke = when {
+        !borderEnabled -> BorderStroke(0.dp, Color.Transparent)
+        isFocused -> focusedStroke
+        else -> unfocusedStroke
     }
 
     Column(modifier = containerModifier) {
@@ -258,7 +280,7 @@ fun CustomTextField(
                         }
                     } else trailingSlot,
                     suffix = suffixSlot,
-                    visualTransformation = visualTransformation,
+                    visualTransformation = finalVisualTransformation,
                     keyboardOptions = keyboardOptions,
                     keyboardActions = KeyboardActions(
                         onDone = {

@@ -31,4 +31,9 @@
     <string name="date_picker">Date picker</string>
     <string name="shared_content_desc_icon_right">Right icon</string>
     <string name="shared_content_desc_header_center_icon">Header center icon</string>
+    <string name="shared_content_description_angle_down">Dropdown menu icon</string>
+    <string name="shared_content_desc_icon_copy">Copy icon</string>
+    <string name="shared_content_desc_icon_copied">Copied icon</string>
+    <string name="shared_copy">Copy</string>
+    <string name="shared_copied">Copied</string>
 </resources>
