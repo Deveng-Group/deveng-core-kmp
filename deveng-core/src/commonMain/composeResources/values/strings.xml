@@ -31,4 +31,9 @@
     <string name="date_picker">Tarih seçici</string>
     <string name="shared_content_desc_icon_right">Sağ ikon</string>
     <string name="shared_content_desc_header_center_icon">Başlık merkezi ikonu</string>
+    <string name="shared_content_description_angle_down">Açılır menü ikonu</string>
+    <string name="shared_content_desc_icon_copy">Kopyala ikonu</string>
+    <string name="shared_content_desc_icon_copied">Kopyalandı ikonu</string>
+    <string name="shared_copy">Kopyala</string>
+    <string name="shared_copied">Kopyalandı</string>
 </resources>

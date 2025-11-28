@@ -126,6 +126,30 @@ data class PickerFieldTheme(
 )
 
 /**
+ * Theme for CustomDropDownMenu component
+ */
+data class CustomDropDownMenuTheme(
+    val titleColor: Color = Color.White,
+    val backgroundColor: Color = CustomBlackColor,
+    val textColor: Color = Color.White,
+    val hintTextColor: Color = CustomGrayHintColor,
+    val unfocusedBorderColor: Color = Color.Transparent,
+    val focusedBorderColor: Color = CustomGrayColor,
+    val dividerColor: Color = CustomGrayHintColor,
+    val scrollBarColor: Color = CustomGrayColor,
+    val scrollBarTrackColor: Color = CustomGrayHintColor,
+    val isScrollBarVisible: Boolean = false,
+    val shape: CornerBasedShape = RoundedCornerShape(12.dp),
+    val fieldTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        lineHeight = 20.sp
+    ),
+    val menuItemTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp
+    )
+)
+
+/**
  * Theme for CustomTextField component
  */
 data class CustomTextFieldTheme(
@@ -308,6 +332,33 @@ data class ProgressIndicatorBarsTheme(
 )
 
 /**
+ * Theme for JsonViewer component
+ */
+data class JsonViewerTheme(
+    val titleTextStyle: TextStyle = TextStyle(
+        fontSize = 16.sp,
+        color = CustomBlackColor
+    ),
+    val containerColor: Color = Color.White,
+    val containerShape: CornerBasedShape = RoundedCornerShape(16.dp),
+    val containerPadding: Dp = 20.dp,
+    val jsonTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = CustomBlackColor
+    ),
+    val buttonBackgroundColor: Color = PrimaryColor,
+    val buttonTextColor: Color = Color.White,
+    val buttonTextStyle: TextStyle = TextStyle(
+        fontSize = 12.sp
+    ),
+    val buttonShape: CornerBasedShape = RoundedCornerShape(12.dp),
+    val buttonHeight: Dp = 40.dp,
+    val buttonIconSize: Dp = 15.dp,
+    val copyIconTint: Color = Color.White,
+    val copiedIconTint: Color = Color.White
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -351,6 +402,7 @@ data class ComponentTheme(
     val iconButton: IconButtonTheme = IconButtonTheme(),
     val labeledSwitch: LabeledSwitchTheme = LabeledSwitchTheme(),
     val pickerField: PickerFieldTheme = PickerFieldTheme(),
+    val customDropDownMenu: CustomDropDownMenuTheme = CustomDropDownMenuTheme(),
     val customTextField: CustomTextFieldTheme = CustomTextFieldTheme(),
     val datePicker: DatePickerTheme = DatePickerTheme(),
     val dateRangePicker: DateRangePickerTheme = DateRangePickerTheme(),
@@ -360,7 +412,8 @@ data class ComponentTheme(
     val optionItem: OptionItemTheme = OptionItemTheme(),
     val optionItemList: OptionItemListTheme = OptionItemListTheme(),
     val scrollbarWithScrollState: ScrollbarWithScrollStateTheme = ScrollbarWithScrollStateTheme(),
-    val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme()
+    val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
+    val jsonViewer: JsonViewerTheme = JsonViewerTheme()
 )
 
 /**
