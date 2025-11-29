@@ -11,17 +11,17 @@ import global.deveng.deveng_core.generated.resources.urbanistregular
 import global.deveng.deveng_core.generated.resources.urbanistsemibold
 import org.jetbrains.compose.resources.Font
 
-val REGULAR_FONT_WEIGHT = FontWeight(400)
-val MEDIUM_FONT_WEIGHT = FontWeight(500)
-val SEMI_BOLD_FONT_WEIGHT = FontWeight(600)
-val BOLD_FONT_WEIGHT = FontWeight(700)
+val CORE_REGULAR_FONT_WEIGHT = FontWeight(400)
+val CORE_MEDIUM_FONT_WEIGHT = FontWeight(500)
+val CORE_SEMI_BOLD_FONT_WEIGHT = FontWeight(600)
+val CORE_BOLD_FONT_WEIGHT = FontWeight(700)
 
 @Composable
-fun UrbanistTextFont() = FontFamily(
-    Font(resource = Res.font.urbanistregular, weight = REGULAR_FONT_WEIGHT),
-    Font(resource = Res.font.urbanistmedium, weight = MEDIUM_FONT_WEIGHT),
-    Font(resource = Res.font.urbanistsemibold, weight = SEMI_BOLD_FONT_WEIGHT),
-    Font(resource = Res.font.urbanistbold, weight = BOLD_FONT_WEIGHT)
+private fun UrbanistTextFont() = FontFamily(
+    Font(resource = Res.font.urbanistregular, weight = CORE_REGULAR_FONT_WEIGHT),
+    Font(resource = Res.font.urbanistmedium, weight = CORE_MEDIUM_FONT_WEIGHT),
+    Font(resource = Res.font.urbanistsemibold, weight = CORE_SEMI_BOLD_FONT_WEIGHT),
+    Font(resource = Res.font.urbanistbold, weight = CORE_BOLD_FONT_WEIGHT)
 )
 
 /**
@@ -34,7 +34,7 @@ fun RegularTextStyle(): TextStyle {
     val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
         fontFamily = fontFamily,
-        fontWeight = REGULAR_FONT_WEIGHT
+        fontWeight = CORE_REGULAR_FONT_WEIGHT
     )
 }
 
@@ -48,7 +48,7 @@ fun MediumTextStyle(): TextStyle {
     val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
         fontFamily = fontFamily,
-        fontWeight = MEDIUM_FONT_WEIGHT
+        fontWeight = CORE_MEDIUM_FONT_WEIGHT
     )
 }
 
@@ -62,7 +62,7 @@ fun SemiBoldTextStyle(): TextStyle {
     val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
         fontFamily = fontFamily,
-        fontWeight = SEMI_BOLD_FONT_WEIGHT
+        fontWeight = CORE_SEMI_BOLD_FONT_WEIGHT
     )
 }
 
@@ -76,6 +76,6 @@ fun BoldTextStyle(): TextStyle {
     val fontFamily = componentTheme.typography.fontFamily ?: UrbanistTextFont()
     return TextStyle(
         fontFamily = fontFamily,
-        fontWeight = BOLD_FONT_WEIGHT
+        fontWeight = CORE_BOLD_FONT_WEIGHT
     )
 }
