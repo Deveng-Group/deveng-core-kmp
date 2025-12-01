@@ -12,6 +12,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.DrawableResource
@@ -359,6 +360,16 @@ data class JsonViewerTheme(
 )
 
 /**
+ * Theme for LabeledImageBox component
+ */
+data class LabeledImageBoxTheme(
+    val containerWidth: Dp = 112.dp,
+    val containerHeight: Dp = 100.dp,
+    val containerShape: CornerBasedShape = RoundedCornerShape(16.dp),
+    val labelFontSize: TextUnit = 8.sp
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -413,7 +424,8 @@ data class ComponentTheme(
     val optionItemList: OptionItemListTheme = OptionItemListTheme(),
     val scrollbarWithScrollState: ScrollbarWithScrollStateTheme = ScrollbarWithScrollStateTheme(),
     val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
-    val jsonViewer: JsonViewerTheme = JsonViewerTheme()
+    val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
+    val labeledImageBox: LabeledImageBoxTheme = LabeledImageBoxTheme()
 )
 
 /**

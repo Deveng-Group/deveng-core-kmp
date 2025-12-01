@@ -1,6 +1,7 @@
 package global.deveng.core
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,8 @@ import core.presentation.component.alertdialog.CustomAlertDialog
 import core.presentation.component.datepicker.CustomDatePicker
 import core.presentation.component.datepicker.CustomDateRangePicker
 import core.presentation.component.json.JsonViewer
+import core.presentation.component.labeledslot.Label
+import core.presentation.component.labeledslot.LabeledSlot
 import core.presentation.component.optionitemlist.OptionItemLazyListDialog
 import core.presentation.component.optionitemlist.OptionItemList
 import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
@@ -54,9 +57,12 @@ import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
 import core.presentation.theme.AppTheme
-import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.ButtonTheme
 import core.presentation.theme.ComponentTheme
+import core.presentation.theme.CoreBoldTextStyle
+import core.presentation.theme.CoreMediumTextStyle
+import core.presentation.theme.CoreRegularTextStyle
+import core.presentation.theme.CoreSemiBoldTextStyle
 import core.presentation.theme.CustomTextFieldTheme
 import core.presentation.theme.DatePickerTheme
 import core.presentation.theme.DateRangePickerTheme
@@ -64,15 +70,12 @@ import core.presentation.theme.HeaderTheme
 import core.presentation.theme.IconButtonTheme
 import core.presentation.theme.JsonViewerTheme
 import core.presentation.theme.LabeledSwitchTheme
-import core.presentation.theme.CoreMediumTextStyle
 import core.presentation.theme.OptionItemListTheme
 import core.presentation.theme.OptionItemTheme
 import core.presentation.theme.ProgressIndicatorBarsTheme
-import core.presentation.theme.CoreRegularTextStyle
 import core.presentation.theme.ScrollbarWithLazyListStateTheme
 import core.presentation.theme.ScrollbarWithScrollStateTheme
 import core.presentation.theme.SearchFieldTheme
-import core.presentation.theme.CoreSemiBoldTextStyle
 import core.presentation.theme.SurfaceTheme
 import core.presentation.theme.TypographyTheme
 import core.util.datetime.CustomSelectableDates
@@ -381,6 +384,124 @@ private fun ThemingDemo() {
                         )
                     }
                 }
+
+                SectionTitle("LabeledSlot Examples")
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    LabeledSlot(
+                        labels = listOf(
+                            Label(
+                                text = "NEW",
+                                alignment = Alignment.TopEnd,
+                                backgroundColor = Color(0xFFD32F2F),
+                                textColor = Color.White,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        ),
+                        contentSlot = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Image",
+                                    style = CoreMediumTextStyle().copy(fontSize = 14.sp)
+                                )
+                            }
+                        }
+                    )
+
+                    LabeledSlot(
+                        labels = listOf(
+                            Label(
+                                text = "SALE",
+                                alignment = Alignment.TopStart,
+                                backgroundColor = Color(0xFF1976D2),
+                                textColor = Color.White,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        ),
+                        contentSlot = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Image",
+                                    style = CoreMediumTextStyle().copy(fontSize = 14.sp)
+                                )
+                            }
+                        }
+                    )
+                }
+
+                LabeledSlot(
+                    labels = listOf(
+                        Label(
+                            text = "TOP",
+                            alignment = Alignment.TopStart,
+                            backgroundColor = Color(0xFF4CAF50),
+                            textColor = Color.White,
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                        Label(
+                            text = "HOT",
+                            alignment = Alignment.TopEnd,
+                            backgroundColor = Color(0xFFE91E63),
+                            textColor = Color.White,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    ),
+                    contentSlot = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Multiple Labels",
+                                style = CoreMediumTextStyle().copy(fontSize = 14.sp)
+                            )
+                        }
+                    }
+                )
+
+                LabeledSlot(
+                    modifier = Modifier.fillMaxWidth(),
+                    labels = listOf(
+                        Label(
+                            text = "CUSTOM",
+                            alignment = Alignment.BottomCenter,
+                            backgroundColor = Color(0xFF1976D2),
+                            textColor = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    ),
+                    containerWidth = null,
+                    containerHeight = 120.dp,
+                    containerShape = RoundedCornerShape(20.dp),
+                    contentSlot = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFE3F2FD)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Custom Size & Shape",
+                                style = CoreSemiBoldTextStyle().copy(fontSize = 16.sp)
+                            )
+                        }
+                    }
+                )
 
                 SectionTitle("Typography Examples")
 
