@@ -181,6 +181,7 @@ data class CustomTextFieldTheme(
     val textColor: Color = CoreCustomBlackColor,
     val disabledTextColor: Color = CoreCustomGrayHintColor,
     val readOnlyTextColor: Color = CoreCustomGrayHintColor,
+    val cursorColor: Color = CoreCustomBlackColor,
     val isBorderActive: Boolean = true
 )
 
@@ -370,6 +371,37 @@ data class LabeledImageBoxTheme(
 )
 
 /**
+ * Theme for CustomSideMenu component
+ */
+data class SideMenuTheme(
+    val sideMenuExpandedWidth: Dp = 256.dp,
+    val sideMenuCollapsedWidth: Dp = 80.dp,
+    val sideMenuBackgroundColor: Color = CoreSecondaryColor,
+    val sideMenuShape: CornerBasedShape = RoundedCornerShape(30.dp),
+    val verticalDividerColor: Color = CoreCustomGrayHintColor,
+    val verticalDividerThickness: Dp = 1.dp,
+    val verticalDividerTopBottomPadding: Dp = 25.dp,
+    val sideMenuSectionSeparatorColor: Color = CoreCustomGrayHintColor.copy(alpha = 0.2f),
+    val sideMenuItemBackgroundColor: Color = Color.Yellow,
+    val collapsedHorizontalPadding: Dp = 16.dp,
+    val collapsedVerticalPadding: Dp = 30.dp,
+    val collapsedHeaderItemSpacing: Dp = 16.dp,
+    val collapsedItemsSpacing: Dp = 10.dp,
+    val collapsedItemSize: Dp = 48.dp,
+    val collapsedItemCornerRadius: Dp = 8.dp,
+    val collapsedItemIconSize: Dp = 20.dp,
+    val expandedHorizontalPadding: Dp = 16.dp,
+    val expandedVerticalPadding: Dp = 30.dp,
+    val expandedHeaderItemSpacing: Dp = 16.dp,
+    val expandedItemsSpacing: Dp = 10.dp,
+    val expandedItemHeight: Dp = 48.dp,
+    val expandedItemSpacedBy: Dp = 10.dp,
+    val expandedItemCornerRadius: Dp = 20.dp,
+    val expandedItemIconSize: Dp = 20.dp,
+    val expandedItemStartPadding: Dp = 14.dp
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -425,7 +457,8 @@ data class ComponentTheme(
     val scrollbarWithScrollState: ScrollbarWithScrollStateTheme = ScrollbarWithScrollStateTheme(),
     val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
     val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
-    val labeledImageBox: LabeledImageBoxTheme = LabeledImageBoxTheme()
+    val labeledImageBox: LabeledImageBoxTheme = LabeledImageBoxTheme(),
+    val sideMenu: SideMenuTheme = SideMenuTheme()
 )
 
 /**
