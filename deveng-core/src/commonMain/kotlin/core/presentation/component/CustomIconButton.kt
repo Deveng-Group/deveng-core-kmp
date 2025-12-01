@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.theme.AppTheme
-import core.presentation.theme.CustomBlackColor
+import core.presentation.theme.CoreCustomBlackColor
 import core.presentation.theme.LocalComponentTheme
-import core.presentation.theme.PrimaryColor
+import core.presentation.theme.CorePrimaryColor
 import core.util.debouncedCombinedClickable
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_ic_arrow_next
@@ -84,7 +84,7 @@ fun CustomIconButtonPreview() {
             modifier = Modifier
                 .border(
                     width = 1.dp,
-                    color = CustomBlackColor,
+                    color = CoreCustomBlackColor,
                     shape = CircleShape
                 ),
             iconModifier = Modifier
@@ -93,7 +93,7 @@ fun CustomIconButtonPreview() {
                     width = 10.dp
                 ),
             buttonSize = 66.dp,
-            backgroundColor = PrimaryColor,
+            backgroundColor = CorePrimaryColor,
             icon = Res.drawable.shared_ic_arrow_next,
             iconDescription = "",
             iconTint = Color.White,

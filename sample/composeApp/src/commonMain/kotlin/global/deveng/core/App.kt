@@ -54,7 +54,7 @@ import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
 import core.presentation.theme.AppTheme
-import core.presentation.theme.BoldTextStyle
+import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.ButtonTheme
 import core.presentation.theme.ComponentTheme
 import core.presentation.theme.CustomTextFieldTheme
@@ -64,15 +64,15 @@ import core.presentation.theme.HeaderTheme
 import core.presentation.theme.IconButtonTheme
 import core.presentation.theme.JsonViewerTheme
 import core.presentation.theme.LabeledSwitchTheme
-import core.presentation.theme.MediumTextStyle
+import core.presentation.theme.CoreMediumTextStyle
 import core.presentation.theme.OptionItemListTheme
 import core.presentation.theme.OptionItemTheme
 import core.presentation.theme.ProgressIndicatorBarsTheme
-import core.presentation.theme.RegularTextStyle
+import core.presentation.theme.CoreRegularTextStyle
 import core.presentation.theme.ScrollbarWithLazyListStateTheme
 import core.presentation.theme.ScrollbarWithScrollStateTheme
 import core.presentation.theme.SearchFieldTheme
-import core.presentation.theme.SemiBoldTextStyle
+import core.presentation.theme.CoreSemiBoldTextStyle
 import core.presentation.theme.SurfaceTheme
 import core.presentation.theme.TypographyTheme
 import core.util.datetime.CustomSelectableDates
@@ -100,7 +100,7 @@ internal fun App() {
             contentColor = Color.White,
             disabledContainerColor = Color(0xFF1976D2).copy(alpha = 0.4f),
             disabledContentColor = Color.White.copy(alpha = 0.4f),
-            defaultTextStyle = SemiBoldTextStyle().copy(
+            defaultTextStyle = CoreSemiBoldTextStyle().copy(
                 fontSize = 18.sp,
                 textAlign = TextAlign.Center
             )
@@ -117,9 +117,9 @@ internal fun App() {
             negativeButtonColor = Color.White,
             negativeButtonTextColor = Color(0xFF1A1C1C),
             iconColor = Color(0xFF374151),
-            titleTextStyle = BoldTextStyle().copy(fontSize = 20.sp),
-            descriptionTextStyle = RegularTextStyle().copy(fontSize = 16.sp),
-            buttonTextStyle = MediumTextStyle().copy(fontSize = 16.sp)
+            titleTextStyle = CoreBoldTextStyle().copy(fontSize = 20.sp),
+            descriptionTextStyle = CoreRegularTextStyle().copy(fontSize = 16.sp),
+            buttonTextStyle = CoreMediumTextStyle().copy(fontSize = 16.sp)
         ),
         // Custom surface theme
         surface = SurfaceTheme(
@@ -133,7 +133,7 @@ internal fun App() {
             shadowElevation = 4.dp
         ),
         labeledSwitch = LabeledSwitchTheme(
-            labelTextStyle = MediumTextStyle().copy(
+            labelTextStyle = CoreMediumTextStyle().copy(
                 fontSize = 15.sp,
                 color = Color(0xFF0F172A)
             ),
@@ -144,11 +144,11 @@ internal fun App() {
         ),
         optionItem = OptionItemTheme(
             backgroundColor = Color.White,
-            textStyle = MediumTextStyle().copy(
+            textStyle = CoreMediumTextStyle().copy(
                 fontSize = 16.sp,
                 color = Color(0xFF0F172A)
             ),
-            boldLeadingTextStyle = BoldTextStyle().copy(
+            boldLeadingTextStyle = CoreBoldTextStyle().copy(
                 fontSize = 16.sp,
                 color = Color(0xFFD32F2F),
                 textDecoration = TextDecoration.Underline
@@ -166,11 +166,11 @@ internal fun App() {
             containerShape = RoundedCornerShape(20.dp),
             borderStroke = BorderStroke(1.dp, Color(0xFFE0E7FF)),
             containerColor = Color.White,
-            textStyle = MediumTextStyle().copy(
+            textStyle = CoreMediumTextStyle().copy(
                 fontSize = 16.sp,
                 color = Color(0xFF0F172A)
             ),
-            hintTextStyle = MediumTextStyle().copy(
+            hintTextStyle = CoreMediumTextStyle().copy(
                 fontSize = 16.sp,
                 color = Color(0xFF94A3B8)
             )
@@ -316,7 +316,7 @@ private fun ThemingDemo() {
             ) {
                 Text(
                     text = "ComponentTheme Demo",
-                    style = BoldTextStyle().copy(fontSize = 24.sp),
+                    style = CoreBoldTextStyle().copy(fontSize = 24.sp),
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
@@ -335,7 +335,7 @@ private fun ThemingDemo() {
 
                 CustomButton(
                     text = "Custom Typography",
-                    textStyle = BoldTextStyle().copy(fontSize = 20.sp),
+                    textStyle = CoreBoldTextStyle().copy(fontSize = 20.sp),
                     onClick = { }
                 )
 
@@ -359,7 +359,7 @@ private fun ThemingDemo() {
                     ) {
                         Text(
                             text = "Themed Surface",
-                            style = MediumTextStyle().copy(fontSize = 16.sp)
+                            style = CoreMediumTextStyle().copy(fontSize = 16.sp)
                         )
                     }
                 }
@@ -377,7 +377,7 @@ private fun ThemingDemo() {
                     ) {
                         Text(
                             text = "Custom Color Surface",
-                            style = SemiBoldTextStyle().copy(fontSize = 16.sp)
+                            style = CoreSemiBoldTextStyle().copy(fontSize = 16.sp)
                         )
                     }
                 }
@@ -386,27 +386,27 @@ private fun ThemingDemo() {
 
                 Text(
                     text = "Regular Text (400)",
-                    style = RegularTextStyle().copy(fontSize = 16.sp)
+                    style = CoreRegularTextStyle().copy(fontSize = 16.sp)
                 )
 
                 Text(
                     text = "Medium Text (500)",
-                    style = MediumTextStyle().copy(fontSize = 16.sp)
+                    style = CoreMediumTextStyle().copy(fontSize = 16.sp)
                 )
 
                 Text(
                     text = "SemiBold Text (600)",
-                    style = SemiBoldTextStyle().copy(fontSize = 16.sp)
+                    style = CoreSemiBoldTextStyle().copy(fontSize = 16.sp)
                 )
 
                 Text(
                     text = "Bold Text (700)",
-                    style = BoldTextStyle().copy(fontSize = 16.sp)
+                    style = CoreBoldTextStyle().copy(fontSize = 16.sp)
                 )
 
                 Text(
                     text = "Custom Styled Text",
-                    style = SemiBoldTextStyle().copy(
+                    style = CoreSemiBoldTextStyle().copy(
                         fontSize = 18.sp,
                         color = Color(0xFF1976D2)
                     )
@@ -455,7 +455,7 @@ private fun ThemingDemo() {
 
                 Text(
                     text = "Entire page now uses a LazyColumn with the red 15.dp scrollbar.",
-                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    style = CoreRegularTextStyle().copy(fontSize = 14.sp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -527,13 +527,13 @@ private fun ThemingDemo() {
                     suffixSlot = {
                         Text(
                             text = "kg",
-                            style = MediumTextStyle().copy(color = Color(0xFF0F172A))
+                            style = CoreMediumTextStyle().copy(color = Color(0xFF0F172A))
                         )
                     },
                     titleTrailingSlot = {
                         Text(
                             text = "Max 3 digits",
-                            style = RegularTextStyle().copy(
+                            style = CoreRegularTextStyle().copy(
                                 fontSize = 12.sp,
                                 color = Color(0xFF94A3B8)
                             )
@@ -753,7 +753,7 @@ private fun ThemingDemo() {
 
                 Text(
                     text = "Selected items: ${selectedOptions.joinToString().ifBlank { "None" }}",
-                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    style = CoreRegularTextStyle().copy(fontSize = 14.sp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -817,7 +817,7 @@ private fun ThemingDemo() {
 
                 Text(
                     text = "Scrollbar Example",
-                    style = RegularTextStyle().copy(fontSize = 14.sp),
+                    style = CoreRegularTextStyle().copy(fontSize = 14.sp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -873,7 +873,7 @@ private fun ThemingDemo() {
                 Text(
                     text = "Scrollable item #$index",
                     modifier = Modifier.padding(16.dp),
-                    style = MediumTextStyle().copy(fontSize = 16.sp)
+                    style = CoreMediumTextStyle().copy(fontSize = 16.sp)
                 )
             }
         }
@@ -918,7 +918,7 @@ private fun ThemingDemo() {
 private fun SectionTitle(text: String) {
     Text(
         text = text,
-        style = SemiBoldTextStyle().copy(
+        style = CoreSemiBoldTextStyle().copy(
             fontSize = 18.sp,
             color = Color(0xFF1976D2)
         ),

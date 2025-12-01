@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.RoundedSurface
 import core.presentation.component.Slot
 import core.presentation.theme.AppTheme
-import core.presentation.theme.CustomGrayHintColor
+import core.presentation.theme.CoreCustomGrayHintColor
 import core.presentation.theme.LocalComponentTheme
 import core.util.EMPTY
 import global.deveng.deveng_core.generated.resources.Res
@@ -271,7 +271,7 @@ fun CustomTextField(
                                     painter = painterResource(
                                         if (isPasswordVisible) Res.drawable.shared_ic_password_visible else Res.drawable.shared_ic_password_invisible
                                     ),
-                                    tint = CustomGrayHintColor,
+                                    tint = CoreCustomGrayHintColor,
                                     contentDescription = stringResource(
                                         if (isPasswordVisible) Res.string.shared_cont_desc_icon_password_visible else Res.string.shared_cont_desc_icon_password_invisible
                                     )

@@ -29,8 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.pagination.model.PaginatedListState
-import core.presentation.theme.CustomBlackColor
-import core.presentation.theme.MediumTextStyle
+import core.presentation.theme.CoreCustomBlackColor
+import core.presentation.theme.CoreMediumTextStyle
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.abs
@@ -110,9 +110,9 @@ fun <T> PaginatedListView(
     prefetchThreshold: Int = 10,
     isReverseLayout: Boolean = false,
     itemKey: ((T) -> Any)? = null,
-    textStyle: TextStyle = MediumTextStyle().copy(
+    textStyle: TextStyle = CoreMediumTextStyle().copy(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     emptyListText: String? = null,
     errorTextProvider: @Composable ((Throwable?) -> String)? = null,

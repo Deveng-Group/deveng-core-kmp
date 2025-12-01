@@ -19,15 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
 import core.presentation.component.Slot
 import core.presentation.theme.AppTheme
-import core.presentation.theme.BoldTextStyle
-import core.presentation.theme.CustomBlackColor
-import core.presentation.theme.CustomDividerColor
+import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.LocalComponentTheme
-import core.presentation.theme.MediumTextStyle
+import core.presentation.theme.CoreMediumTextStyle
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_ic_arrow_left
 import org.jetbrains.compose.resources.DrawableResource
@@ -110,7 +107,7 @@ fun CustomAlertDialog(
                                 horizontal = 30.dp
                             ),
                         text = description,
-                        style = MediumTextStyle().copy(
+                        style = CoreMediumTextStyle().copy(
                             fontSize = alertDialogTheme.descriptionTextStyle.fontSize,
                             textAlign = TextAlign.Center
                         ),
@@ -138,7 +135,7 @@ fun CustomAlertDialog(
                         CustomButton(
                             modifier = negativeButtonModifier.weight(1f),
                             text = negativeButtonText,
-                            textStyle = BoldTextStyle().copy(
+                            textStyle = CoreBoldTextStyle().copy(
                                 fontSize = alertDialogTheme.buttonTextStyle.fontSize,
                                 color = finalNegativeButtonTextColor
                             ),
@@ -160,7 +157,7 @@ fun CustomAlertDialog(
                         CustomButton(
                             modifier = positiveButtonModifier.weight(1f),
                             text = positiveButtonText,
-                            textStyle = BoldTextStyle().copy(
+                            textStyle = CoreBoldTextStyle().copy(
                                 fontSize = alertDialogTheme.buttonTextStyle.fontSize,
                                 color = finalPositiveButtonTextColor
                             ),

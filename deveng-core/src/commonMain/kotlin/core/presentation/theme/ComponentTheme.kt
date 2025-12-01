@@ -20,10 +20,10 @@ import org.jetbrains.compose.resources.DrawableResource
  * Theme colors for CustomButton component
  */
 data class ButtonTheme(
-    val containerColor: Color = SecondaryColor,
-    val contentColor: Color = OnPrimaryColor,
-    val disabledContainerColor: Color = SecondaryColor.copy(alpha = 0.4f),
-    val disabledContentColor: Color = OnPrimaryColor.copy(alpha = 0.4f),
+    val containerColor: Color = CoreSecondaryColor,
+    val contentColor: Color = CoreOnPrimaryColor,
+    val disabledContainerColor: Color = CoreSecondaryColor.copy(alpha = 0.4f),
+    val disabledContentColor: Color = CoreOnPrimaryColor.copy(alpha = 0.4f),
     val defaultTextStyle: TextStyle = TextStyle(
         fontSize = 18.sp,
         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -36,14 +36,14 @@ data class ButtonTheme(
 data class AlertDialogTheme(
     val headerColor: Color = Color.White,
     val bodyColor: Color = Color.White,
-    val titleColor: Color = CustomBlackColor,
-    val descriptionColor: Color = CustomBlackColor,
-    val dividerColor: Color = CustomDividerColor,
+    val titleColor: Color = CoreCustomBlackColor,
+    val descriptionColor: Color = CoreCustomBlackColor,
+    val dividerColor: Color = CoreCustomDividerColor,
     val positiveButtonColor: Color = Color.White,
-    val positiveButtonTextColor: Color = CustomBlackColor,
+    val positiveButtonTextColor: Color = CoreCustomBlackColor,
     val negativeButtonColor: Color = Color.White,
-    val negativeButtonTextColor: Color = CustomBlackColor,
-    val iconColor: Color = AlertDialogIconColor,
+    val negativeButtonTextColor: Color = CoreCustomBlackColor,
+    val iconColor: Color = CoreAlertDialogIconColor,
     val titleTextStyle: TextStyle = TextStyle(fontSize = 16.sp),
     val descriptionTextStyle: TextStyle = TextStyle(fontSize = 16.sp),
     val buttonTextStyle: TextStyle = TextStyle(fontSize = 16.sp)
@@ -61,7 +61,7 @@ data class SurfaceTheme(
  * Theme colors for CustomDialogHeader component
  */
 data class DialogHeaderTheme(
-    val titleColor: Color = CustomBlackColor,
+    val titleColor: Color = CoreCustomBlackColor,
     val iconTint: Color? = null,
     val titleTextStyle: TextStyle = TextStyle(fontSize = 16.sp)
 )
@@ -71,8 +71,8 @@ data class DialogHeaderTheme(
  */
 data class IconButtonTheme(
     val buttonSize: Dp = 54.dp,
-    val backgroundColor: Color = PrimaryColor,
-    val iconTint: Color = CustomBlackColor,
+    val backgroundColor: Color = CorePrimaryColor,
+    val iconTint: Color = CoreCustomBlackColor,
     val shadowElevation: Dp = 0.dp,
     val shape: Shape = CircleShape
 )
@@ -83,13 +83,13 @@ data class IconButtonTheme(
 data class LabeledSwitchTheme(
     val labelTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomGrayHintColor
+        color = CoreCustomGrayHintColor
     ),
     val switchScale: Float = 0.75f,
     val checkedThumbColor: Color = Color.White,
-    val checkedTrackColor: Color = PrimaryColor,
-    val checkedBorderColor: Color = PrimaryColor,
-    val uncheckedThumbColor: Color = PrimaryColor,
+    val checkedTrackColor: Color = CorePrimaryColor,
+    val checkedBorderColor: Color = CorePrimaryColor,
+    val uncheckedThumbColor: Color = CorePrimaryColor,
     val uncheckedTrackColor: Color = Color.White,
     val uncheckedBorderColor: Color = Color.White
 )
@@ -100,15 +100,15 @@ data class LabeledSwitchTheme(
 data class PickerFieldTheme(
     val titleTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val textStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val hintTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomGrayHintColor
+        color = CoreCustomGrayHintColor
     ),
     val errorTextStyle: TextStyle = TextStyle(
         fontSize = 12.sp,
@@ -118,8 +118,8 @@ data class PickerFieldTheme(
     val enabledBackgroundColor: Color = Color.White,
     val enabledBorderColor: Color = Color.Transparent,
     val enabledBorderWidth: Dp = 0.dp,
-    val enabledTextColor: Color = CustomBlackColor,
-    val hintTextColor: Color = CustomGrayHintColor,
+    val enabledTextColor: Color = CoreCustomBlackColor,
+    val hintTextColor: Color = CoreCustomGrayHintColor,
     val disabledBackgroundColor: Color = Color.Transparent,
     val disabledBorderColor: Color = Color.White,
     val disabledTextColor: Color = Color.White
@@ -130,14 +130,14 @@ data class PickerFieldTheme(
  */
 data class CustomDropDownMenuTheme(
     val titleColor: Color = Color.White,
-    val backgroundColor: Color = CustomBlackColor,
+    val backgroundColor: Color = CoreCustomBlackColor,
     val textColor: Color = Color.White,
-    val hintTextColor: Color = CustomGrayHintColor,
+    val hintTextColor: Color = CoreCustomGrayHintColor,
     val unfocusedBorderColor: Color = Color.Transparent,
-    val focusedBorderColor: Color = CustomGrayColor,
-    val dividerColor: Color = CustomGrayHintColor,
-    val scrollBarColor: Color = CustomGrayColor,
-    val scrollBarTrackColor: Color = CustomGrayHintColor,
+    val focusedBorderColor: Color = CoreCustomGrayColor,
+    val dividerColor: Color = CoreCustomGrayHintColor,
+    val scrollBarColor: Color = CoreCustomGrayColor,
+    val scrollBarTrackColor: Color = CoreCustomGrayHintColor,
     val isScrollBarVisible: Boolean = false,
     val shape: CornerBasedShape = RoundedCornerShape(12.dp),
     val fieldTextStyle: TextStyle = TextStyle(
@@ -155,19 +155,19 @@ data class CustomDropDownMenuTheme(
 data class CustomTextFieldTheme(
     val titleTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val charCountTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomGrayHintColor
+        color = CoreCustomGrayHintColor
     ),
     val textStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val hintTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomGrayHintColor
+        color = CoreCustomGrayHintColor
     ),
     val errorTextStyle: TextStyle = TextStyle(
         fontSize = 12.sp,
@@ -177,9 +177,9 @@ data class CustomTextFieldTheme(
     val borderStroke: BorderStroke = BorderStroke(0.dp, Color.Transparent),
     val containerColor: Color = Color.White,
     val disabledContainerColor: Color = Color.White,
-    val textColor: Color = CustomBlackColor,
-    val disabledTextColor: Color = CustomGrayHintColor,
-    val readOnlyTextColor: Color = CustomGrayHintColor,
+    val textColor: Color = CoreCustomBlackColor,
+    val disabledTextColor: Color = CoreCustomGrayHintColor,
+    val readOnlyTextColor: Color = CoreCustomGrayHintColor,
     val isBorderActive: Boolean = true
 )
 
@@ -187,13 +187,13 @@ data class CustomTextFieldTheme(
  * Theme for CustomDatePicker component
  */
 data class DatePickerTheme(
-    val trailingIconTint: Color = CustomBlackColor,
-    val dialogContainerColor: Color = SecondaryColor,
+    val trailingIconTint: Color = CoreCustomBlackColor,
+    val dialogContainerColor: Color = CoreSecondaryColor,
     val dialogContentColor: Color = Color.White,
     val selectedDayContainerColor: Color = Color.White,
-    val selectedDayContentColor: Color = SecondaryColor,
+    val selectedDayContentColor: Color = CoreSecondaryColor,
     val selectedYearContainerColor: Color = Color.White,
-    val selectedYearContentColor: Color = SecondaryColor,
+    val selectedYearContentColor: Color = CoreSecondaryColor,
     val todayContentColor: Color = Color.White,
     val todayDateBorderColor: Color = Color.White,
     val confirmButtonTextColor: Color = Color.White,
@@ -204,27 +204,27 @@ data class DatePickerTheme(
  * Theme for CustomDateRangePicker component
  */
 data class DateRangePickerTheme(
-    val trailingIconTint: Color = CustomBlackColor,
+    val trailingIconTint: Color = CoreCustomBlackColor,
     val dialogContainerColor: Color = Color.White,
-    val dialogContentColor: Color = CustomBlackColor,
-    val titleContentColor: Color = PrimaryColor,
-    val headlineContentColor: Color = CustomBlackColor,
+    val dialogContentColor: Color = CoreCustomBlackColor,
+    val titleContentColor: Color = CorePrimaryColor,
+    val headlineContentColor: Color = CoreCustomBlackColor,
     val headlineTextStyle: TextStyle = TextStyle(fontSize = 23.sp),
-    val weekdayContentColor: Color = CustomBlackColor,
-    val subheadContentColor: Color = CustomBlackColor,
-    val navigationContentColor: Color = CustomBlackColor,
-    val dayContentColor: Color = CustomBlackColor,
-    val selectedDayContainerColor: Color = PrimaryColor,
+    val weekdayContentColor: Color = CoreCustomBlackColor,
+    val subheadContentColor: Color = CoreCustomBlackColor,
+    val navigationContentColor: Color = CoreCustomBlackColor,
+    val dayContentColor: Color = CoreCustomBlackColor,
+    val selectedDayContainerColor: Color = CorePrimaryColor,
     val selectedDayContentColor: Color = Color.White,
-    val todayContentColor: Color = PrimaryColor,
-    val todayDateBorderColor: Color = PrimaryColor,
-    val yearContentColor: Color = CustomBlackColor,
-    val currentYearContentColor: Color = CustomBlackColor,
-    val selectedYearContainerColor: Color = PrimaryColor,
+    val todayContentColor: Color = CorePrimaryColor,
+    val todayDateBorderColor: Color = CorePrimaryColor,
+    val yearContentColor: Color = CoreCustomBlackColor,
+    val currentYearContentColor: Color = CoreCustomBlackColor,
+    val selectedYearContainerColor: Color = CorePrimaryColor,
     val selectedYearContentColor: Color = Color.White,
-    val dividerColor: Color = CustomGrayColor,
-    val confirmButtonTextColor: Color = PrimaryColor,
-    val dismissButtonTextColor: Color = PrimaryColor
+    val dividerColor: Color = CoreCustomGrayColor,
+    val confirmButtonTextColor: Color = CorePrimaryColor,
+    val dismissButtonTextColor: Color = CorePrimaryColor
 )
 
 /**
@@ -235,12 +235,12 @@ data class HeaderTheme(
     val backgroundColor: Color = Color.Transparent,
     val leftIconTint: Color = Color.White,
     val rightIconTint: Color = Color.White,
-    val leftIconBackgroundColor: Color = PrimaryColor,
-    val rightIconBackgroundColor: Color = PrimaryColor,
+    val leftIconBackgroundColor: Color = CorePrimaryColor,
+    val rightIconBackgroundColor: Color = CorePrimaryColor,
     val iconButtonSize: Dp = 54.dp,
     val icon: DrawableResource? = null,
     val iconContentDescription: String? = null,
-    val iconTint: Color = CustomBlackColor,
+    val iconTint: Color = CoreCustomBlackColor,
     val iconSize: Dp = 24.dp
 )
 
@@ -253,15 +253,15 @@ data class OptionItemTheme(
     val rowHeight: Dp = 50.dp,
     val textStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val boldLeadingTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor,
+        color = CoreCustomBlackColor,
         textDecoration = TextDecoration.Underline
     ),
-    val leadingIconTint: Color = CustomBlackColor,
-    val checkIconTint: Color = SecondaryColor,
+    val leadingIconTint: Color = CoreCustomBlackColor,
+    val checkIconTint: Color = CoreSecondaryColor,
     val checkIconBackgroundColor: Color = Color.White
 )
 
@@ -270,9 +270,9 @@ data class OptionItemTheme(
  */
 data class OptionItemListTheme(
     val containerColor: Color = Color.White,
-    val dividerColor: Color = CustomGrayHintColor,
+    val dividerColor: Color = CoreCustomGrayHintColor,
     val containerShape: Shape = RoundedCornerShape(18.dp),
-    val lazyListScrollbarColor: Color = CustomGrayHintColor,
+    val lazyListScrollbarColor: Color = CoreCustomGrayHintColor,
     val lazyListScrollbarWidth: Dp = 3.dp,
     val lazyListScrollbarTopPadding: Dp = 15.dp,
     val lazyListScrollbarBottomPadding: Dp = 15.dp
@@ -285,7 +285,7 @@ data class ScrollbarWithScrollStateTheme(
     val alwaysShowScrollBar: Boolean = false,
     val isScrollBarTrackVisible: Boolean = true,
     val scrollBarTrackColor: Color = Color.Gray,
-    val scrollBarColor: Color = CustomGrayHintColor,
+    val scrollBarColor: Color = CoreCustomGrayHintColor,
     val scrollBarWidth: Dp = 5.dp,
     val scrollBarCornerRadius: Float = 4f,
     val scrollBarEndPadding: Float = 12f,
@@ -300,7 +300,7 @@ data class ScrollbarWithLazyListStateTheme(
     val alwaysShowScrollBar: Boolean = false,
     val isScrollBarTrackVisible: Boolean = true,
     val scrollBarTrackColor: Color = Color.Gray,
-    val scrollBarColor: Color = PrimaryColor,
+    val scrollBarColor: Color = CorePrimaryColor,
     val scrollBarWidth: Dp = 5.dp,
     val scrollBarCornerRadius: Float = 4f,
     val scrollBarEndPadding: Float = 12f,
@@ -314,7 +314,7 @@ data class ScrollbarWithLazyListStateTheme(
 data class SearchFieldTheme(
     val buttonSize: Dp = 42.dp,
     val buttonShape: Shape = RoundedCornerShape(16.dp),
-    val buttonBackgroundColor: Color = PrimaryColor,
+    val buttonBackgroundColor: Color = CorePrimaryColor,
     val buttonIconTint: Color = Color.White,
     val buttonShadowElevation: Dp = 0.dp,
     val defaultButtonIconDescription: String = "Search"
@@ -324,8 +324,8 @@ data class SearchFieldTheme(
  * Theme for ProgressIndicatorBars component
  */
 data class ProgressIndicatorBarsTheme(
-    val filledIndicatorColor: Color = PrimaryColor,
-    val defaultIndicatorColor: Color = CustomGrayHintColor,
+    val filledIndicatorColor: Color = CorePrimaryColor,
+    val defaultIndicatorColor: Color = CoreCustomGrayHintColor,
     val indicatorHeight: Dp = 8.dp,
     val indicatorSpacing: Dp = 3.dp,
     val indicatorCornerRadius: Dp = 3.dp
@@ -337,16 +337,16 @@ data class ProgressIndicatorBarsTheme(
 data class JsonViewerTheme(
     val titleTextStyle: TextStyle = TextStyle(
         fontSize = 16.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
     val containerColor: Color = Color.White,
     val containerShape: CornerBasedShape = RoundedCornerShape(16.dp),
     val containerPadding: Dp = 20.dp,
     val jsonTextStyle: TextStyle = TextStyle(
         fontSize = 14.sp,
-        color = CustomBlackColor
+        color = CoreCustomBlackColor
     ),
-    val buttonBackgroundColor: Color = PrimaryColor,
+    val buttonBackgroundColor: Color = CorePrimaryColor,
     val buttonTextColor: Color = Color.White,
     val buttonTextStyle: TextStyle = TextStyle(
         fontSize = 12.sp

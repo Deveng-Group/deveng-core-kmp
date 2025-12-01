@@ -21,7 +21,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import core.presentation.theme.CustomBlackColor
+import core.presentation.theme.CoreCustomBlackColor
 import core.presentation.theme.LocalComponentTheme
 import core.util.debouncedCombinedClickable
 import global.deveng.deveng_core.generated.resources.Res
@@ -43,7 +43,7 @@ fun PickerField(
         Icon(
             painter = painterResource(Res.drawable.shared_ic_angle_right),
             contentDescription = stringResource(Res.string.shared_content_desc_icon_direction),
-            tint = CustomBlackColor
+            tint = CoreCustomBlackColor
         )
     },
     leadingSlot: @Composable (() -> Unit)? = null,

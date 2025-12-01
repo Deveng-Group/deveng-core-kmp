@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
 import core.presentation.component.alertdialog.CustomDialog
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
-import core.presentation.theme.BoldTextStyle
+import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.LocalComponentTheme
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_save
@@ -91,7 +91,7 @@ fun <T> OptionItemMultiSelectLazyListDialog(
                         .fillMaxWidth(),
                     shape = RoundedCornerShape(0.dp),
                     text = stringResource(Res.string.shared_save),
-                    textStyle = BoldTextStyle().copy(
+                    textStyle = CoreBoldTextStyle().copy(
                         fontSize = 16.sp,
                         color = Color.White
                     ),

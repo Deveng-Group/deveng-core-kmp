@@ -15,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.component.textfield.CustomTextField
-import core.presentation.theme.CustomDividerColor
+import core.presentation.theme.CoreCustomDividerColor
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 
@@ -32,7 +32,7 @@ fun SearchField(
     textFieldContainerModifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
     textFieldShape: RoundedCornerShape = RoundedCornerShape(16.dp),
-    textFieldBorder: BorderStroke = BorderStroke(1.dp, CustomDividerColor),
+    textFieldBorder: BorderStroke = BorderStroke(1.dp, CoreCustomDividerColor),
     maxLines: Int = Int.MAX_VALUE,
     singleLine: Boolean = true,
     isEditable: Boolean = true,

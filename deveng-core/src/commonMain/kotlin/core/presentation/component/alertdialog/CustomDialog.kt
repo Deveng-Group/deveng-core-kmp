@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import core.presentation.component.Slot
-import core.presentation.theme.CustomBlackColor
+import core.presentation.theme.CoreCustomBlackColor
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_cancel
 import global.deveng.deveng_core.generated.resources.shared_ok
@@ -60,7 +60,7 @@ fun CustomDialogPreview() {
                 modifier = Modifier
                     .fillMaxWidth(),
                 text = stringResource(Res.string.shared_ok),
-                color = CustomBlackColor,
+                color = CoreCustomBlackColor,
                 fontSize = 34.sp
             )
         },

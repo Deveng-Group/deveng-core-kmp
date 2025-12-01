@@ -14,7 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
-import core.presentation.theme.SemiBoldTextStyle
+import core.presentation.theme.CoreSemiBoldTextStyle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -32,7 +32,7 @@ fun CustomDialogHeader(
     val componentTheme = LocalComponentTheme.current
     val dialogHeaderTheme = componentTheme.dialogHeader
 
-    val finalStyle = style ?: SemiBoldTextStyle().copy(
+    val finalStyle = style ?: CoreSemiBoldTextStyle().copy(
         fontSize = dialogHeaderTheme.titleTextStyle.fontSize
     )
     val finalTextColor = texColor ?: dialogHeaderTheme.titleColor
