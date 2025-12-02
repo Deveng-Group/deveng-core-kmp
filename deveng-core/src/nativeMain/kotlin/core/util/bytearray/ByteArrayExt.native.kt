@@ -1,4 +1,4 @@
-package core.util
+package core.util.bytearray
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
