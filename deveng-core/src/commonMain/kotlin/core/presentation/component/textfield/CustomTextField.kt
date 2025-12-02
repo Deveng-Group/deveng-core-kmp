@@ -103,11 +103,13 @@ fun CustomTextField(
     errorTextStyle: TextStyle? = null,
     focusedBorderColor: Color? = null,
     unfocusedBorderColor: Color? = null,
+    cursorColor: Color? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     onValueChange: (String) -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
     val customTextFieldTheme = componentTheme.customTextField
+
     val finalTextStyle = textStyle ?: customTextFieldTheme.textStyle
     val finalTitleTextStyleBase = titleTextStyle ?: customTextFieldTheme.titleTextStyle
     val finalTitleTextStyle = titleColor?.let { finalTitleTextStyleBase.copy(color = it) }
@@ -120,11 +122,12 @@ fun CustomTextField(
     val finalBorderStroke = borderStroke ?: customTextFieldTheme.borderStroke
     val borderEnabled = isBorderActive ?: customTextFieldTheme.isBorderActive
     val finalContainerColor = containerColor ?: customTextFieldTheme.containerColor
-    val finalDisabledContainerColor =
-        disabledContainerColor ?: customTextFieldTheme.disabledContainerColor
+    val finalDisabledContainerColor = disabledContainerColor ?: customTextFieldTheme.disabledContainerColor
     val finalEnabledTextColor = textColor ?: customTextFieldTheme.textColor
     val finalDisabledTextColor = disabledTextColor ?: customTextFieldTheme.disabledTextColor
     val finalReadOnlyTextColor = readOnlyTextColor ?: customTextFieldTheme.readOnlyTextColor
+    val finalCursorColor = cursorColor ?: customTextFieldTheme.cursorColor
+
     val resolvedTextColor = when {
         !enabled -> finalDisabledTextColor
         readOnly -> finalReadOnlyTextColor
@@ -138,7 +141,8 @@ fun CustomTextField(
         disabledTextColor = finalDisabledTextColor,
         disabledContainerColor = finalDisabledContainerColor,
         focusedContainerColor = finalContainerColor,
-        unfocusedContainerColor = finalContainerColor
+        unfocusedContainerColor = finalContainerColor,
+        cursorColor = finalCursorColor
     )
 
     val inlineSuffixTransformation = remember(
