@@ -1,7 +1,6 @@
 package core.presentation.component.optionitemlist
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -52,7 +51,7 @@ fun <T> OptionItemMultiSelectLazyListDialog(
             Column {
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f, fill = false)
                         .scrollbarWithLazyListState(
                             listState = lazyListState,
                             width = optionListTheme.lazyListScrollbarWidth,
