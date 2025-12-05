@@ -10,7 +10,7 @@ app-minor-version = "12"
 androidx-activityCompose = "1.10.1"
 compose-plugin = "1.9.0"
 kotlin = "2.2.10"
-
+figma-code-connect = "1.+"
 
 vanniktech = "0.30.0"
 kotlinx-coroutines-swing = "1.10.2"
@@ -24,6 +24,8 @@ kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-co
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 
+figma-code-connect-lib = { module = "com.figma.code.connect:code-connect-lib", version.ref = "figma-code-connect" }
+
 [plugins]
 
 multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -33,3 +35,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 vanniktech-mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+figma-code-connect = { id = "com.figma.code.connect", version.ref = "figma-code-connect" }
