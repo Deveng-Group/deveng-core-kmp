@@ -10,6 +10,19 @@ import core.presentation.component.RoundedSurface
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 
+/**
+ * A list component displaying a collection of selectable option items.
+ * Each item can have a leading icon/slot and optional check icon indicating selection.
+ *
+ * @param optionList List of items of type T to display.
+ * @param optionText Composable function that returns the text to display for each item.
+ * @param optionId Function that returns a unique identifier (Int) for each item, used for selection comparison.
+ * @param leadingIcon Optional function that returns a drawable resource for the leading icon of each item.
+ * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
+ * @param isCheckIconsVisible Whether to display check icons indicating selected items. Default is false.
+ * @param selectedOption Currently selected item, or null if none selected.
+ * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
+ */
 @Composable
 fun <T> OptionItemList(
     optionList: List<T>,

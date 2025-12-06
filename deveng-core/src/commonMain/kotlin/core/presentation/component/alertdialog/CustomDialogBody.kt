@@ -15,6 +15,13 @@ import core.presentation.component.Slot
 import core.presentation.theme.AppTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A dialog body component that wraps content and optional header in a rounded surface.
+ *
+ * @param modifier Modifier to be applied to the dialog body container.
+ * @param header Optional composable header content.
+ * @param content Composable content displayed in the dialog body.
+ */
 @Composable
 fun CustomDialogBody(
     modifier: Modifier = Modifier,

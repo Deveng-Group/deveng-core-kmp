@@ -24,6 +24,34 @@ import core.presentation.component.sidemenu.expanded.SideMenuContentExpanded
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 
+/**
+ * A customizable side menu component with expand/collapse animation support.
+ * Displays different content when expanded (with text and icons) vs collapsed (icons only).
+ * Includes animated transitions between expanded and collapsed states.
+ *
+ * @param isSideMenuExpanded Whether the side menu is in expanded state (true) or collapsed (false).
+ * @param sideMenuModifier Modifier to be applied to the side menu container.
+ * @param sideMenuExpandedWidth Width of the side menu when expanded. If null, uses theme default.
+ * @param sideMenuCollapsedWidth Width of the side menu when collapsed. If null, uses theme default.
+ * @param sideMenuBackgroundColor Background color of the side menu. If null, uses theme default.
+ * @param sideMenuShape Shape of the side menu container. If null, uses theme default.
+ * @param verticalDividerColor Color of the vertical divider on the right edge. If null, uses theme default.
+ * @param verticalDividerThickness Thickness of the vertical divider. If null, uses theme default.
+ * @param sideMenuSectionSeparatorColor Color of horizontal dividers separating menu sections. If null, uses theme default.
+ * @param sideMenuExpandedHeader Composable header content displayed when menu is expanded.
+ * @param sideMenuExpandedFooter Composable footer content displayed when menu is expanded.
+ * @param sideMenuCollapsedHeader Composable header content displayed when menu is collapsed.
+ * @param sideMenuCollapsedFooter Composable footer content displayed when menu is collapsed.
+ * @param sideMenuItemBackgroundColor Background color of menu items. If null, uses theme default.
+ * @param sideMenuItemList List of items of type T to display as menu items.
+ * @param isSideMenuItemSelected Function that returns whether an item is currently selected.
+ * @param sideMenuItemText Composable function that returns the text to display for each menu item.
+ * @param sideMenuItemTextStyle Composable function that returns the text style for each menu item.
+ * @param sideMenuItemIcon Function that returns the icon drawable resource for each menu item.
+ * @param sideMenuItemIconTint Function that returns the icon tint color for each menu item.
+ * @param sideMenuItemIconDescription Composable function that returns the accessibility description for each menu item icon.
+ * @param onSideMenuItemClick Callback invoked when a menu item is clicked, receives the clicked item.
+ */
 @Composable
 fun <T> CustomSideMenu(
     isSideMenuExpanded: Boolean,

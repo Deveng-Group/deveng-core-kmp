@@ -31,6 +31,37 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A customizable alert dialog component with header, body, and action buttons.
+ * Supports optional icon, title, description, and custom content.
+ *
+ * @param contentModifier Modifier to be applied to the dialog content container.
+ * @param dialogModifier Modifier to be applied to the dialog container.
+ * @param headerModifier Modifier to be applied to the header container.
+ * @param buttonContainerModifier Modifier to be applied to the button container. Default height is 50.dp.
+ * @param positiveButtonModifier Modifier to be applied to the positive button. Default height is 50.dp.
+ * @param negativeButtonModifier Modifier to be applied to the negative button. Default height is 50.dp.
+ * @param isDialogVisible Whether the dialog is visible.
+ * @param headerIcon Optional drawable resource for an icon displayed in the header.
+ * @param iconDescription Content description for accessibility for the header icon.
+ * @param iconTint Color tint for the header icon. If null, uses theme default.
+ * @param title Optional title text displayed in the header.
+ * @param titleColor Color of the title text. If null, uses theme default.
+ * @param headerColor Background color of the header. If null, uses theme default.
+ * @param description Optional description text displayed in the body.
+ * @param descriptionColor Color of the description text. If null, uses theme default.
+ * @param bodyColor Background color of the body. If null, uses theme default.
+ * @param positiveButtonText Optional text for the positive/confirm button.
+ * @param positiveButtonColor Background color of the positive button. If null, uses theme default.
+ * @param positiveButtonTextColor Text color of the positive button. If null, uses theme default.
+ * @param onPositiveButtonClick Callback invoked when the positive button is clicked.
+ * @param negativeButtonText Optional text for the negative/cancel button.
+ * @param negativeButtonColor Background color of the negative button. If null, uses theme default.
+ * @param negativeButtonTextColor Text color of the negative button. If null, uses theme default.
+ * @param onNegativeButtonClick Callback invoked when the negative button is clicked.
+ * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ * @param content Optional custom composable content displayed in the body.
+ */
 @Composable
 fun CustomAlertDialog(
     contentModifier: Modifier = Modifier,

@@ -11,6 +11,21 @@ import core.presentation.component.alertdialog.CustomDialog
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 
+/**
+ * A dialog component displaying a list of selectable option items.
+ * Maximum height is constrained to 350.dp with scrolling support.
+ *
+ * @param optionList List of items of type T to display.
+ * @param optionText Composable function that returns the text to display for each item.
+ * @param optionId Function that returns a unique identifier (Int) for each item, used for selection comparison.
+ * @param leadingIcon Optional function that returns a drawable resource for the leading icon of each item.
+ * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
+ * @param isDialogVisible Whether the dialog is visible.
+ * @param isCheckIconsVisible Whether to display check icons indicating selected items. Default is true.
+ * @param selectedOption Currently selected item, or null if none selected.
+ * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
+ * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ */
 @Composable
 fun <T> OptionItemListDialog(
     optionList: List<T>,

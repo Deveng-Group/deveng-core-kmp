@@ -26,6 +26,30 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A customizable header component with left, right, and center icon support.
+ * Commonly used for navigation headers in mobile applications.
+ *
+ * @param modifier Modifier to be applied to the header container.
+ * @param leftIcon Drawable resource for the left icon button. Default is arrow left icon.
+ * @param rightIcon Optional drawable resource for the right icon button.
+ * @param centerIcon Optional drawable resource for the center icon/logo.
+ * @param leftIconDescription Content description for accessibility for the left icon.
+ * @param rightIconDescription Content description for accessibility for the right icon.
+ * @param centerIconDescription Content description for accessibility for the center icon.
+ * @param isLeftIconButtonVisible Whether the left icon button is visible. Default is true.
+ * @param isRightIconButtonVisible Whether the right icon button is visible. Default is true if rightIcon is not null.
+ * @param isCenterIconVisible Whether the center icon is visible. Default is true.
+ * @param containerPadding Padding values for the header container. If null, uses theme default.
+ * @param backgroundColor Background color of the header. If null, uses theme default.
+ * @param leftIconTint Color tint for the left icon. If null, uses theme default.
+ * @param rightIconTint Color tint for the right icon. If null, uses theme default.
+ * @param leftIconBackgroundColor Background color of the left icon button. If null, uses theme default.
+ * @param rightIconBackgroundColor Background color of the right icon button. If null, uses theme default.
+ * @param iconButtonSize Size of the icon buttons. If null, uses theme default.
+ * @param onLeftIconClick Callback invoked when the left icon is clicked.
+ * @param onRightIconClick Callback invoked when the right icon is clicked.
+ */
 @Composable
 fun CustomHeader(
     modifier: Modifier = Modifier,

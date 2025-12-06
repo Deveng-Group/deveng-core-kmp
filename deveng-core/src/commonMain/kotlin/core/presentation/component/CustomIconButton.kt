@@ -26,6 +26,21 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A customizable icon button component with shadow and styling options.
+ *
+ * @param modifier Modifier to be applied to the icon button container.
+ * @param isEnable Whether the button is enabled and can be clicked. Default is true.
+ * @param buttonSize Size of the button. If null, uses theme default.
+ * @param iconModifier Modifier to be applied to the icon.
+ * @param backgroundColor Background color of the button. If null, uses theme default.
+ * @param shape Shape of the button. If null, uses theme default (typically CircleShape).
+ * @param icon Drawable resource for the icon to display.
+ * @param iconDescription Content description for accessibility.
+ * @param iconTint Color tint for the icon. If null, uses theme default.
+ * @param shadowElevation Shadow elevation of the button. If null, uses theme default.
+ * @param onClick Callback invoked when the button is clicked.
+ */
 @Composable
 fun CustomIconButton(
     modifier: Modifier = Modifier,

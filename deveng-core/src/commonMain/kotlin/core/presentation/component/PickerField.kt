@@ -30,6 +30,35 @@ import global.deveng.deveng_core.generated.resources.shared_ic_angle_right
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * A clickable picker field component that displays selected text or hint.
+ * Commonly used for date pickers, dropdowns, and other selection fields.
+ *
+ * @param modifier Modifier to be applied to the picker field container.
+ * @param isEnabled Whether the field is enabled and can be clicked. Default is true.
+ * @param text Selected text to display. If null or empty, shows hint text instead.
+ * @param hint Placeholder text displayed when no text is selected.
+ * @param title Optional title text displayed above the field.
+ * @param titleColor Color of the title text. If null, uses theme default.
+ * @param titleTrailingIcon Optional composable icon displayed after the title.
+ * @param trailingSlot Composable slot for trailing content (default is right arrow icon).
+ * @param leadingSlot Optional composable slot for leading content (e.g., icon).
+ * @param errorMessage Optional error message displayed below the field.
+ * @param shape Shape of the field container. If null, uses theme default.
+ * @param enabledBackGroundColor Background color when enabled. If null, uses theme default.
+ * @param enabledBorderColor Border color when enabled. If null, uses theme default.
+ * @param enabledTextColor Text color when enabled. If null, uses theme default.
+ * @param enabledBorderWidth Width of the border when enabled. If null, uses theme default.
+ * @param hintTextColor Color of the hint text. If null, uses theme default.
+ * @param disabledBackGroundColor Background color when disabled. If null, uses theme default.
+ * @param disabledBorderColor Border color when disabled. If null, uses theme default.
+ * @param disabledTextColor Text color when disabled. If null, uses theme default.
+ * @param titleTextStyle Text style for the title. If null, uses theme default.
+ * @param textStyle Text style for the selected text. If null, uses theme default.
+ * @param hintTextStyle Text style for the hint text. If null, uses theme default.
+ * @param errorTextStyle Text style for the error message. If null, uses theme default.
+ * @param onClick Callback invoked when the field is clicked.
+ */
 @Composable
 fun PickerField(
     modifier: Modifier = Modifier,

@@ -14,6 +14,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import core.presentation.theme.LocalComponentTheme
 
+/**
+ * A switch component with an associated label.
+ * The label can be positioned at the start or end of the switch.
+ *
+ * @param label Text label displayed next to the switch.
+ * @param isChecked Current checked state of the switch.
+ * @param modifier Modifier to be applied to the container row.
+ * @param isLabelAtStart Whether the label is positioned at the start (true) or end (false) of the switch. Default is true.
+ * @param labelTextStyle Text style for the label. If null, uses theme default.
+ * @param checkedThumbColor Color of the switch thumb when checked. If null, uses theme default.
+ * @param checkedTrackColor Color of the switch track when checked. If null, uses theme default.
+ * @param checkedBorderColor Color of the switch border when checked. If null, uses theme default.
+ * @param uncheckedThumbColor Color of the switch thumb when unchecked. If null, uses theme default.
+ * @param uncheckedTrackColor Color of the switch track when unchecked. If null, uses theme default.
+ * @param uncheckedBorderColor Color of the switch border when unchecked. If null, uses theme default.
+ * @param switchScale Scale factor to resize the switch. If null, uses theme default.
+ * @param onSwitchClick Callback invoked when the switch is clicked, receives the new checked state.
+ */
 @Composable
 fun LabeledSwitch(
     label: String,

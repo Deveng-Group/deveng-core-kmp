@@ -36,6 +36,34 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+/**
+ * A customizable date picker component that displays a picker field and opens a date picker dialog.
+ * Supports selecting a single date with customizable date range restrictions.
+ *
+ * @param modifier Modifier to be applied to the picker field container.
+ * @param trailingIconModifier Modifier to be applied to the trailing calendar icon.
+ * @param selectedDate Currently selected date, or null if none selected.
+ * @param onDateChange Callback invoked when a date is selected, receives the selected LocalDate.
+ * @param targetDates Target date range restriction (PAST, FUTURE, or ALL). Default is PAST.
+ * @param title Title text displayed above the picker field.
+ * @param placeholderText Placeholder text shown when no date is selected. Default is "-".
+ * @param selectedDateText Formatted text representation of the selected date to display.
+ * @param errorMessage Optional error message displayed below the picker field.
+ * @param selectableDates CustomSelectableDates instance to configure date selection restrictions.
+ * @param trailingIconTint Color tint for the trailing calendar icon. If null, uses theme default.
+ * @param dialogContainerColor Background color of the date picker dialog. If null, uses theme default.
+ * @param dialogContentColor Text color for dialog content. If null, uses theme default.
+ * @param selectedDayContainerColor Background color of the selected day in the calendar. If null, uses theme default.
+ * @param selectedDayContentColor Text color of the selected day. If null, uses theme default.
+ * @param selectedYearContainerColor Background color of the selected year. If null, uses theme default.
+ * @param selectedYearContentColor Text color of the selected year. If null, uses theme default.
+ * @param todayContentColor Text color for today's date. If null, uses theme default.
+ * @param todayDateBorderColor Border color for today's date. If null, uses theme default.
+ * @param confirmButtonTextColor Text color of the confirm button. If null, uses theme default.
+ * @param dismissButtonTextColor Text color of the dismiss button. If null, uses theme default.
+ * @param leadingSlot Optional composable slot for leading content in the picker field.
+ * @param trailingSlot Optional composable slot for trailing content (replaces default calendar icon if provided).
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun CustomDatePicker(

@@ -19,6 +19,17 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A dialog header component displaying an optional icon and title.
+ *
+ * @param title Optional title text displayed in the header.
+ * @param icon Optional drawable resource for an icon displayed above the title.
+ * @param iconTint Color tint for the icon. If null, uses theme default.
+ * @param iconDescription Content description for accessibility for the icon.
+ * @param modifier Modifier to be applied to the header container.
+ * @param style Text style for the title. If null, uses theme default.
+ * @param texColor Color of the title text. If null, uses theme default.
+ */
 @Composable
 fun CustomDialogHeader(
     title: String?,

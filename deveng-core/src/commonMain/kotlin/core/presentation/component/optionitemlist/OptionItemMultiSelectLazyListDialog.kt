@@ -24,6 +24,23 @@ import global.deveng.deveng_core.generated.resources.shared_save
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * A dialog component displaying a lazy-scrollable list of multi-selectable option items.
+ * Uses LazyColumn for efficient rendering of large lists. Includes a save button at the bottom.
+ * Maximum height is constrained to 585.dp. Supports multiple item selection.
+ *
+ * @param optionsList List of items of type T to display.
+ * @param optionText Function that returns the text to display for each item.
+ * @param optionId Function that returns a unique identifier (Int) for each item, used as LazyColumn key.
+ * @param leadingIcon Optional function that returns a drawable resource for the leading icon of each item.
+ * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
+ * @param isDialogVisible Whether the dialog is visible.
+ * @param isCheckIconsVisible Whether to display check icons indicating selected items. Default is true.
+ * @param selectedOptions List of currently selected items, or null if none selected.
+ * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
+ * @param onSaveButtonClick Callback invoked when the save button is clicked.
+ * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ */
 @Composable
 fun <T> OptionItemMultiSelectLazyListDialog(
     optionsList: List<T>,

@@ -33,6 +33,22 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A single option item component that can display text, optional leading icon/slot, and check icon.
+ * Supports bold leading text followed by regular text.
+ *
+ * @param text Main text to display in the item.
+ * @param boldLeadingText Optional bold text displayed before the main text.
+ * @param isCheckIconVisible Whether the check icon is visible. Default is true.
+ * @param isSelected Whether the item is selected (affects check icon appearance). Default is false.
+ * @param leadingIcon Optional drawable resource for a leading icon.
+ * @param leadingSlot Optional composable slot for custom leading content.
+ * @param onCheckboxClick Callback invoked when the check icon is clicked.
+ * @param onItemClick Callback invoked when the item is clicked.
+ * @param backgroundColor Background color of the item. If null, uses theme default.
+ * @param horizontalPadding Horizontal padding of the item. If null, uses theme default.
+ * @param checkIconTint Color tint for the check icon. If null, uses theme default.
+ */
 @Composable
 fun OptionItem(
     text: String,

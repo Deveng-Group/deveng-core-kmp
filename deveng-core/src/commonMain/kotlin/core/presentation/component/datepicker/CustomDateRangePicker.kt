@@ -42,6 +42,46 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+/**
+ * A customizable date range picker component that displays a picker field and opens a date range picker dialog.
+ * Supports selecting a start and end date with customizable date range restrictions.
+ *
+ * @param modifier Modifier to be applied to the picker field container.
+ * @param title Optional title text displayed above the picker field.
+ * @param titleColor Color of the title text. If null, uses theme default.
+ * @param enabledBorderWidth Width of the border when enabled. If null, uses theme default.
+ * @param enabledBorderColor Border color when enabled. If null, uses theme default.
+ * @param enabledTextColor Text color when enabled. If null, uses theme default.
+ * @param rangeText Formatted text representation of the selected date range to display.
+ * @param initialSelectedStartDate Initially selected start date, or null if none.
+ * @param initialSelectedEndDate Initially selected end date, or null if none.
+ * @param trailingIconModifier Modifier to be applied to the trailing calendar icon.
+ * @param trailingIconTint Color tint for the trailing calendar icon. If null, uses theme default.
+ * @param errorMessage Optional error message displayed below the picker field.
+ * @param onRangeChange Callback invoked when a date range is selected, receives start and end dates (both nullable).
+ * @param targetDates Target date range restriction (PAST, FUTURE, or ALL). Default is FUTURE.
+ * @param selectableDates CustomSelectableDates instance to configure date selection restrictions.
+ * @param dialogContainerColor Background color of the date picker dialog. If null, uses theme default.
+ * @param dialogContentColor Default text color for dialog content. If null, uses theme default.
+ * @param titleContentColor Text color for the dialog title. If null, uses theme default.
+ * @param headlineContentColor Text color for the headline. If null, uses theme default.
+ * @param headlineTextStyle Text style for the headline. If null, uses theme default.
+ * @param weekdayContentColor Text color for weekday labels. If null, uses theme default.
+ * @param subheadContentColor Text color for subhead content. If null, uses theme default.
+ * @param navigationContentColor Text color for navigation controls. If null, uses theme default.
+ * @param dayContentColor Text color for day numbers. If null, uses theme default.
+ * @param selectedDayContainerColor Background color of selected days. If null, uses theme default.
+ * @param selectedDayContentColor Text color of selected days. If null, uses theme default.
+ * @param todayContentColor Text color for today's date. If null, uses theme default.
+ * @param todayDateBorderColor Border color for today's date. If null, uses theme default.
+ * @param yearContentColor Text color for year numbers. If null, uses theme default.
+ * @param currentYearContentColor Text color for the current year. If null, uses theme default.
+ * @param selectedYearContainerColor Background color of the selected year. If null, uses theme default.
+ * @param selectedYearContentColor Text color of the selected year. If null, uses theme default.
+ * @param dividerColor Color of dividers in the dialog. If null, uses theme default.
+ * @param confirmButtonTextColor Text color of the confirm button. If null, uses theme default.
+ * @param dismissButtonTextColor Text color of the dismiss button. If null, uses theme default.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun CustomDateRangePicker(

@@ -19,6 +19,49 @@ import core.presentation.theme.CoreCustomDividerColor
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 
+/**
+ * A search field component combining a text field with a search action button.
+ * The button can be positioned at the start or end of the text field.
+ *
+ * @param modifier Modifier to be applied to the row container.
+ * @param searchText Current search text value.
+ * @param onSearchTextChange Callback invoked when the search text changes.
+ * @param onSearchButtonClick Callback invoked when the search button is clicked.
+ * @param searchBarHint Placeholder text for the search field.
+ * @param textFieldContainerModifier Modifier to be applied to the text field container.
+ * @param textFieldModifier Modifier to be applied to the text field itself.
+ * @param textFieldShape Shape of the text field. Default is RoundedCornerShape(16.dp).
+ * @param textFieldBorder Border stroke of the text field. Default is 1.dp divider color.
+ * @param maxLines Maximum number of lines for the text field. Default is Int.MAX_VALUE.
+ * @param singleLine Whether the text field is single line. Default is true.
+ * @param isEditable Whether the text field is editable. Default is true.
+ * @param readOnly Whether the text field is read-only. Default is false.
+ * @param maxLength Maximum character length allowed. Default is 254.
+ * @param keyboardType Keyboard type for text input. Default is KeyboardType.Text.
+ * @param errorMessage Optional error message displayed below the text field.
+ * @param title Optional title text displayed above the text field.
+ * @param leadingSlot Optional composable slot for leading content in the text field.
+ * @param trailingSlot Optional composable slot for trailing content in the text field.
+ * @param isTextCharCountVisible Whether to display character count. Default is false.
+ * @param onDone Callback invoked when the done action is triggered.
+ * @param onFocusCleared Callback invoked when focus is cleared from the text field.
+ * @param enabled Whether the text field is enabled. Default is true.
+ * @param requestFocus Whether to request focus when the component is composed. Default is false.
+ * @param textStyle Text style for the text field. If null, uses theme default.
+ * @param containerColor Background color of the text field when enabled. If null, uses theme default.
+ * @param disabledContainerColor Background color when disabled. If null, uses theme default.
+ * @param textColor Text color when enabled. If null, uses theme default.
+ * @param disabledTextColor Text color when disabled. If null, uses theme default.
+ * @param isButtonEnabled Whether the search button is enabled. Default is true.
+ * @param buttonSize Size of the search button. If null, uses theme default.
+ * @param buttonShape Shape of the search button. If null, uses theme default.
+ * @param buttonBackgroundColor Background color of the search button. If null, uses theme default.
+ * @param buttonIcon Drawable resource for the search button icon.
+ * @param buttonIconDescription Content description for the search button icon.
+ * @param buttonIconTint Color tint for the search button icon. If null, uses theme default.
+ * @param buttonShadowElevation Shadow elevation of the search button. If null, uses theme default.
+ * @param isButtonAtEnd Whether the button is positioned at the end (true) or start (false). Default is true.
+ */
 @Composable
 fun SearchField(
     // Row

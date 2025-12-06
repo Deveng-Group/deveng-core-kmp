@@ -55,6 +55,58 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A comprehensive customizable text field component with extensive styling and functionality options.
+ * Supports password visibility toggle, inline suffix, character counting, and various states.
+ *
+ * @param textFieldModifier Modifier to be applied to the text field itself.
+ * @param value Current text value of the field.
+ * @param hint Placeholder text displayed when the field is empty.
+ * @param containerModifier Modifier to be applied to the container (includes title and error message).
+ * @param leadingSlot Optional composable slot for leading content (e.g., icon).
+ * @param trailingSlot Optional composable slot for trailing content (e.g., action icon).
+ * @param suffixSlot Optional composable slot for suffix content.
+ * @param titleTrailingSlot Optional composable slot displayed after the title.
+ * @param textStyle Text style for the input text. If null, uses theme default.
+ * @param isBorderActive Whether the border is visible. If null, uses theme default.
+ * @param shape Shape of the text field container. If null, uses theme default.
+ * @param borderStroke Border stroke configuration. If null, uses theme default.
+ * @param focusedBorderWidth Width of the border when focused. If null, uses borderStroke width.
+ * @param unfocusedBorderWidth Width of the border when not focused. If null, uses borderStroke width.
+ * @param maxLines Maximum number of lines for multi-line input. Default is Int.MAX_VALUE.
+ * @param singleLine Whether the field is single line. Default is true.
+ * @param isEditable Whether the field is editable. Default is true.
+ * @param readOnly Whether the field is read-only. Default is false.
+ * @param maxLength Maximum character length allowed. Default is 254.
+ * @param keyboardType Keyboard type for text input. Default is KeyboardType.Text.
+ * @param keyboardOptions Keyboard options including IME action. Default is Done action.
+ * @param isPasswordToggleDisplayed Whether to show password visibility toggle. Default is true if keyboardType is Password.
+ * @param isPasswordVisible Current password visibility state. Default is false.
+ * @param onPasswordToggleClick Callback invoked when password toggle is clicked, receives new visibility state.
+ * @param inlineSuffix Optional inline suffix text displayed at the end of the input text.
+ * @param errorMessage Optional error message displayed below the field.
+ * @param title Optional title text displayed above the field.
+ * @param titleColor Color of the title text. If null, uses theme default.
+ * @param titleTextStyle Text style for the title. If null, uses theme default.
+ * @param charCountTextStyle Text style for the character count. If null, uses theme default.
+ * @param isTextCharCountVisible Whether to display character count. Default is false.
+ * @param onDone Callback invoked when the done/IME action is triggered.
+ * @param onFocusCleared Callback invoked when focus is cleared from the field.
+ * @param enabled Whether the field is enabled. Default is true.
+ * @param requestFocus Whether to request focus when the component is composed. Default is false.
+ * @param containerColor Background color of the field when enabled. If null, uses theme default.
+ * @param disabledContainerColor Background color when disabled. If null, uses theme default.
+ * @param textColor Text color when enabled. If null, uses theme default.
+ * @param disabledTextColor Text color when disabled. If null, uses theme default.
+ * @param readOnlyTextColor Text color when read-only. If null, uses theme default.
+ * @param hintTextStyle Text style for the hint/placeholder. If null, uses theme default.
+ * @param errorTextStyle Text style for the error message. If null, uses theme default.
+ * @param focusedBorderColor Border color when focused. If null, uses borderStroke color.
+ * @param unfocusedBorderColor Border color when not focused. If null, uses borderStroke color.
+ * @param cursorColor Color of the text cursor. If null, uses theme default.
+ * @param visualTransformation Visual transformation applied to the text (e.g., password masking). Default is None.
+ * @param onValueChange Callback invoked when the text value changes.
+ */
 @Composable
 fun CustomTextField(
     textFieldModifier: Modifier = Modifier,

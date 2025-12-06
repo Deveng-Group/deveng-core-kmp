@@ -16,6 +16,21 @@ import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A horizontal progress indicator bar component showing page/step progress.
+ * Displays multiple indicator bars where some are highlighted based on the current page and indicator type.
+ *
+ * @param modifier Modifier to be applied to the row container.
+ * @param pageCount Total number of pages/steps to indicate.
+ * @param currentPage Current page/step index (0-based).
+ * @param indicatorType Type of highlighting: HIGH_LIGHT_CURRENT highlights only current page,
+ *                      HIGH_LIGHT_UNTIL_CURRENT highlights all pages up to and including current. Default is HIGH_LIGHT_CURRENT.
+ * @param filledIndicatorColor Color of filled/highlighted indicators. If null, uses theme default.
+ * @param defaultIndicatorColor Color of unfilled/default indicators. If null, uses theme default.
+ * @param indicatorHeight Height of each indicator bar. If null, uses theme default.
+ * @param indicatorSpacing Spacing between indicator bars. If null, uses theme default.
+ * @param indicatorCornerRadius Corner radius of the indicator bars. If null, uses theme default.
+ */
 @Composable
 fun ProgressIndicatorBars(
     modifier: Modifier = Modifier,

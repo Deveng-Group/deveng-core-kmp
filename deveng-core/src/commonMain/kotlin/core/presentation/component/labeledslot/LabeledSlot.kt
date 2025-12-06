@@ -20,6 +20,17 @@ import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A container component that displays content with optional overlay labels positioned at various alignments.
+ * Labels are displayed as badges/overlays on top of the content, useful for displaying status badges, badges, etc.
+ *
+ * @param modifier Modifier to be applied to the container.
+ * @param labels List of Label objects to display as overlays. Each label has text, colors, position, and shape.
+ * @param containerWidth Width of the container. If null, uses theme default.
+ * @param containerHeight Height of the container. If null, uses theme default.
+ * @param containerShape Shape of the container. If null, uses theme default.
+ * @param contentSlot Composable content displayed in the container (typically an image or view).
+ */
 @Composable
 fun LabeledSlot(
     modifier: Modifier = Modifier,

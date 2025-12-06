@@ -50,52 +50,26 @@ import kotlin.math.abs
  *
  * This component does NOT perform data loading itself.
  * It only exposes events:
- *  - [onScrollReachNextPageThreshold]         → triggered when user scrolls near the loading edge
- *  - [onSwipeAtListsEnd]    → triggered when user performs the retry gesture
+ *  - [onScrollReachNextPageThreshold] → triggered when user scrolls near the loading edge
+ *  - [onSwipeAtListsEnd] → triggered when user performs the retry gesture
  *
  * Pair it with a paging loader (e.g., PaginatedFlowLoader) to manage state.
  *
- * @param state
- * The current pagination UI state.
- *
- * @param onScrollReachNextPageThreshold
- * Triggered automatically when the scroll position reaches the pagination boundary.
- *
- * @param onSwipeAtListsEnd
- * Triggered by user retry gesture when an error exists.
- *
- * @param itemSlot
- * Composable that renders an item from the list.
- *
- * @param spaceBetweenItems
- * Vertical spacing in dp.
- *
- * @param horizontalPadding
- * Horizontal padding around the list in dp.
- *
- * @param listBottomPadding
- * Extra bottom padding in dp.
- *
- * @param modifier
- * Parent modifier.
- *
- * @param prefetchThreshold
- * How early to trigger loading of next page.
- *
- * @param isReverseLayout
- * Enables chat-like behavior (load-at-top, retry-at-top).
- *
- * @param itemKey
- * Provides stable keys for better LazyColumn performance.
- *
- * @param emptyListText
- * Composable lambda producing the "empty list" string.
- *
- * @param errorTextProvider
- * Composable lambda producing the error message string.
- *
- * @param pullToRetryText
- * Composable lambda producing the “pull to retry” hint.
+ * @param state The current pagination UI state containing items, loading state, error, and pagination info.
+ * @param onScrollReachNextPageThreshold Callback triggered automatically when the scroll position reaches the pagination boundary.
+ * @param onSwipeAtListsEnd Callback triggered by user retry gesture when an error exists.
+ * @param itemSlot Composable that renders an item from the list, receives the item of type T.
+ * @param spaceBetweenItems Vertical spacing in dp between list items. Default is 12.
+ * @param horizontalPadding Horizontal padding around the list in dp. Default is 13.
+ * @param listBottomPadding Extra bottom padding in dp. Default is 5.
+ * @param modifier Parent modifier to be applied to the list container.
+ * @param prefetchThreshold Number of items before the edge to trigger loading of next page. Default is 10.
+ * @param isReverseLayout Enables chat-like behavior (load-at-top, retry-at-top). Default is false.
+ * @param itemKey Optional function providing stable keys for better LazyColumn performance.
+ * @param textStyle Text style for empty list and error messages. Default uses theme medium text style.
+ * @param emptyListText Text to display when the list is empty. If null, nothing is shown.
+ * @param errorTextProvider Optional composable function producing the error message string from the error.
+ * @param pullToRetryText Text hint for pull-to-retry gesture. If null, nothing is shown.
  */
 @Composable
 fun <T> PaginatedListView(

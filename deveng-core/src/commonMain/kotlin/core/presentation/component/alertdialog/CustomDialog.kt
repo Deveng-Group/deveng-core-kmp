@@ -17,6 +17,17 @@ import global.deveng.deveng_core.generated.resources.shared_ok
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A customizable dialog wrapper component that provides a base structure for dialogs.
+ * Supports optional header and customizable properties.
+ *
+ * @param modifier Modifier to be applied to the dialog content container.
+ * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ * @param properties Dialog properties configuration (dismiss on back press, dismiss on click outside, etc.).
+ * @param header Optional composable header content displayed at the top of the dialog.
+ * @param backgroundColor Background color of the dialog. Default is Color.Transparent.
+ * @param content Composable content displayed in the dialog body.
+ */
 @Composable
 fun CustomDialog(
     modifier: Modifier = Modifier,

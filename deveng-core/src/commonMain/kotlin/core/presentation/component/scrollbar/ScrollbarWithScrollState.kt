@@ -11,6 +11,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import core.presentation.theme.LocalComponentTheme
 
+/**
+ * A modifier extension that adds a vertical scrollbar to a scrollable composable (Column, LazyColumn, etc.).
+ * The scrollbar position and size are calculated based on the ScrollState.
+ *
+ * @param scrollState The ScrollState of the scrollable composable to track.
+ * @param alwaysShowScrollBar Whether to always show the scrollbar even when content doesn't require scrolling. If null, uses theme default.
+ * @param width Width of the scrollbar. If null, uses theme default.
+ * @param isScrollBarTrackVisible Whether to display the scrollbar track (background). If null, uses theme default.
+ * @param scrollBarTrackColor Color of the scrollbar track. If null, uses theme default.
+ * @param scrollBarColor Color of the scrollbar thumb (the draggable part). If null, uses theme default.
+ * @param scrollBarCornerRadius Corner radius of the scrollbar and track. If null, uses theme default.
+ * @param endPadding Padding from the end (right side in LTR). If null, uses theme default.
+ * @param topPadding Top padding for the scrollbar. If null, uses theme default.
+ * @param bottomPadding Bottom padding for the scrollbar. If null, uses theme default.
+ * @return Modifier with scrollbar drawing applied.
+ */
 @Composable
 fun Modifier.scrollbarWithScrollState(
     scrollState: ScrollState,

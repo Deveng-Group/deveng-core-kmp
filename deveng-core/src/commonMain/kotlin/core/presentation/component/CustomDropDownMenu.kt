@@ -35,6 +35,27 @@ import global.deveng.deveng_core.generated.resources.shared_ic_angle_down
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * A customizable dropdown menu component with text field and scrollable list of items.
+ * Displays a text field that opens a dropdown menu when clicked, allowing selection from a list of items.
+ *
+ * @param modifier Modifier to be applied to the dropdown container.
+ * @param title Optional title text displayed above the dropdown field.
+ * @param hintMessage Placeholder text shown when no item is selected.
+ * @param titleColor Color of the title text. If null, uses theme default.
+ * @param backgroundColor Background color of the dropdown field and menu. If null, uses theme default.
+ * @param textColor Color of the selected item text. If null, uses theme default.
+ * @param unfocusedBorderColor Border color when the field is not focused. If null, uses theme default.
+ * @param focusedBorderColor Border color when the field is focused. If null, uses theme default.
+ * @param dividerColor Color of dividers between menu items. If null, uses theme default.
+ * @param isScrollBarVisible Whether to show the scrollbar in the dropdown menu. If null, uses theme default.
+ * @param scrollBarColor Color of the scrollbar thumb. If null, uses theme default.
+ * @param scrollBarTrackColor Color of the scrollbar track. If null, uses theme default.
+ * @param dropDownMenuHeight Maximum height of the dropdown menu. Default is 450.dp.
+ * @param items List of items to display in the dropdown menu.
+ * @param selectedItem Currently selected item, or null if none selected.
+ * @param onItemSelected Callback invoked when an item is selected from the dropdown.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> CustomDropDownMenu(

@@ -14,6 +14,17 @@ import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A surface component with rounded corners and customizable border and colors.
+ * Wraps content in a Material3 Surface with theme-aware styling.
+ *
+ * @param modifier Modifier to be applied to the surface.
+ * @param borderStroke Border stroke configuration. Default is transparent (no border).
+ * @param color Background color of the surface. If null, uses theme default.
+ * @param shape Shape of the surface. Default is MaterialTheme.shapes.medium.
+ * @param contentColor Color for content inside the surface. If null, uses theme default.
+ * @param content Composable content to display inside the surface.
+ */
 @Composable
 fun RoundedSurface(
     modifier: Modifier = Modifier,

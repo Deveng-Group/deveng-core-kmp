@@ -32,6 +32,33 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * A component for displaying and copying JSON text with formatting.
+ * Includes a title, formatted JSON display container, and a copy button that changes state when clicked.
+ *
+ * @param title Title text displayed above the JSON viewer.
+ * @param json The JSON string to display and format.
+ * @param containerColor Background color of the JSON display container. If null, uses theme default.
+ * @param buttonTextColor Text color of the copy button. If null, uses theme default.
+ * @param buttonColor Background color of the copy button. If null, uses theme default.
+ * @param copyText Text displayed on the copy button when JSON is not copied.
+ * @param copyIcon Drawable resource for the icon displayed when JSON is not copied.
+ * @param copyIconTint Color tint for the copy icon. If null, uses theme default.
+ * @param copyIconDescription Content description for accessibility for the copy icon.
+ * @param copiedText Text displayed on the button when JSON has been copied.
+ * @param copiedIcon Drawable resource for the icon displayed when JSON has been copied.
+ * @param copiedIconTint Color tint for the copied icon. If null, uses theme default.
+ * @param copiedIconDescription Content description for accessibility for the copied icon.
+ * @param isJsonCopied Whether the JSON has been copied (affects button text and icon).
+ * @param onClickCopyJsonIcon Callback invoked when the copy button is clicked, receives the JSON string.
+ * @param titleTextStyle Text style for the title. If null, uses theme default.
+ * @param jsonTextStyle Text style for the formatted JSON text. If null, uses theme default.
+ * @param containerShape Shape of the JSON display container. If null, uses theme default.
+ * @param containerPadding Padding inside the JSON display container. If null, uses theme default.
+ * @param buttonShape Shape of the copy button. If null, uses theme default.
+ * @param buttonHeight Height of the copy button. If null, uses theme default.
+ * @param buttonIconSize Size of the button icon. If null, uses theme default.
+ */
 @Composable
 fun JsonViewer(
     title: String,
