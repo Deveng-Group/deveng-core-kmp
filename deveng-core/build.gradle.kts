@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.vanniktech.mavenPublish)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.figma.code.connect)
 }
 
 group = "global.deveng"
@@ -69,6 +70,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.uiTooling)
             implementation(libs.androidx.activityCompose)
+            implementation(libs.figma.code.connect.lib)
         }
     }
 }
