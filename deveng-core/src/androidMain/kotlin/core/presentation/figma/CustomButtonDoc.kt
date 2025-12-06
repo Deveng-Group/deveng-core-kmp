@@ -201,8 +201,9 @@ class CustomButtonDoc {
 
     val trailingIconModifier: Modifier = Modifier
 
-    // 7. text style / text modifier – you currently derive textStyle from theme.
-    // Here we just keep them explicit so they show up in the snippet.
+    // 7. text style / text modifier
+    // textStyle: If null, uses theme's default button text style (semi-bold).
+    // The component applies theme's fontSize and textAlign to the semi-bold style.
     val textStyle: TextStyle? = null
 
     val textModifier: Modifier = Modifier

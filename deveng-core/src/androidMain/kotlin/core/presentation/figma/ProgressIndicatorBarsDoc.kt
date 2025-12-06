@@ -32,6 +32,8 @@ class ProgressIndicatorBarsDoc {
         "Highlight current" to IndicatorTypeVariant.HighlightCurrent,
         "Highlight until current" to IndicatorTypeVariant.HighlightUntilCurrent
     )
+    // Highlight current: Only the indicator at currentPage index is highlighted.
+    // Highlight until current: All indicators from index 0 up to and including currentPage are highlighted.
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
@@ -39,6 +41,9 @@ class ProgressIndicatorBarsDoc {
     val modifier: Modifier = Modifier
 
     // 2. indicatorType
+    // Controls which indicators are filled/highlighted:
+    // - HIGH_LIGHT_CURRENT: Only the indicator at currentPage is filled (others use default color)
+    // - HIGH_LIGHT_UNTIL_CURRENT: All indicators from 0 to currentPage (inclusive) are filled
     val indicatorType: IndicatorType
         get() = when (indicatorTypeVariant) {
             IndicatorTypeVariant.HighlightCurrent -> IndicatorType.HIGH_LIGHT_CURRENT

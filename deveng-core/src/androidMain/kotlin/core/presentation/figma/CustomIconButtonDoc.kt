@@ -45,6 +45,8 @@ class CustomIconButtonDoc {
 
     @FigmaProperty(FigmaType.Boolean, "Enabled")
     val isEnable: Boolean = true
+    // When disabled, the icon tint is automatically reduced to 40% opacity (alpha = 0.4f).
+    // The button remains visible but appears dimmed and is not clickable.
 
     @FigmaProperty(FigmaType.Enum, "Shape")
     val shapeVariant: ShapeVariant = Figma.mapping(
@@ -89,6 +91,9 @@ class CustomIconButtonDoc {
         }
 
     // 6. shadowElevation
+    // Controls the shadow/elevation of the button.
+    // The shadow is applied using Compose's shadow modifier with the specified elevation.
+    // Default (if null): Uses theme's default shadow elevation.
     val shadowElevation: Dp
         get() = when (elevationLevel) {
             ElevationLevel.None -> 0.dp

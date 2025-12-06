@@ -23,6 +23,8 @@ class LabeledSwitchDoc {
 
     @FigmaProperty(FigmaType.Boolean, "Label at start")
     val isLabelAtStart: Boolean = true
+    // When true: Label is positioned at the start, arrangement is SpaceBetween (label left, switch right).
+    // When false: Label is positioned at the end, arrangement is End (switch left, label right).
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
@@ -41,6 +43,9 @@ class LabeledSwitchDoc {
     val uncheckedBorderColor: Color? = null
 
     // 4. scale
+    // Scale factor applied to the switch component to resize it.
+    // If null, uses theme's default scale value.
+    // Applied using Compose's scale modifier to the Switch component.
     val switchScale: Float? = null
 
     // 5. callback
