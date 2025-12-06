@@ -10,7 +10,7 @@ import com.figma.code.connect.FigmaType
 import core.presentation.component.LabeledSwitch
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-11&t=JntFNGouWhSDj0EP-0"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=62-41&m=draw"
 )
 class LabeledSwitchDoc {
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
@@ -23,6 +23,8 @@ class LabeledSwitchDoc {
 
     @FigmaProperty(FigmaType.Boolean, "Label at start")
     val isLabelAtStart: Boolean = true
+    // When true: Label is positioned at the start, arrangement is SpaceBetween (label left, switch right).
+    // When false: Label is positioned at the end, arrangement is End (switch left, label right).
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
@@ -41,6 +43,9 @@ class LabeledSwitchDoc {
     val uncheckedBorderColor: Color? = null
 
     // 4. scale
+    // Scale factor applied to the switch component to resize it.
+    // If null, uses theme's default scale value.
+    // Applied using Compose's scale modifier to the Switch component.
     val switchScale: Float? = null
 
     // 5. callback

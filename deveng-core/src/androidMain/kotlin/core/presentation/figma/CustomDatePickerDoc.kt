@@ -21,7 +21,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-14&t=JntFNGouWhSDj0EP-0"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=36-39&m=dev"
 )
 class CustomDatePickerDoc {
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
@@ -34,6 +34,9 @@ class CustomDatePickerDoc {
 
     @FigmaProperty(FigmaType.Text, "Selected date")
     val selectedDateText: String? = null
+    // Formatted text representation of the selected date to display in the picker field.
+    // Expected format: ISO 8601 date string (e.g., "2023-01-15") or custom formatted string.
+    // If null, placeholderText is shown instead.
 
     @FigmaProperty(FigmaType.Text, "Title")
     val title: String = "Select date"
@@ -49,6 +52,9 @@ class CustomDatePickerDoc {
         "Past" to TargetDatesVariant.Past,
         "Future" to TargetDatesVariant.Future
     )
+    // Restricts selectable date range in the picker dialog.
+    // Past: Only dates before today are selectable.
+    // Future: Only dates after today are selectable.
 
     @FigmaProperty(FigmaType.Enum, "Slots")
     val slotPresence: SlotPresence = Figma.mapping(
@@ -67,6 +73,8 @@ class CustomDatePickerDoc {
     val trailingIconModifier: Modifier = Modifier
 
     // 3. selectedDate (parsed from selectedDateText if provided)
+    // Parses ISO 8601 date string (YYYY-MM-DD format) into LocalDate.
+    // Returns null if parsing fails or selectedDateText is null.
     val selectedDate: LocalDate?
         get() = selectedDateText?.let {
             try {
@@ -77,6 +85,7 @@ class CustomDatePickerDoc {
         }
 
     // 4. targetDates
+    // Maps enum variant to TargetDates constant that controls date selection restrictions.
     val targetDates: TargetDates
         get() = when (targetDatesVariant) {
             TargetDatesVariant.Past -> TargetDates.PAST
@@ -84,6 +93,7 @@ class CustomDatePickerDoc {
         }
 
     // 5. slots
+    // Leading slot: Optional icon displayed at the start of the picker field.
     val leadingSlot: @Composable (() -> Unit)?
         get() = when (slotPresence) {
             SlotPresence.Leading, SlotPresence.Both -> {
@@ -100,6 +110,9 @@ class CustomDatePickerDoc {
     // 6. colors (null = use theme defaults)
     val trailingIconTint: Color? = null
 
+    // Trailing slot: Icon displayed at the end of the picker field.
+    // Default: Calendar icon (shared_ic_calendar) is shown when no custom trailing slot is provided.
+    // When slotPresence is Trailing or Both, a custom icon is used; otherwise, the default calendar icon is shown.
     val trailingSlot: @Composable (() -> Unit)?
         get() = when (slotPresence) {
             SlotPresence.Trailing, SlotPresence.Both -> {
@@ -112,7 +125,7 @@ class CustomDatePickerDoc {
                     )
                 }
             }
-            else -> null
+            else -> null // Component provides default calendar icon when null
         }
     val dialogContainerColor: Color? = null
     val dialogContentColor: Color? = null
@@ -125,13 +138,23 @@ class CustomDatePickerDoc {
     val confirmButtonTextColor: Color? = null
     val dismissButtonTextColor: Color? = null
 
-    // 7. callback
+    // 7. Behavior notes
+    // - Clicking the picker field opens a date picker dialog
+    // - Dialog shows a calendar interface with date selection
+    // - User confirms selection via "OK" button or dismisses via "Cancel" button
+    // - selectableDates is required but created internally using remember() - no need to provide externally
+
+    // 8. callback
+    // onDateChange: Invoked when user confirms a date selection in the dialog.
+    // Receives the selected LocalDate object.
     val onDateChange: (LocalDate) -> Unit = {}
 
     // --- THE COMPOSABLE SNIPPET (USES *ALL* PARAMETERS EXPLICITLY) ---
 
     @Composable
     fun Component() {
+        // selectableDates is required by the component but created internally.
+        // It's remembered across recompositions and configured based on targetDates.
         val selectableDates = remember { CustomSelectableDates() }
 
         CustomDatePicker(
