@@ -4,7 +4,7 @@ android-minSdk = "24"
 android-targetSdk = "35"
 android-compileSdk = "36"
 app-version-major = "1"
-app-version-code = "3"
+app-version-code = "4"
 app-minor-version = "12"
 
 androidx-activityCompose = "1.10.1"
