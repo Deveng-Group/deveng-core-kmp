@@ -22,7 +22,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-10&t=JntFNGouWhSDj0EP-0"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=36-34&m=dev"
 )
 class PickerFieldDoc {
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
@@ -35,6 +35,8 @@ class PickerFieldDoc {
 
     @FigmaProperty(FigmaType.Text, "Text")
     val text: String? = null
+    // Selected text to display. If null or empty, shows hint text instead.
+    // Text is truncated with ellipsis if it exceeds available width.
 
     @FigmaProperty(FigmaType.Text, "Hint")
     val hint: String = "Select option"
@@ -63,6 +65,10 @@ class PickerFieldDoc {
         "Both" to SlotPresence.Both
     )
 
+    @FigmaProperty(FigmaType.Text, "Title trailing icon")
+    val titleTrailingIconText: String? = null
+    // Optional icon displayed after the title. When provided, creates a titleTrailingIcon slot.
+
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
     // 1. modifier
@@ -77,6 +83,7 @@ class PickerFieldDoc {
         }
 
     // 3. slots
+    // Leading slot: Optional icon displayed at the start of the field content.
     val leadingSlot: @Composable (() -> Unit)?
         get() = when (slotPresence) {
             SlotPresence.Leading, SlotPresence.Both -> {
@@ -91,6 +98,9 @@ class PickerFieldDoc {
             else -> null
         }
 
+    // Trailing slot: Icon displayed at the end of the field content.
+    // Default: Right arrow icon (shared_ic_angle_right) is always shown unless custom trailing slot is provided.
+    // When slotPresence is Trailing or Both, a custom icon is used; otherwise, the default arrow is shown.
     val trailingSlot: @Composable (() -> Unit)?
         get() = when (slotPresence) {
             SlotPresence.Trailing, SlotPresence.Both -> {
@@ -102,20 +112,28 @@ class PickerFieldDoc {
                     )
                 }
             }
-            else -> {
-                {
-                    Icon(
-                        painter = painterResource(Res.drawable.shared_ic_angle_right),
-                        contentDescription = stringResource(Res.string.shared_content_desc_icon_direction),
-                        tint = CoreCustomBlackColor
-                    )
-                }
+            else -> null // Component provides default trailing icon when null
+        }
+
+    // Title trailing icon: Optional icon displayed after the title text.
+    // Only shown when titleTrailingIconText is not null.
+    val titleTrailingIcon: @Composable (() -> Unit)?
+        get() = titleTrailingIconText?.let {
+            {
+                Icon(
+                    painter = painterResource(Res.drawable.shared_ic_angle_right),
+                    contentDescription = null,
+                    tint = CoreCustomBlackColor
+                )
             }
         }
 
-    val titleTrailingIcon: @Composable (() -> Unit)? = null
+    // 4. Field dimensions and behavior
+    // Fixed height: 56dp (applied internally by the component)
+    // Text overflow: When text exceeds available width, it's truncated with ellipsis (...)
+    // Text display: Shows selected text if available, otherwise shows hint text with hint styling
 
-    // 4. colors (null = use theme defaults)
+    // 5. colors (null = use theme defaults)
     val titleColor: Color? = null
     val enabledBackGroundColor: Color? = null
     val enabledBorderColor: Color? = null
@@ -126,13 +144,14 @@ class PickerFieldDoc {
     val disabledBorderColor: Color? = null
     val disabledTextColor: Color? = null
 
-    // 5. text styles (null = use theme defaults)
+    // 6. text styles (null = use theme defaults)
     val titleTextStyle: TextStyle? = null
     val textStyle: TextStyle? = null
     val hintTextStyle: TextStyle? = null
     val errorTextStyle: TextStyle? = null
 
-    // 6. callback
+    // 7. callback
+    // onClick: Invoked when the field is clicked. Typically opens a picker dialog or selection screen.
     val onClick: () -> Unit = {}
 
     // --- THE COMPOSABLE SNIPPET (USES *ALL* PARAMETERS EXPLICITLY) ---

@@ -16,7 +16,7 @@ import global.deveng.deveng_core.generated.resources.shared_ic_arrow_left
 import org.jetbrains.compose.resources.DrawableResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-9&t=JntFNGouWhSDj0EP-0"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=62-78&m=draw"
 )
 class CustomHeaderDoc {
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
@@ -55,6 +55,8 @@ class CustomHeaderDoc {
 
     @FigmaProperty(FigmaType.Boolean, "Right icon visible")
     val isRightIconButtonVisible: Boolean = true
+    // Default behavior: Automatically true if rightIcon is not null, false otherwise.
+    // This property allows manual override of the default visibility logic.
 
     @FigmaProperty(FigmaType.Boolean, "Center icon visible")
     val isCenterIconVisible: Boolean = true
@@ -79,6 +81,8 @@ class CustomHeaderDoc {
         }
 
     // 2. rightIcon
+    // If rightIcon is null, isRightIconButtonVisible defaults to false.
+    // If rightIcon is not null, isRightIconButtonVisible defaults to true (unless explicitly overridden).
     val rightIcon: DrawableResource?
         get() = when (rightIconVariant) {
             RightIconVariant.AngleRight -> Res.drawable.shared_ic_angle_right
@@ -87,6 +91,8 @@ class CustomHeaderDoc {
         }
 
     // 3. centerIcon
+    // If centerIcon is null, the component falls back to the theme's default center icon.
+    // The center icon is displayed as an Image (not a button) and is centered horizontally.
     val centerIcon: DrawableResource?
         get() = when (centerIconVariant) {
             CenterIconVariant.AngleRight -> Res.drawable.shared_ic_angle_right

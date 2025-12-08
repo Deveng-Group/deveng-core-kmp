@@ -24,7 +24,7 @@ import global.deveng.deveng_core.generated.resources.shared_ic_password_invisibl
 import org.jetbrains.compose.resources.painterResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-8&t=JntFNGouWhSDj0EP-0"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=4-41&m=dev"
 )
 class CustomTextFieldDoc {
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
@@ -60,6 +60,8 @@ class CustomTextFieldDoc {
 
     @FigmaProperty(FigmaType.Boolean, "Show character count")
     val isTextCharCountVisible: Boolean = false
+    // When enabled, displays character count in format: "current/max" (e.g., "25/254")
+    // Shown in the top-right corner, next to the title if present.
 
     @FigmaProperty(FigmaType.Enum, "Keyboard type")
     val keyboardTypeVariant: KeyboardTypeVariant = Figma.mapping(
@@ -93,6 +95,26 @@ class CustomTextFieldDoc {
 
     @FigmaProperty(FigmaType.Text, "Max length")
     val maxLength: Int = 254
+
+    @FigmaProperty(FigmaType.Text, "Inline suffix")
+    val inlineSuffix: String? = null
+    // Optional suffix text displayed inline at the end of the input text.
+    // Only visible when value is not blank. Useful for units (e.g., "kg", "cm").
+
+    @FigmaProperty(FigmaType.Boolean, "Request focus")
+    val requestFocus: Boolean = false
+    // When true, automatically requests focus when the component is first composed.
+    // Useful for auto-focusing the first field in a form.
+
+    @FigmaProperty(FigmaType.Text, "Max lines")
+    val maxLines: Int = Int.MAX_VALUE
+    // Maximum number of lines for multi-line input. Default is Int.MAX_VALUE (unlimited).
+    // Only effective when singleLine is false.
+
+    @FigmaProperty(FigmaType.Boolean, "Single line")
+    val singleLine: Boolean = true
+    // When true, restricts input to a single line. When false, allows multi-line input.
+    // Multi-line mode respects maxLines constraint.
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
@@ -176,6 +198,8 @@ class CustomTextFieldDoc {
         }
 
     // 5. password toggle
+    // Automatically displayed when keyboardType is Password.
+    // Shows visibility toggle icon that allows users to show/hide password text.
     val isPasswordToggleDisplayed: Boolean
         get() = keyboardTypeVariant == KeyboardTypeVariant.Password
 
@@ -211,13 +235,13 @@ class CustomTextFieldDoc {
     val unfocusedBorderWidth: Dp? = null
 
     // 11. other properties
-    val maxLines: Int = Int.MAX_VALUE
-    val singleLine: Boolean = true
+    // isEditable: Controls whether text can be edited. Default is true.
+    // When false, text input is blocked but field remains interactive.
     val isEditable: Boolean = true
-    val inlineSuffix: String? = null
-    val requestFocus: Boolean = false
 
     // 12. callbacks
+    // onDone: Invoked when user presses the IME action (Done) button on keyboard.
+    // onFocusCleared: Invoked when focus is removed from the field.
     val onValueChange: (String) -> Unit = {}
     val onPasswordToggleClick: (Boolean) -> Unit = {}
     val onDone: (() -> Unit)? = null

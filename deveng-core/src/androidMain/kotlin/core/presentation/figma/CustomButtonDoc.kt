@@ -1,10 +1,6 @@
 package core.presentation.figma
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,14 +24,11 @@ import global.deveng.deveng_core.generated.resources.shared_ic_arrow_next
 import org.jetbrains.compose.resources.DrawableResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=2-7&t=JntFNGouWhSDj0EP-0&m=dev"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=57-85&m=dev"
 )
 class CustomButtonDoc {
+
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
-
-    enum class Size { Small, Medium, Large }
-
-    enum class ShapeVariant { Rounded, Pill, Square }
 
     enum class ColorPreset { Primary, Secondary, Surface, Transparent }
 
@@ -53,22 +46,6 @@ class CustomButtonDoc {
     @FigmaProperty(FigmaType.Boolean, "Enabled")
     val enabled: Boolean = true
 
-    @FigmaProperty(FigmaType.Enum, "Size")
-    val size: Size = Figma.mapping(
-        "Small" to Size.Small,
-        "Medium" to Size.Medium,
-        "Large" to Size.Large
-    )
-
-    // Which shape variant the designer picks
-    @FigmaProperty(FigmaType.Enum, "Shape")
-    val shapeVariant: ShapeVariant = Figma.mapping(
-        "Rounded" to ShapeVariant.Rounded,
-        "Pill" to ShapeVariant.Pill,
-        "Square" to ShapeVariant.Square
-    )
-
-    // High-level color preset; we derive the actual 4 Color? params from this
     @FigmaProperty(FigmaType.Enum, "Color preset")
     val colorPreset: ColorPreset = Figma.mapping(
         "Primary" to ColorPreset.Primary,
@@ -77,8 +54,6 @@ class CustomButtonDoc {
         "Transparent" to ColorPreset.Transparent
     )
 
-    // Optional override: let designers explicitly mark button as "Disabled (visual)"
-    // even if Enabled is true, if you need that. For now, we just use Enabled directly.
     @FigmaProperty(FigmaType.Enum, "Elevation")
     val elevationLevel: ElevationLevel = Figma.mapping(
         "None" to ElevationLevel.None,
@@ -94,7 +69,6 @@ class CustomButtonDoc {
         "Space between" to Alignment.SpaceBetween
     )
 
-    // Single prop to decide where icons appear
     @FigmaProperty(FigmaType.Enum, "Icons")
     val iconPosition: IconPosition = Figma.mapping(
         "None" to IconPosition.None,
@@ -103,14 +77,6 @@ class CustomButtonDoc {
         "Both" to IconPosition.Both
     )
 
-    // Optional text for content descriptions
-    @FigmaProperty(FigmaType.Text, "Leading icon description")
-    val leadingIconContentDescription: String? = null
-
-    @FigmaProperty(FigmaType.Text, "Trailing icon description")
-    val trailingIconContentDescription: String? = null
-
-    // Tints as enums mapped to actual colors
     @FigmaProperty(FigmaType.Enum, "Icon tint")
     val iconTint: Color = Figma.mapping(
         "Default" to Color.Black,
@@ -118,31 +84,14 @@ class CustomButtonDoc {
         "On surface" to CoreOnSurfaceColor
     )
 
-    // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
+    @FigmaProperty(FigmaType.Text, "Leading icon description")
+    val leadingIconContentDescription: String? = null
 
-    // 1. modifier (size)
-    val modifier: Modifier
-        get() = when (size) {
-            Size.Small -> Modifier
-                .height(40.dp)
-                .width(140.dp)
-            Size.Medium -> Modifier
-                .height(50.dp)
-                .width(200.dp)
-            Size.Large -> Modifier
-                .height(56.dp)
-                .width(240.dp)
-        }
+    @FigmaProperty(FigmaType.Text, "Trailing icon description")
+    val trailingIconContentDescription: String? = null
 
-    // 2. shape (from ShapeVariant)
-    val shape: CornerBasedShape
-        get() = when (shapeVariant) {
-            ShapeVariant.Rounded -> RoundedCornerShape(8.dp)
-            ShapeVariant.Pill -> RoundedCornerShape(50.dp)
-            ShapeVariant.Square -> RoundedCornerShape(0.dp)
-        }
+    // --- DERIVED VALUES (FROM ABOVE PROPS) ---
 
-    // 3. colors (from ColorPreset)
     val containerColor: Color?
         get() = when (colorPreset) {
             ColorPreset.Primary -> CorePrimaryColor
@@ -166,7 +115,6 @@ class CustomButtonDoc {
     val disabledContentColor: Color?
         get() = contentColor?.copy(alpha = 0.4f)
 
-    // 4. elevation (Dp value - will be converted to ButtonElevation in Component)
     val elevationDp: Dp
         get() = when (elevationLevel) {
             ElevationLevel.None -> 0.dp
@@ -175,7 +123,6 @@ class CustomButtonDoc {
             ElevationLevel.High -> 6.dp
         }
 
-    // 5. content alignment
     val contentArrangement: Arrangement.Horizontal
         get() = when (alignment) {
             Alignment.Center -> Arrangement.Center
@@ -183,46 +130,41 @@ class CustomButtonDoc {
             Alignment.SpaceBetween -> Arrangement.SpaceBetween
         }
 
-    // 6. icons + modifiers
     val leadingIcon: DrawableResource?
         get() = when (iconPosition) {
-            IconPosition.Leading, IconPosition.Both -> Res.drawable.shared_ic_arrow_left
-            IconPosition.None, IconPosition.Trailing -> null
+            IconPosition.Leading,
+            IconPosition.Both -> Res.drawable.shared_ic_arrow_left
+
+            IconPosition.None,
+            IconPosition.Trailing -> null
         }
 
     val trailingIcon: DrawableResource?
         get() = when (iconPosition) {
-            IconPosition.Trailing, IconPosition.Both -> Res.drawable.shared_ic_arrow_next
-            IconPosition.None, IconPosition.Leading -> null
+            IconPosition.Trailing,
+            IconPosition.Both -> Res.drawable.shared_ic_arrow_next
+
+            IconPosition.None,
+            IconPosition.Leading -> null
         }
 
-    // In case you ever want to vary these later, they exist explicitly.
     val leadingIconModifier: Modifier = Modifier
-
     val trailingIconModifier: Modifier = Modifier
-
-    // 7. text style / text modifier – you currently derive textStyle from theme.
-    // Here we just keep them explicit so they show up in the snippet.
     val textStyle: TextStyle? = null
-
     val textModifier: Modifier = Modifier
-
-    // 8. onClick – Code Connect/Dev Mode doesn't care, but it's part of your API.
     val onClick: () -> Unit = {}
 
-    // --- THE COMPOSABLE SNIPPET (USES *ALL* PARAMETERS EXPLICITLY) ---
+    // --- FINAL COMPOSABLE USED BY CODE CONNECT ---
 
     @Composable
     fun Component() {
         val elevation = ButtonDefaults.buttonElevation(defaultElevation = elevationDp)
 
         CustomButton(
-            modifier = modifier,
             text = text,
             textStyle = textStyle,
             textModifier = textModifier,
             enabled = enabled,
-            shape = shape,
             containerColor = containerColor,
             disabledContainerColor = disabledContainerColor,
             disabledContentColor = disabledContentColor,
@@ -241,4 +183,3 @@ class CustomButtonDoc {
         )
     }
 }
-
