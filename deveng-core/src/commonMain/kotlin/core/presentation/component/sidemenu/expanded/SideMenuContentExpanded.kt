@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -22,7 +21,8 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 fun <T> SideMenuContentExpanded(
     sideMenuWidth: Dp,
-    sideMenuItemBackgroundColor: Color? = null,
+    sideMenuItemSelectedBackgroundColor: Color? = null,
+    sideMenuItemUnselectedBackgroundColor: Color? = null,
     sideMenuHeader: Slot,
     sideMenuFooter: Slot,
     horizontalDividerColor: Color? = null,
@@ -36,8 +36,10 @@ fun <T> SideMenuContentExpanded(
     onSideMenuItemClick: (T) -> Unit
 ) {
     val sideMenuTheme = LocalComponentTheme.current.sideMenu
-    val finalItemBackgroundColor =
-        sideMenuItemBackgroundColor ?: sideMenuTheme.sideMenuItemBackgroundColor
+    val finalItemSelectedBackgroundColor =
+        sideMenuItemSelectedBackgroundColor ?: sideMenuTheme.sideMenuItemSelectedBackgroundColor
+    val finalItemUnselectedBackgroundColor =
+        sideMenuItemUnselectedBackgroundColor ?: sideMenuTheme.sideMenuItemUnselectedBackgroundColor
     val finalDividerColor =
         horizontalDividerColor ?: sideMenuTheme.sideMenuSectionSeparatorColor
 
@@ -64,14 +66,15 @@ fun <T> SideMenuContentExpanded(
             verticalArrangement = Arrangement.spacedBy(sideMenuTheme.expandedItemsSpacing)
         ) {
             sideMenuItemList.forEach { item ->
+                val isSelected = isSideMenuItemSelected(item)
                 SideMenuContentItemExpanded(
                     text = sideMenuItemText(item),
                     textStyle = sideMenuItemTextStyle(item),
                     icon = sideMenuItemIcon(item),
                     iconTint = sideMenuItemIconTint(item),
                     iconDescription = sideMenuItemIconDescription(item),
-                    isSelected = isSideMenuItemSelected(item),
-                    backgroundColor = finalItemBackgroundColor,
+                    isSelected = isSelected,
+                    backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
                     onSideMenuItemClick = {
                         onSideMenuItemClick(item)
                     }

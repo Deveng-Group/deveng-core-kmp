@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -48,6 +49,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param backgroundColor Background color of the item. If null, uses theme default.
  * @param horizontalPadding Horizontal padding of the item. If null, uses theme default.
  * @param checkIconTint Color tint for the check icon. If null, uses theme default.
+ * @param textStyle Text style for the main text. If null, uses theme default.
  */
 @Composable
 fun OptionItem(
@@ -61,13 +63,15 @@ fun OptionItem(
     onItemClick: () -> Unit,
     backgroundColor: Color? = null,
     horizontalPadding: Dp? = null,
-    checkIconTint: Color? = null
+    checkIconTint: Color? = null,
+    textStyle: TextStyle? = null
 ) {
     val componentTheme = LocalComponentTheme.current
     val optionItemTheme = componentTheme.optionItem
     val finalBackgroundColor = backgroundColor ?: optionItemTheme.backgroundColor
     val finalHorizontalPadding = horizontalPadding ?: optionItemTheme.horizontalPadding
     val finalCheckIconTint = checkIconTint ?: optionItemTheme.checkIconTint
+    val finalTextStyle = textStyle ?: optionItemTheme.textStyle
 
     Row(
         modifier = Modifier
@@ -107,7 +111,7 @@ fun OptionItem(
                 append(text)
             },
             modifier = Modifier.weight(1f),
-            style = optionItemTheme.textStyle,
+            style = finalTextStyle,
             overflow = TextOverflow.Ellipsis
         )
 

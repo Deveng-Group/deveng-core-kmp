@@ -42,7 +42,8 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param sideMenuExpandedFooter Composable footer content displayed when menu is expanded.
  * @param sideMenuCollapsedHeader Composable header content displayed when menu is collapsed.
  * @param sideMenuCollapsedFooter Composable footer content displayed when menu is collapsed.
- * @param sideMenuItemBackgroundColor Background color of menu items. If null, uses theme default.
+ * @param sideMenuItemSelectedBackgroundColor Background color of selected menu items. If null, uses theme default.
+ * @param sideMenuItemUnselectedBackgroundColor Background color of unselected menu items. If null, uses theme default.
  * @param sideMenuItemList List of items of type T to display as menu items.
  * @param isSideMenuItemSelected Function that returns whether an item is currently selected.
  * @param sideMenuItemText Composable function that returns the text to display for each menu item.
@@ -67,7 +68,8 @@ fun <T> CustomSideMenu(
     sideMenuExpandedFooter: Slot,
     sideMenuCollapsedHeader: Slot,
     sideMenuCollapsedFooter: Slot,
-    sideMenuItemBackgroundColor: Color? = null,
+    sideMenuItemSelectedBackgroundColor: Color? = null,
+    sideMenuItemUnselectedBackgroundColor: Color? = null,
     sideMenuItemList: List<T>,
     isSideMenuItemSelected: (T) -> Boolean,
     sideMenuItemText: @Composable (T) -> String,
@@ -89,8 +91,10 @@ fun <T> CustomSideMenu(
         verticalDividerThickness ?: sideMenuTheme.verticalDividerThickness
     val finalSectionSeparatorColor =
         sideMenuSectionSeparatorColor ?: sideMenuTheme.sideMenuSectionSeparatorColor
-    val finalItemBackgroundColor =
-        sideMenuItemBackgroundColor ?: sideMenuTheme.sideMenuItemBackgroundColor
+    val finalItemSelectedBackgroundColor =
+        sideMenuItemSelectedBackgroundColor ?: sideMenuTheme.sideMenuItemSelectedBackgroundColor
+    val finalItemUnselectedBackgroundColor =
+        sideMenuItemUnselectedBackgroundColor ?: sideMenuTheme.sideMenuItemUnselectedBackgroundColor
 
     Box(
         modifier = sideMenuModifier
@@ -126,7 +130,8 @@ fun <T> CustomSideMenu(
             SideMenuContentExpanded(
                 sideMenuWidth = finalExpandedWidth,
                 sideMenuItemList = sideMenuItemList,
-                sideMenuItemBackgroundColor = finalItemBackgroundColor,
+                sideMenuItemSelectedBackgroundColor = finalItemSelectedBackgroundColor,
+                sideMenuItemUnselectedBackgroundColor = finalItemUnselectedBackgroundColor,
                 sideMenuHeader = sideMenuExpandedHeader,
                 sideMenuFooter = sideMenuExpandedFooter,
                 horizontalDividerColor = finalSectionSeparatorColor,
@@ -148,7 +153,8 @@ fun <T> CustomSideMenu(
             SideMenuContentCollapsed(
                 sideMenuWidth = finalCollapsedWidth,
                 sideMenuItemList = sideMenuItemList,
-                sideMenuItemBackgroundColor = finalItemBackgroundColor,
+                sideMenuItemSelectedBackgroundColor = finalItemSelectedBackgroundColor,
+                sideMenuItemUnselectedBackgroundColor = finalItemUnselectedBackgroundColor,
                 horizontalDividerColor = finalSectionSeparatorColor,
                 sideMenuHeader = sideMenuCollapsedHeader,
                 sideMenuFooter = sideMenuCollapsedFooter,

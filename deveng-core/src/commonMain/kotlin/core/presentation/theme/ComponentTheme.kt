@@ -277,7 +277,19 @@ data class OptionItemListTheme(
     val lazyListScrollbarColor: Color = CoreCustomGrayHintColor,
     val lazyListScrollbarWidth: Dp = 3.dp,
     val lazyListScrollbarTopPadding: Dp = 15.dp,
-    val lazyListScrollbarBottomPadding: Dp = 15.dp
+    val lazyListScrollbarBottomPadding: Dp = 15.dp,
+    val optionItemBackgroundColor: Color = Color.White,
+    val optionItemHorizontalPadding: Dp = 20.dp,
+    val optionItemCheckIconTint: Color = CoreSecondaryColor,
+    val optionItemTextStyle: TextStyle = TextStyle(
+        fontSize = 16.sp,
+        color = CoreCustomBlackColor
+    ),
+    val saveButtonText: String? = null,
+    val saveButtonTextStyle: TextStyle? = null,
+    val saveButtonContainerColor: Color? = null,
+    val saveButtonContentColor: Color? = null,
+    val saveButtonShape: CornerBasedShape? = null
 )
 
 /**
@@ -382,7 +394,8 @@ data class SideMenuTheme(
     val verticalDividerThickness: Dp = 1.dp,
     val verticalDividerTopBottomPadding: Dp = 25.dp,
     val sideMenuSectionSeparatorColor: Color = CoreCustomGrayHintColor.copy(alpha = 0.2f),
-    val sideMenuItemBackgroundColor: Color = Color.Yellow,
+    val sideMenuItemSelectedBackgroundColor: Color = Color.Transparent,
+    val sideMenuItemUnselectedBackgroundColor: Color = Color.Transparent,
     val collapsedHorizontalPadding: Dp = 16.dp,
     val collapsedVerticalPadding: Dp = 30.dp,
     val collapsedHeaderItemSpacing: Dp = 16.dp,
