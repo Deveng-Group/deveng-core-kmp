@@ -20,7 +20,8 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 fun <T> SideMenuContentCollapsed(
     sideMenuWidth: Dp,
-    sideMenuItemBackgroundColor: Color? = null,
+    sideMenuItemSelectedBackgroundColor: Color? = null,
+    sideMenuItemUnselectedBackgroundColor: Color? = null,
     horizontalDividerColor: Color? = null,
     sideMenuHeader: Slot,
     sideMenuFooter: Slot,
@@ -32,8 +33,10 @@ fun <T> SideMenuContentCollapsed(
     onSideMenuItemClick: (T) -> Unit
 ) {
     val sideMenuTheme = LocalComponentTheme.current.sideMenu
-    val finalItemBackgroundColor =
-        sideMenuItemBackgroundColor ?: sideMenuTheme.sideMenuItemBackgroundColor
+    val finalItemSelectedBackgroundColor =
+        sideMenuItemSelectedBackgroundColor ?: sideMenuTheme.sideMenuItemSelectedBackgroundColor
+    val finalItemUnselectedBackgroundColor =
+        sideMenuItemUnselectedBackgroundColor ?: sideMenuTheme.sideMenuItemUnselectedBackgroundColor
     val finalDividerColor =
         horizontalDividerColor ?: sideMenuTheme.sideMenuSectionSeparatorColor
 
@@ -60,12 +63,13 @@ fun <T> SideMenuContentCollapsed(
             verticalArrangement = Arrangement.spacedBy(sideMenuTheme.collapsedItemsSpacing)
         ) {
             sideMenuItemList.forEach { item ->
+                val isSelected = isSideMenuItemSelected(item)
                 SideMenuContentItemCollapsed(
                     icon = sideMenuItemIcon(item),
                     iconTint = sideMenuItemIconTint(item),
                     contentDescription = sideMenuItemIconDescription(item),
-                    backgroundColor = finalItemBackgroundColor,
-                    isSelected = isSideMenuItemSelected(item),
+                    backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
+                    isSelected = isSelected,
                     onSideMenuItemClick = {
                         onSideMenuItemClick(item)
                     }

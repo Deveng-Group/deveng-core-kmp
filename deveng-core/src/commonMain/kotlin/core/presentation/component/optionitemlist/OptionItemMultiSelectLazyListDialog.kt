@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.component.CustomButton
@@ -31,7 +34,7 @@ import org.jetbrains.compose.resources.stringResource
  *
  * @param optionsList List of items of type T to display.
  * @param optionText Function that returns the text to display for each item.
- * @param optionId Function that returns a unique identifier (Int) for each item, used as LazyColumn key.
+ * @param optionId Function that returns a unique identifier (Any) for each item, used as LazyColumn key.
  * @param leadingIcon Optional function that returns a drawable resource for the leading icon of each item.
  * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
  * @param isDialogVisible Whether the dialog is visible.
@@ -40,12 +43,22 @@ import org.jetbrains.compose.resources.stringResource
  * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
  * @param onSaveButtonClick Callback invoked when the save button is clicked.
  * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ * @param optionItemBackgroundColor Background color for option items. If null, uses theme default.
+ * @param optionItemHorizontalPadding Horizontal padding for option items. If null, uses theme default.
+ * @param optionItemCheckIconTint Color tint for check icons. If null, uses theme default.
+ * @param optionItemTextStyle Text style for option items. If null, uses theme default.
+ * @param saveButtonText Text to display on the save button. If null, uses default "Save" string resource.
+ * @param saveButtonTextStyle Text style for the save button. If null, uses default bold style with white color.
+ * @param saveButtonContainerColor Background color for the save button. If null, uses theme default.
+ * @param saveButtonContentColor Content (text) color for the save button. If null, uses theme default.
+ * @param saveButtonShape Shape of the save button. If null, uses RoundedCornerShape(0.dp).
+ * @param saveButtonEnabled Whether the save button is enabled. Default is true.
  */
 @Composable
 fun <T> OptionItemMultiSelectLazyListDialog(
     optionsList: List<T>,
     optionText: (T) -> String,
-    optionId: (T) -> Int,
+    optionId: (T) -> Any,
     leadingIcon: ((T) -> DrawableResource)? = null,
     leadingOptionSlot: @Composable (T) -> Unit = {},
     isDialogVisible: Boolean,
@@ -53,11 +66,45 @@ fun <T> OptionItemMultiSelectLazyListDialog(
     selectedOptions: List<T>? = null,
     onOptionItemClick: (T) -> Unit,
     onSaveButtonClick: () -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    optionItemBackgroundColor: Color? = null,
+    optionItemHorizontalPadding: Dp? = null,
+    optionItemCheckIconTint: Color? = null,
+    optionItemTextStyle: TextStyle? = null,
+    saveButtonText: String? = null,
+    saveButtonTextStyle: TextStyle? = null,
+    saveButtonContainerColor: Color? = null,
+    saveButtonContentColor: Color? = null,
+    saveButtonShape: CornerBasedShape? = null,
+    saveButtonEnabled: Boolean = true
 ) {
     val lazyListState = rememberLazyListState()
     val componentTheme = LocalComponentTheme.current
     val optionListTheme = componentTheme.optionItemList
+    val buttonTheme = componentTheme.button
+
+    val finalOptionItemBackgroundColor =
+        optionItemBackgroundColor ?: optionListTheme.optionItemBackgroundColor
+    val finalOptionItemHorizontalPadding =
+        optionItemHorizontalPadding ?: optionListTheme.optionItemHorizontalPadding
+    val finalOptionItemCheckIconTint =
+        optionItemCheckIconTint ?: optionListTheme.optionItemCheckIconTint
+    val finalOptionItemTextStyle = optionItemTextStyle ?: optionListTheme.optionItemTextStyle
+
+    val finalSaveButtonText =
+        saveButtonText ?: optionListTheme.saveButtonText ?: stringResource(Res.string.shared_save)
+    val finalSaveButtonTextStyle =
+        saveButtonTextStyle ?: optionListTheme.saveButtonTextStyle ?: CoreBoldTextStyle().copy(
+            fontSize = 16.sp,
+            color = Color.White
+        )
+    val finalSaveButtonContainerColor =
+        saveButtonContainerColor ?: optionListTheme.saveButtonContainerColor
+        ?: buttonTheme.containerColor
+    val finalSaveButtonContentColor =
+        saveButtonContentColor ?: optionListTheme.saveButtonContentColor ?: buttonTheme.contentColor
+    val finalSaveButtonShape =
+        saveButtonShape ?: optionListTheme.saveButtonShape ?: RoundedCornerShape(0.dp)
 
     if (isDialogVisible) {
         CustomDialog(
@@ -89,7 +136,11 @@ fun <T> OptionItemMultiSelectLazyListDialog(
                             leadingSlot = { leadingOptionSlot(item) },
                             isSelected = selectedOptions?.let { selectedOptions.contains(item) }
                                 ?: false,
-                            onItemClick = { onOptionItemClick(item) }
+                            onItemClick = { onOptionItemClick(item) },
+                            backgroundColor = finalOptionItemBackgroundColor,
+                            horizontalPadding = finalOptionItemHorizontalPadding,
+                            checkIconTint = finalOptionItemCheckIconTint,
+                            textStyle = finalOptionItemTextStyle
                         )
 
                         if (index < optionsList.size - 1) {
@@ -105,12 +156,12 @@ fun <T> OptionItemMultiSelectLazyListDialog(
                     modifier = Modifier
                         .height(50.dp)
                         .fillMaxWidth(),
-                    shape = RoundedCornerShape(0.dp),
-                    text = stringResource(Res.string.shared_save),
-                    textStyle = CoreBoldTextStyle().copy(
-                        fontSize = 16.sp,
-                        color = Color.White
-                    ),
+                    shape = finalSaveButtonShape,
+                    text = finalSaveButtonText,
+                    textStyle = finalSaveButtonTextStyle,
+                    containerColor = finalSaveButtonContainerColor,
+                    contentColor = finalSaveButtonContentColor,
+                    enabled = saveButtonEnabled,
                     onClick = onSaveButtonClick
                 )
             }

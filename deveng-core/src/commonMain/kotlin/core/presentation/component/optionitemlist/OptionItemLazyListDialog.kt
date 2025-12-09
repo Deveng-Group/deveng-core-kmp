@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.component.alertdialog.CustomDialog
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
@@ -23,7 +26,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * @param optionsList List of items of type T to display.
  * @param optionText Function that returns the text to display for each item.
- * @param optionId Function that returns a unique identifier (Int) for each item, used as LazyColumn key.
+ * @param optionId Function that returns a unique identifier (Any) for each item, used as LazyColumn key.
  * @param leadingIcon Optional function that returns a drawable resource for the leading icon of each item.
  * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
  * @param isDialogVisible Whether the dialog is visible.
@@ -31,23 +34,36 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param selectedOption Currently selected item, or null if none selected.
  * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
  * @param onDismissRequest Callback invoked when the dialog should be dismissed.
+ * @param optionItemBackgroundColor Background color for option items. If null, uses theme default.
+ * @param optionItemHorizontalPadding Horizontal padding for option items. If null, uses theme default.
+ * @param optionItemCheckIconTint Color tint for check icons. If null, uses theme default.
+ * @param optionItemTextStyle Text style for option items. If null, uses theme default.
  */
 @Composable
 fun <T> OptionItemLazyListDialog(
     optionsList: List<T>,
     optionText: (T) -> String,
-    optionId: (T) -> Int,
+    optionId: (T) -> Any,
     leadingIcon: ((T) -> DrawableResource)? = null,
     leadingOptionSlot: @Composable (T) -> Unit = {},
     isDialogVisible: Boolean,
     isCheckIconsVisible: Boolean = true,
     selectedOption: T? = null,
     onOptionItemClick: (T) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    optionItemBackgroundColor: Color? = null,
+    optionItemHorizontalPadding: Dp? = null,
+    optionItemCheckIconTint: Color? = null,
+    optionItemTextStyle: TextStyle? = null
 ) {
     val lazyListState = rememberLazyListState()
     val componentTheme = LocalComponentTheme.current
     val optionListTheme = componentTheme.optionItemList
+
+    val finalOptionItemBackgroundColor = optionItemBackgroundColor ?: optionListTheme.optionItemBackgroundColor
+    val finalOptionItemHorizontalPadding = optionItemHorizontalPadding ?: optionListTheme.optionItemHorizontalPadding
+    val finalOptionItemCheckIconTint = optionItemCheckIconTint ?: optionListTheme.optionItemCheckIconTint
+    val finalOptionItemTextStyle = optionItemTextStyle ?: optionListTheme.optionItemTextStyle
 
     if (isDialogVisible) {
         CustomDialog(
@@ -78,7 +94,11 @@ fun <T> OptionItemLazyListDialog(
                         leadingSlot = { leadingOptionSlot(item) },
                         isSelected = selectedOption?.let { optionId(it) == optionId(item) }
                             ?: false,
-                        onItemClick = { onOptionItemClick(item) }
+                        onItemClick = { onOptionItemClick(item) },
+                        backgroundColor = finalOptionItemBackgroundColor,
+                        horizontalPadding = finalOptionItemHorizontalPadding,
+                        checkIconTint = finalOptionItemCheckIconTint,
+                        textStyle = finalOptionItemTextStyle
                     )
 
                     if (index < optionsList.size - 1) {
