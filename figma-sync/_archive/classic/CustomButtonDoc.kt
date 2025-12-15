@@ -8,10 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.CustomButton
 import core.presentation.theme.CoreOnPrimaryColor
 import core.presentation.theme.CoreOnSurfaceColor
@@ -24,7 +21,7 @@ import global.deveng.deveng_core.generated.resources.shared_ic_arrow_next
 import org.jetbrains.compose.resources.DrawableResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=57-85&m=dev"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=150-16&m=dev"
 )
 class CustomButtonDoc {
 
@@ -40,54 +37,22 @@ class CustomButtonDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Label")
     val text: String = "Custom Button"
 
-    @FigmaProperty(FigmaType.Boolean, "Enabled")
     val enabled: Boolean = true
 
-    @FigmaProperty(FigmaType.Enum, "Color preset")
-    val colorPreset: ColorPreset = Figma.mapping(
-        "Primary" to ColorPreset.Primary,
-        "Secondary" to ColorPreset.Secondary,
-        "Surface" to ColorPreset.Surface,
-        "Transparent" to ColorPreset.Transparent
-    )
+    val colorPreset: ColorPreset = ColorPreset.Primary
 
-    @FigmaProperty(FigmaType.Enum, "Elevation")
-    val elevationLevel: ElevationLevel = Figma.mapping(
-        "None" to ElevationLevel.None,
-        "Low" to ElevationLevel.Low,
-        "Medium" to ElevationLevel.Medium,
-        "High" to ElevationLevel.High
-    )
+    val elevationLevel: ElevationLevel = ElevationLevel.Low
 
-    @FigmaProperty(FigmaType.Enum, "Content alignment")
-    val alignment: Alignment = Figma.mapping(
-        "Center" to Alignment.Center,
-        "Start" to Alignment.Start,
-        "Space between" to Alignment.SpaceBetween
-    )
+    val alignment: Alignment = Alignment.Center
 
-    @FigmaProperty(FigmaType.Enum, "Icons")
-    val iconPosition: IconPosition = Figma.mapping(
-        "None" to IconPosition.None,
-        "Leading" to IconPosition.Leading,
-        "Trailing" to IconPosition.Trailing,
-        "Both" to IconPosition.Both
-    )
+    val iconPosition: IconPosition = IconPosition.Both
 
-    @FigmaProperty(FigmaType.Enum, "Icon tint")
-    val iconTint: Color = Figma.mapping(
-        "Default" to Color.Black,
-        "On primary" to CoreOnPrimaryColor,
-        "On surface" to CoreOnSurfaceColor
-    )
+    val iconTint: Color = Color.Black
 
-    @FigmaProperty(FigmaType.Text, "Leading icon description")
     val leadingIconContentDescription: String? = null
 
-    @FigmaProperty(FigmaType.Text, "Trailing icon description")
     val trailingIconContentDescription: String? = null
 
     // --- DERIVED VALUES (FROM ABOVE PROPS) ---

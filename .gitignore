@@ -307,3 +307,18 @@ obj/
 .swiftpm/xcode/xcuserdata/
 
 # End of
+
+### Figma-Sync ###
+# Generated outputs (re-creatable by Gradle tasks)
+figma-sync/schema/drift-report.json
+figma-sync/schema/drift-report.md
+figma-sync/templates/
+
+# Temp files from legacy parser
+tmp/
+
+# Kotlin/JS build cache
+kotlin-js-store/
+
+# Node modules (install with npm install)
+node_modules/

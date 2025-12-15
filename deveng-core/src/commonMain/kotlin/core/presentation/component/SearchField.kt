@@ -134,7 +134,7 @@ fun SearchField(
         val actionButton = @Composable {
             CustomIconButton(
                 modifier = Modifier.size(finalButtonSize),
-                isEnable = isButtonEnabled,
+                isEnabled = isButtonEnabled,
                 shape = finalButtonShape,
                 backgroundColor = finalButtonBackgroundColor,
                 icon = buttonIcon,

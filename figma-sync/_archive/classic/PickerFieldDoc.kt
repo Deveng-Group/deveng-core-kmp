@@ -9,10 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.PickerField
 import core.presentation.theme.CoreCustomBlackColor
 import global.deveng.deveng_core.generated.resources.Res
@@ -33,41 +30,21 @@ class PickerFieldDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Text")
     val text: String? = null
-    // Selected text to display. If null or empty, shows hint text instead.
-    // Text is truncated with ellipsis if it exceeds available width.
 
-    @FigmaProperty(FigmaType.Text, "Hint")
     val hint: String = "Select option"
 
-    @FigmaProperty(FigmaType.Text, "Title")
     val title: String? = null
 
-    @FigmaProperty(FigmaType.Text, "Error message")
     val errorMessage: String? = null
 
-    @FigmaProperty(FigmaType.Boolean, "Enabled")
     val isEnabled: Boolean = true
 
-    @FigmaProperty(FigmaType.Enum, "Shape")
-    val shapeVariant: ShapeVariant = Figma.mapping(
-        "Rounded" to ShapeVariant.Rounded,
-        "Pill" to ShapeVariant.Pill,
-        "Square" to ShapeVariant.Square
-    )
+    val shapeVariant: ShapeVariant = ShapeVariant.Rounded
 
-    @FigmaProperty(FigmaType.Enum, "Slots")
-    val slotPresence: SlotPresence = Figma.mapping(
-        "None" to SlotPresence.None,
-        "Leading" to SlotPresence.Leading,
-        "Trailing" to SlotPresence.Trailing,
-        "Both" to SlotPresence.Both
-    )
+    val slotPresence: SlotPresence = SlotPresence.None
 
-    @FigmaProperty(FigmaType.Text, "Title trailing icon")
     val titleTrailingIconText: String? = null
-    // Optional icon displayed after the title. When provided, creates a titleTrailingIcon slot.
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 

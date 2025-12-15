@@ -4,10 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 
@@ -21,17 +18,11 @@ class ProgressIndicatorBarsDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Page count")
     val pageCount: Int = 3
 
-    @FigmaProperty(FigmaType.Text, "Current page")
     val currentPage: Int = 1
 
-    @FigmaProperty(FigmaType.Enum, "Indicator type")
-    val indicatorTypeVariant: IndicatorTypeVariant = Figma.mapping(
-        "Highlight current" to IndicatorTypeVariant.HighlightCurrent,
-        "Highlight until current" to IndicatorTypeVariant.HighlightUntilCurrent
-    )
+    val indicatorTypeVariant: IndicatorTypeVariant = IndicatorTypeVariant.HighlightCurrent
     // Highlight current: Only the indicator at currentPage index is highlighted.
     // Highlight until current: All indicators from index 0 up to and including currentPage are highlighted.
 

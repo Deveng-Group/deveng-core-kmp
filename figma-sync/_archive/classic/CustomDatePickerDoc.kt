@@ -5,10 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.datepicker.CustomDatePicker
 import core.presentation.theme.CoreCustomBlackColor
 import core.util.datetime.CustomSelectableDates
@@ -32,37 +29,23 @@ class CustomDatePickerDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Selected date")
     val selectedDateText: String? = null
     // Formatted text representation of the selected date to display in the picker field.
     // Expected format: ISO 8601 date string (e.g., "2023-01-15") or custom formatted string.
     // If null, placeholderText is shown instead.
 
-    @FigmaProperty(FigmaType.Text, "Title")
     val title: String = "Select date"
 
-    @FigmaProperty(FigmaType.Text, "Placeholder")
     val placeholderText: String = "-"
 
-    @FigmaProperty(FigmaType.Text, "Error message")
     val errorMessage: String? = null
 
-    @FigmaProperty(FigmaType.Enum, "Target dates")
-    val targetDatesVariant: TargetDatesVariant = Figma.mapping(
-        "Past" to TargetDatesVariant.Past,
-        "Future" to TargetDatesVariant.Future
-    )
+    val targetDatesVariant: TargetDatesVariant = TargetDatesVariant.Future
     // Restricts selectable date range in the picker dialog.
     // Past: Only dates before today are selectable.
     // Future: Only dates after today are selectable.
 
-    @FigmaProperty(FigmaType.Enum, "Slots")
-    val slotPresence: SlotPresence = Figma.mapping(
-        "None" to SlotPresence.None,
-        "Leading" to SlotPresence.Leading,
-        "Trailing" to SlotPresence.Trailing,
-        "Both" to SlotPresence.Both
-    )
+    val slotPresence: SlotPresence = SlotPresence.None
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 

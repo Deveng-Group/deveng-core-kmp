@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
 import com.figma.code.connect.FigmaProperty
 import com.figma.code.connect.FigmaType
@@ -20,7 +19,7 @@ import global.deveng.deveng_core.generated.resources.shared_ic_arrow_next
 import org.jetbrains.compose.resources.DrawableResource
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=4-40&m=dev"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=150-63&t=V772pClCuqxs8hqE-4"
 )
 class CustomIconButtonDoc {
     // --- INTERNAL ENUMS MIRRORING FIGMA VARIANTS / PROPS ---
@@ -33,35 +32,16 @@ class CustomIconButtonDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Enum, "Icon")
-    val iconVariant: IconVariant = Figma.mapping(
-        "Arrow left" to IconVariant.ArrowLeft,
-        "Arrow next" to IconVariant.ArrowNext,
-        "Angle right" to IconVariant.AngleRight
-    )
+    val iconVariant: IconVariant = IconVariant.ArrowLeft
 
-    @FigmaProperty(FigmaType.Text, "Icon description")
     val iconDescription: String = "Icon button"
 
-    @FigmaProperty(FigmaType.Boolean, "Enabled")
+    @FigmaProperty(FigmaType.Boolean, "isEnabled")
     val isEnable: Boolean = true
-    // When disabled, the icon tint is automatically reduced to 40% opacity (alpha = 0.4f).
-    // The button remains visible but appears dimmed and is not clickable.
 
-    @FigmaProperty(FigmaType.Enum, "Shape")
-    val shapeVariant: ShapeVariant = Figma.mapping(
-        "Circle" to ShapeVariant.Circle,
-        "Rounded" to ShapeVariant.Rounded,
-        "Square" to ShapeVariant.Square
-    )
+    val shapeVariant: ShapeVariant = ShapeVariant.Circle
 
-    @FigmaProperty(FigmaType.Enum, "Elevation")
-    val elevationLevel: ElevationLevel = Figma.mapping(
-        "None" to ElevationLevel.None,
-        "Low" to ElevationLevel.Low,
-        "Medium" to ElevationLevel.Medium,
-        "High" to ElevationLevel.High
-    )
+    val elevationLevel: ElevationLevel = ElevationLevel.None
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---
 
@@ -115,7 +95,7 @@ class CustomIconButtonDoc {
     fun Component() {
         CustomIconButton(
             modifier = modifier,
-            isEnable = isEnable,
+            isEnabled = isEnable,
             buttonSize = buttonSize,
             iconModifier = iconModifier,
             backgroundColor = backgroundColor,
