@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +59,7 @@ import kotlin.time.Instant
  * @param errorMessage Optional error message displayed below the picker field.
  * @param onRangeChange Callback invoked when a date range is selected, receives start and end dates (both nullable).
  * @param targetDates Target date range restriction (PAST, FUTURE, or ALL). Default is FUTURE.
- * @param selectableDates CustomSelectableDates instance to configure date selection restrictions.
+ * @param selectableDates CustomSelectableDates instance to configure date selection restrictions. If null, a new instance will be created with the specified targetDates.
  * @param dialogContainerColor Background color of the date picker dialog. If null, uses theme default.
  * @param dialogContentColor Default text color for dialog content. If null, uses theme default.
  * @param titleContentColor Text color for the dialog title. If null, uses theme default.
@@ -99,7 +98,7 @@ fun CustomDateRangePicker(
     errorMessage: String? = null,
     onRangeChange: (LocalDate?, LocalDate?) -> Unit,
     targetDates: TargetDates = TargetDates.FUTURE,
-    selectableDates: CustomSelectableDates,
+    selectableDates: CustomSelectableDates? = null,
     dialogContainerColor: Color? = null,
     dialogContentColor: Color? = null,
     titleContentColor: Color? = null,
@@ -171,15 +170,16 @@ fun CustomDateRangePicker(
 
     val localTimeZone = TimeZone.currentSystemDefault()
 
-    LaunchedEffect(targetDates) {
-        selectableDates.setTargetDates(targetDates)
-    }
-
     if (showDialog) {
+        // Create selectableDates instance if not provided
+        val finalSelectableDates = selectableDates ?: CustomSelectableDates().apply {
+            setTargetDates(targetDates)
+        }
+
         val state = rememberDateRangePickerState(
             initialSelectedStartDateMillis = initialSelectedStartDate?.toEpochMillis(),
             initialSelectedEndDateMillis = initialSelectedEndDate?.toEpochMillis(),
-            selectableDates = selectableDates
+            selectableDates = finalSelectableDates
         )
 
         val startDate = state.selectedStartDateMillis?.let {

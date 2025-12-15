@@ -69,6 +69,13 @@ fun getMonthDateFormat(systemLanguage: String): DateTimeFormat<LocalDate> {
     }
 }
 
+fun getMonthNames(systemLanguage: String): List<String> {
+    return when (systemLanguage) {
+        "tr" -> TURKISH_MONTH
+        else -> ENGLISH_FULL.names
+    }
+}
+
 val hourMinuteFormat = LocalDateTime.Format {
     hour(padding = Padding.ZERO)
     char(':')

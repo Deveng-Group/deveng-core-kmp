@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +48,7 @@ import kotlin.time.Instant
  * @param placeholderText Placeholder text shown when no date is selected. Default is "-".
  * @param selectedDateText Formatted text representation of the selected date to display.
  * @param errorMessage Optional error message displayed below the picker field.
- * @param selectableDates CustomSelectableDates instance to configure date selection restrictions.
+ * @param selectableDates CustomSelectableDates instance to configure date selection restrictions. If null, a new instance will be created with the specified targetDates.
  * @param trailingIconTint Color tint for the trailing calendar icon. If null, uses theme default.
  * @param dialogContainerColor Background color of the date picker dialog. If null, uses theme default.
  * @param dialogContentColor Text color for dialog content. If null, uses theme default.
@@ -76,7 +75,7 @@ fun CustomDatePicker(
     placeholderText: String = "-",
     selectedDateText: String?,
     errorMessage: String? = null,
-    selectableDates: CustomSelectableDates,
+    selectableDates: CustomSelectableDates? = null,
     trailingIconTint: Color? = null,
     dialogContainerColor: Color? = null,
     dialogContentColor: Color? = null,
@@ -117,18 +116,18 @@ fun CustomDatePicker(
 
     var showDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(targetDates) {
-        selectableDates.setTargetDates(targetDates)
-    }
-
     if (showDialog) {
         val timeZone = TimeZone.currentSystemDefault()
         val startOfDayInstant = selectedDate?.atStartOfDayIn(timeZone)
         val epochMilliseconds = startOfDayInstant?.toEpochMilliseconds()
 
+        val finalSelectableDates = selectableDates ?: CustomSelectableDates().apply {
+            setTargetDates(targetDates)
+        }
+
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = epochMilliseconds,
-            selectableDates = selectableDates
+            selectableDates = finalSelectableDates
         )
 
         DatePickerDialog(
@@ -214,9 +213,7 @@ fun CustomDatePickerPreview() {
             selectedDate = LocalDate.parse("2023-01-01"),
             onDateChange = {},
             title = "takvim",
-            selectedDateText = "01/01/2023",
-            selectableDates = CustomSelectableDates()
+            selectedDateText = "01/01/2023"
         )
     }
 }
-

@@ -250,7 +250,8 @@ internal fun App() {
         sideMenu = SideMenuTheme(
             sideMenuBackgroundColor = Color(0xFF111827),
             sideMenuSectionSeparatorColor = Color(0xFF1F2937),
-            sideMenuItemBackgroundColor = Color(0xFF111827),
+            sideMenuItemSelectedBackgroundColor = Color(0xFF111827),
+            sideMenuItemUnselectedBackgroundColor = Color(0xFF111827),
             verticalDividerColor = Color(0xFF374151)
         )
     )

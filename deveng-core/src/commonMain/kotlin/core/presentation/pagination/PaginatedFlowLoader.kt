@@ -65,7 +65,7 @@ class PaginatedFlowLoader<Key, Item>(
         if (isLoading) return
         isLoading = true
 
-        _state.update { it.copy(isInitialLoad = true, error = null) }
+        _state.update { it.copy(isInitialLoad = true, isError = false) }
 
         currentJob = scope.launch {
             try {
@@ -81,12 +81,13 @@ class PaginatedFlowLoader<Key, Item>(
                     isInitialLoad = false,
                     isNextPageLoading = false,
                     hasNextPage = hasNext,
-                    error = null,
-                    hasLoadedBefore = true
+                    hasLoadedBefore = true,
+                    isError = false
                 )
             } catch (e: Throwable) {
                 onError?.invoke(e)
-                _state.update { it.copy(isInitialLoad = false, error = e) }
+                _state.update { it.copy(isInitialLoad = false, isError = true) }
+                throw e
             } finally {
                 isLoading = false
             }
@@ -101,7 +102,7 @@ class PaginatedFlowLoader<Key, Item>(
         if (isLoading || !currentState.hasNextPage) return
 
         isLoading = true
-        _state.update { it.copy(isNextPageLoading = true, error = null) }
+        _state.update { it.copy(isNextPageLoading = true, isError = false) }
 
         currentJob = scope.launch {
             try {
@@ -117,13 +118,14 @@ class PaginatedFlowLoader<Key, Item>(
                         items = it.items + newItems,
                         isNextPageLoading = false,
                         hasNextPage = hasNext,
-                        error = null,
-                        hasLoadedBefore = true
+                        hasLoadedBefore = true,
+                        isError = false
                     )
                 }
             } catch (e: Throwable) {
                 onError?.invoke(e)
-                _state.update { it.copy(isNextPageLoading = false, error = e) }
+                _state.update { it.copy(isNextPageLoading = false, isError = true) }
+                throw e
             } finally {
                 isLoading = false
             }

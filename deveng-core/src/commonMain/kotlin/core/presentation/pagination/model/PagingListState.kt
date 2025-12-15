@@ -6,5 +6,5 @@ data class PaginatedListState<T>(
     val isNextPageLoading: Boolean = false,
     val hasNextPage: Boolean = false,
     val hasLoadedBefore: Boolean = false,
-    val error: Throwable? = null
+    val isError: Boolean = false
 )
