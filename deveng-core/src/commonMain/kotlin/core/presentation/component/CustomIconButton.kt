@@ -30,7 +30,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * A customizable icon button component with shadow and styling options.
  *
  * @param modifier Modifier to be applied to the icon button container.
- * @param isEnable Whether the button is enabled and can be clicked. Default is true.
+ * @param isEnabled Whether the button is enabled and can be clicked. Default is true.
  * @param buttonSize Size of the button. If null, uses theme default.
  * @param iconModifier Modifier to be applied to the icon.
  * @param backgroundColor Background color of the button. If null, uses theme default.
@@ -44,7 +44,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun CustomIconButton(
     modifier: Modifier = Modifier,
-    isEnable: Boolean = true,
+    isEnabled: Boolean = true,
     buttonSize: Dp? = null,
     iconModifier: Modifier = Modifier,
     backgroundColor: Color? = null,
@@ -76,7 +76,7 @@ fun CustomIconButton(
             )
             .clip(shape = finalShape)
             .debouncedCombinedClickable {
-                if (isEnable) {
+                if (isEnabled) {
                     onClick()
                 }
             }
@@ -86,7 +86,7 @@ fun CustomIconButton(
                 .align(Alignment.Center),
             painter = painterResource(icon),
             contentDescription = iconDescription,
-            tint = if (isEnable) finalIconTint else finalIconTint.copy(alpha = 0.4f)
+            tint = if (isEnabled) finalIconTint else finalIconTint.copy(alpha = 0.4f)
         )
     }
 }

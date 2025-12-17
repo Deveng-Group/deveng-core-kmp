@@ -10,18 +10,18 @@ import com.figma.code.connect.FigmaType
 import core.presentation.component.LabeledSwitch
 
 @FigmaConnect(
-    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=62-41&m=draw"
+    url = "https://www.figma.com/design/sJoAsKB4qqqrwvHRlowppo/Design-System?node-id=148-87&m=draw"
 )
 class LabeledSwitchDoc {
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Label")
+    @FigmaProperty(FigmaType.Text, "label")
     val label: String = "Switch label"
 
-    @FigmaProperty(FigmaType.Boolean, "Checked")
+    @FigmaProperty(FigmaType.Boolean, "isChecked")
     val isChecked: Boolean = false
 
-    @FigmaProperty(FigmaType.Boolean, "Label at start")
+    @FigmaProperty(FigmaType.Boolean, "isLabelAtStart")
     val isLabelAtStart: Boolean = true
     // When true: Label is positioned at the start, arrangement is SpaceBetween (label left, switch right).
     // When false: Label is positioned at the end, arrangement is End (switch left, label right).

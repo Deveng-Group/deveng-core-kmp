@@ -13,10 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.Slot
 import core.presentation.component.textfield.CustomTextField
 import global.deveng.deveng_core.generated.resources.Res
@@ -37,81 +34,46 @@ class CustomTextFieldDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Text, "Value")
     val value: String = ""
 
-    @FigmaProperty(FigmaType.Text, "Hint")
     val hint: String = "Enter text"
 
-    @FigmaProperty(FigmaType.Text, "Title")
     val title: String? = null
 
-    @FigmaProperty(FigmaType.Text, "Error message")
     val errorMessage: String? = null
 
-    @FigmaProperty(FigmaType.Boolean, "Enabled")
     val enabled: Boolean = true
 
-    @FigmaProperty(FigmaType.Boolean, "Read only")
     val readOnly: Boolean = false
 
-    @FigmaProperty(FigmaType.Boolean, "Password visible")
     val isPasswordVisible: Boolean = false
 
-    @FigmaProperty(FigmaType.Boolean, "Show character count")
     val isTextCharCountVisible: Boolean = false
     // When enabled, displays character count in format: "current/max" (e.g., "25/254")
     // Shown in the top-right corner, next to the title if present.
 
-    @FigmaProperty(FigmaType.Enum, "Keyboard type")
-    val keyboardTypeVariant: KeyboardTypeVariant = Figma.mapping(
-        "Text" to KeyboardTypeVariant.Text,
-        "Password" to KeyboardTypeVariant.Password,
-        "Decimal" to KeyboardTypeVariant.Number,
-        "Email" to KeyboardTypeVariant.Email,
-        "Phone" to KeyboardTypeVariant.Phone,
-        "Uri" to KeyboardTypeVariant.Uri
-    )
+    val keyboardTypeVariant: KeyboardTypeVariant = KeyboardTypeVariant.Text
 
-    @FigmaProperty(FigmaType.Enum, "Shape")
-    val shapeVariant: ShapeVariant = Figma.mapping(
-        "Rounded" to ShapeVariant.Rounded,
-        "Pill" to ShapeVariant.Pill,
-        "Square" to ShapeVariant.Square
-    )
+    val shapeVariant: ShapeVariant = ShapeVariant.Rounded
 
-    @FigmaProperty(FigmaType.Boolean, "Border active")
     val isBorderActive: Boolean = true
 
-    @FigmaProperty(FigmaType.Enum, "Slots")
-    val slotPresence: SlotPresence = Figma.mapping(
-        "None" to SlotPresence.None,
-        "Leading" to SlotPresence.Leading,
-        "Trailing" to SlotPresence.Trailing,
-        "Suffix" to SlotPresence.Suffix,
-        "Title trailing" to SlotPresence.TitleTrailing,
-        "Multiple" to SlotPresence.Multiple
-    )
+    val slotPresence: SlotPresence = SlotPresence.None
 
-    @FigmaProperty(FigmaType.Text, "Max length")
     val maxLength: Int = 254
 
-    @FigmaProperty(FigmaType.Text, "Inline suffix")
     val inlineSuffix: String? = null
     // Optional suffix text displayed inline at the end of the input text.
     // Only visible when value is not blank. Useful for units (e.g., "kg", "cm").
 
-    @FigmaProperty(FigmaType.Boolean, "Request focus")
     val requestFocus: Boolean = false
     // When true, automatically requests focus when the component is first composed.
     // Useful for auto-focusing the first field in a form.
 
-    @FigmaProperty(FigmaType.Text, "Max lines")
     val maxLines: Int = Int.MAX_VALUE
     // Maximum number of lines for multi-line input. Default is Int.MAX_VALUE (unlimited).
     // Only effective when singleLine is false.
 
-    @FigmaProperty(FigmaType.Boolean, "Single line")
     val singleLine: Boolean = true
     // When true, restricts input to a single line. When false, allows multi-line input.
     // Multi-line mode respects maxLines constraint.

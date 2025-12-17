@@ -5,10 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import com.figma.code.connect.Figma
 import com.figma.code.connect.FigmaConnect
-import com.figma.code.connect.FigmaProperty
-import com.figma.code.connect.FigmaType
 import core.presentation.component.CustomHeader
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_ic_angle_right
@@ -29,45 +26,24 @@ class CustomHeaderDoc {
 
     // --- FIGMA-PROPERTIES (MAPPED TO FIGMA COMPONENT PROPS) ---
 
-    @FigmaProperty(FigmaType.Enum, "Left icon")
-    val leftIconVariant: LeftIconVariant = Figma.mapping(
-        "Arrow left" to LeftIconVariant.ArrowLeft,
-        "Angle right" to LeftIconVariant.AngleRight,
-        "None" to LeftIconVariant.None
-    )
+    val leftIconVariant: LeftIconVariant = LeftIconVariant.ArrowLeft
 
-    @FigmaProperty(FigmaType.Enum, "Right icon")
-    val rightIconVariant: RightIconVariant = Figma.mapping(
-        "Angle right" to RightIconVariant.AngleRight,
-        "Arrow left" to RightIconVariant.ArrowLeft,
-        "None" to RightIconVariant.None
-    )
+    val rightIconVariant: RightIconVariant = RightIconVariant.AngleRight
 
-    @FigmaProperty(FigmaType.Enum, "Center icon")
-    val centerIconVariant: CenterIconVariant = Figma.mapping(
-        "Angle right" to CenterIconVariant.AngleRight,
-        "Arrow left" to CenterIconVariant.ArrowLeft,
-        "None" to CenterIconVariant.None
-    )
+    val centerIconVariant: CenterIconVariant = CenterIconVariant.None
 
-    @FigmaProperty(FigmaType.Boolean, "Left icon visible")
     val isLeftIconButtonVisible: Boolean = true
 
-    @FigmaProperty(FigmaType.Boolean, "Right icon visible")
     val isRightIconButtonVisible: Boolean = true
     // Default behavior: Automatically true if rightIcon is not null, false otherwise.
     // This property allows manual override of the default visibility logic.
 
-    @FigmaProperty(FigmaType.Boolean, "Center icon visible")
     val isCenterIconVisible: Boolean = true
 
-    @FigmaProperty(FigmaType.Text, "Left icon description")
     val leftIconDescription: String = "Back"
 
-    @FigmaProperty(FigmaType.Text, "Right icon description")
     val rightIconDescription: String = "Next"
 
-    @FigmaProperty(FigmaType.Text, "Center icon description")
     val centerIconDescription: String = "Center icon"
 
     // --- DERIVED VALUES (NOT DIRECTLY FIGMA PROPS, BUT NEEDED FOR FULL API) ---

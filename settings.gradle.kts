@@ -36,3 +36,9 @@ plugins {
 include(":sample:composeApp")
 include(":deveng-core")
 
+include(":figma-sync")
+include(":figma-sync:tools:schema-cli")
+include(":figma-sync:tools:template-generator")
+include(":figma-sync:tools:drift-auditor")
+include(":figma-sync:tools:manifest-cli")
+
