@@ -58,7 +58,12 @@ fun CustomIconButton(
     val componentTheme = LocalComponentTheme.current
     val iconButtonTheme = componentTheme.iconButton
     val finalButtonSize = buttonSize ?: iconButtonTheme.buttonSize
-    val finalBackgroundColor = backgroundColor ?: iconButtonTheme.backgroundColor
+    val baseBackgroundColor = backgroundColor ?: iconButtonTheme.backgroundColor
+    val finalBackgroundColor = if (isEnabled) {
+        baseBackgroundColor
+    } else {
+        baseBackgroundColor.copy(alpha = 0.7f)
+    }
     val finalIconTint = iconTint ?: iconButtonTheme.iconTint
     val finalShadowElevation = shadowElevation ?: iconButtonTheme.shadowElevation
     val finalShape = shape ?: iconButtonTheme.shape
@@ -86,7 +91,7 @@ fun CustomIconButton(
                 .align(Alignment.Center),
             painter = painterResource(icon),
             contentDescription = iconDescription,
-            tint = if (isEnabled) finalIconTint else finalIconTint.copy(alpha = 0.4f)
+            tint = finalIconTint
         )
     }
 }
@@ -116,4 +121,3 @@ fun CustomIconButtonPreview() {
         )
     }
 }
-

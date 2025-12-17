@@ -139,6 +139,7 @@ fun <T> CustomDropDownMenu(
                     )
                 },
                 textColor = displayColor,
+                readOnlyTextColor = displayColor,
                 unfocusedBorderColor = finalUnfocusedBorderColor,
                 focusedBorderColor = finalFocusedBorderColor,
                 containerColor = finalBackgroundColor,

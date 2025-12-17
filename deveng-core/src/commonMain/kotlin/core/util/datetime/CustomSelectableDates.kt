@@ -2,6 +2,7 @@ package core.util.datetime
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SelectableDates
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -12,6 +13,8 @@ import kotlin.time.Instant
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 class CustomSelectableDates : SelectableDates {
     private var targetDates = TargetDates.FUTURE
+
+    private var disabledDates: Set<LocalDate> = emptySet()
 
     private val oldestDateTime = LocalDateTime(
         year = 1900,
@@ -25,18 +28,25 @@ class CustomSelectableDates : SelectableDates {
         this.targetDates = targetDates
     }
 
+    fun setDisabledDates(dates: List<LocalDate>) {
+        this.disabledDates = dates.toSet()
+    }
+
     override fun isSelectableDate(utcTimeMillis: Long): Boolean {
         val timeZone = TimeZone.currentSystemDefault()
         val todayDate = Clock.System.now().toLocalDateTime(timeZone).date
         val localDate = Instant.fromEpochMilliseconds(utcTimeMillis)
             .toLocalDateTime(timeZone).date
 
-        val isTargetDate = when (targetDates) {
+        val passesTargetDateCheck = when (targetDates) {
             TargetDates.PAST -> oldestDateTime.date <= localDate && localDate <= todayDate
             TargetDates.FUTURE -> localDate >= todayDate
         }
 
-        return isTargetDate
+
+        val isNotDisabled = !disabledDates.contains(localDate)
+
+        return passesTargetDateCheck && isNotDisabled
     }
 
     override fun isSelectableYear(year: Int): Boolean {

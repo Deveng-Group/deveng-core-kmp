@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,9 +29,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import core.presentation.component.scrollbar.scrollbarWithLazyListState
 import core.presentation.pagination.model.PaginatedListState
 import core.presentation.theme.CoreCustomBlackColor
 import core.presentation.theme.CoreMediumTextStyle
+import core.presentation.theme.LocalComponentTheme
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.abs
@@ -68,12 +71,13 @@ import kotlin.math.abs
  * @param itemKey Optional function providing stable keys for better LazyColumn performance.
  * @param textStyle Text style for empty list and error messages. Default uses theme medium text style.
  * @param emptyListText Text to display when the list is empty. If null, nothing is shown.
- * @param errorTextProvider Optional composable function producing the error message string from the error.
+ * @param errorText Text hint for error gesture. If null, nothing is shown.
  * @param pullToRetryText Text hint for pull-to-retry gesture. If null, nothing is shown.
  */
 @Composable
 fun <T> PaginatedListView(
     state: PaginatedListState<T>,
+    listState: LazyListState = rememberLazyListState(),
     onScrollReachNextPageThreshold: () -> Unit,
     onSwipeAtListsEnd: () -> Unit,
     itemSlot: @Composable (T) -> Unit,
@@ -89,11 +93,11 @@ fun <T> PaginatedListView(
         color = CoreCustomBlackColor
     ),
     emptyListText: String? = null,
-    errorTextProvider: @Composable ((Throwable?) -> String)? = null,
+    errorText: String? = null,
     pullToRetryText: String? = null
 ) {
-    val listState = rememberLazyListState()
-
+    val componentTheme = LocalComponentTheme.current
+    val scrollbarWithLazyListStateTheme = componentTheme.scrollbarWithLazyListState
     // auto scroll to end in reverse mode
     var didAutoScrollToEnd by remember { mutableStateOf(false) }
 
@@ -113,7 +117,7 @@ fun <T> PaginatedListView(
         state.items.size,
         state.hasNextPage,
         state.isNextPageLoading,
-        state.error,
+        state.isError,
         isReverseLayout
     ) {
         snapshotFlow {
@@ -139,7 +143,7 @@ fun <T> PaginatedListView(
                     shouldLoadMore &&
                     state.hasNextPage &&
                     !state.isNextPageLoading &&
-                    state.error == null
+                    !state.isError
                 ) {
                     onScrollReachNextPageThreshold()
                 }
@@ -161,10 +165,10 @@ fun <T> PaginatedListView(
         }
     }
 
-    val retryEnabled by remember(state.hasNextPage, state.isNextPageLoading, state.error) {
+    val retryEnabled by remember(state.hasNextPage, state.isNextPageLoading, state.isError) {
         mutableStateOf(
             state.hasNextPage &&
-                    state.error != null &&
+                    state.isError &&
                     !state.isNextPageLoading
         )
     }
@@ -199,6 +203,13 @@ fun <T> PaginatedListView(
         modifier = modifier
             .then(retryDragModifier)
             .padding(horizontal = horizontalPadding.dp)
+            .scrollbarWithLazyListState(
+                listState = listState,
+                width = scrollbarWithLazyListStateTheme.scrollBarWidth,
+                scrollBarColor = scrollbarWithLazyListStateTheme.scrollBarColor,
+                topPadding = scrollbarWithLazyListStateTheme.scrollBarTopPadding,
+                bottomPadding = scrollbarWithLazyListStateTheme.scrollBarBottomPadding
+            )
     ) {
         LazyColumn(
             state = listState,
@@ -223,7 +234,7 @@ fun <T> PaginatedListView(
                     state.items.isEmpty() &&
                     !state.isNextPageLoading &&
                     !state.isInitialLoad &&
-                    state.error == null &&
+                    !state.isError &&
                     state.hasLoadedBefore &&
                     emptyListText != null
                 ) {
@@ -237,16 +248,16 @@ fun <T> PaginatedListView(
                     }
                 }
 
-                state.error?.let { error ->
+                if (state.isError) {
                     item {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            errorTextProvider?.let { provider ->
+                            errorText?.let { text ->
                                 Text(
                                     modifier = Modifier.padding(horizontal = 75.dp),
-                                    text = provider(error),
+                                    text = text,
                                     style = textStyle,
                                     textAlign = TextAlign.Center
                                 )
