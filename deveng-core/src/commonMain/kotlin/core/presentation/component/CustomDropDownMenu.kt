@@ -64,6 +64,7 @@ fun <T> CustomDropDownMenu(
     hintMessage: String = String.EMPTY,
     titleColor: Color? = null,
     backgroundColor: Color? = null,
+    dropDownMenuBackgroundColor: Color? = null,
     textColor: Color? = null,
     unfocusedBorderColor: Color? = null,
     focusedBorderColor: Color? = null,
@@ -81,6 +82,7 @@ fun <T> CustomDropDownMenu(
 
     val finalTitleColor = titleColor ?: dropdownTheme.titleColor
     val finalBackgroundColor = backgroundColor ?: dropdownTheme.backgroundColor
+    val finalDropDownMenuBackgroundColor = dropDownMenuBackgroundColor ?: dropdownTheme.dropDownMenuBackgroundColor
     val finalTextColor = textColor ?: dropdownTheme.textColor
     val finalHintTextColor = dropdownTheme.hintTextColor
     val finalUnfocusedBorderColor = unfocusedBorderColor ?: dropdownTheme.unfocusedBorderColor
@@ -153,7 +155,7 @@ fun <T> CustomDropDownMenu(
                     max = dropDownMenuHeight
                 )
                 .background(
-                    color = finalBackgroundColor
+                    color = finalDropDownMenuBackgroundColor
                 )
                 .exposedDropdownSize(true)
                 .then(

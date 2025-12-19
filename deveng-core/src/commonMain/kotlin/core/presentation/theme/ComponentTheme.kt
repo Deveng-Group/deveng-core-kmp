@@ -132,6 +132,7 @@ data class PickerFieldTheme(
 data class CustomDropDownMenuTheme(
     val titleColor: Color = Color.White,
     val backgroundColor: Color = CoreCustomBlackColor,
+    val dropDownMenuBackgroundColor: Color = CoreCustomBlackColor,
     val textColor: Color = Color.White,
     val hintTextColor: Color = CoreCustomGrayHintColor,
     val unfocusedBorderColor: Color = Color.Transparent,
