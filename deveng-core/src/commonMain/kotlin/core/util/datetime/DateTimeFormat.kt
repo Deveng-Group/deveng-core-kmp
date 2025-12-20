@@ -90,10 +90,14 @@ fun getMonthNames(systemLanguage: String): List<String> {
     }
 }
 
-fun getDayNames(systemLanguage: String): List<String>{
+fun getDayName(date: LocalDate, systemLanguage: String): String {
+    val dayIndex = date.dayOfWeek.ordinal
+
     return when (systemLanguage) {
-        "tr" -> TURKISH_DAYS
-        else -> DayOfWeekNames.ENGLISH_FULL.names
+        "tr" -> TURKISH_DAYS[dayIndex]
+        else -> {
+            date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+        }
     }
 }
 
