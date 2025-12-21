@@ -1,11 +1,9 @@
 package core.util.datetime
 
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeFormat
-import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.MonthNames.Companion.ENGLISH_ABBREVIATED
 import kotlinx.datetime.format.MonthNames.Companion.ENGLISH_FULL
@@ -42,7 +40,7 @@ val dotLocalDateFormat = LocalDate.Format {
 }
 
 private val TURKISH_DAYS = listOf(
-    "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi","Pazar"
+    "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"
 )
 
 private val TURKISH_MONTH_ABBREVIATIONS = listOf(
@@ -112,6 +110,25 @@ fun formatDateToString(date: LocalDate): String {
     val month = date.month.number.toString().padStart(2, '0')
     val year = date.year.toString()
     return "$day$month$year"
+}
+
+/**
+ *
+ * Sample:
+ * - dateTime = 2025-12-21T14:30
+ * - systemLanguage = "tr"
+ *   → "21 Aralık"
+ *
+ * - dateTime = 2025-12-21T14:30
+ * - systemLanguage = "en"
+ *   → "21 December"
+ */
+fun formatToDayMonth(
+    dateTime: LocalDateTime,
+    systemLanguage: String
+): String {
+    val formatter = getMonthDateFormat(systemLanguage)
+    return dateTime.date.format(formatter)
 }
 
 fun formatDateRange(
