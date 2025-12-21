@@ -384,19 +384,20 @@ data class LabeledImageBoxTheme(
 )
 
 /**
- * Theme for CustomSideMenu component
+ * Theme for NavigationMenu component
  */
-data class SideMenuTheme(
-    val sideMenuExpandedWidth: Dp = 256.dp,
-    val sideMenuCollapsedWidth: Dp = 80.dp,
-    val sideMenuBackgroundColor: Color = CoreSecondaryColor,
-    val sideMenuShape: CornerBasedShape = RoundedCornerShape(30.dp),
+data class NavigationMenuTheme(
+    val expandedWidth: Dp = 256.dp,
+    val collapsedWidth: Dp = 80.dp,
+    val horizontalHeight: Dp = 80.dp,
+    val backgroundColor: Color = CoreSecondaryColor,
+    val shape: CornerBasedShape = RoundedCornerShape(30.dp),
     val verticalDividerColor: Color = CoreCustomGrayHintColor,
     val verticalDividerThickness: Dp = 1.dp,
     val verticalDividerTopBottomPadding: Dp = 25.dp,
-    val sideMenuSectionSeparatorColor: Color = CoreCustomGrayHintColor.copy(alpha = 0.2f),
-    val sideMenuItemSelectedBackgroundColor: Color = Color.Transparent,
-    val sideMenuItemUnselectedBackgroundColor: Color = Color.Transparent,
+    val sectionSeparatorColor: Color = CoreCustomGrayHintColor.copy(alpha = 0.2f),
+    val itemSelectedBackgroundColor: Color = Color.Transparent,
+    val itemUnselectedBackgroundColor: Color = Color.Transparent,
     val collapsedHorizontalPadding: Dp = 16.dp,
     val collapsedVerticalPadding: Dp = 30.dp,
     val collapsedHeaderItemSpacing: Dp = 16.dp,
@@ -472,7 +473,7 @@ data class ComponentTheme(
     val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
     val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
     val labeledImageBox: LabeledImageBoxTheme = LabeledImageBoxTheme(),
-    val sideMenu: SideMenuTheme = SideMenuTheme()
+    val navigationMenu: NavigationMenuTheme = NavigationMenuTheme()
 )
 
 /**

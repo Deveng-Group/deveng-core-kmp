@@ -1,4 +1,4 @@
-package core.presentation.component.sidemenu.collapsed
+package core.presentation.component.navigationmenu.collapsed
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -16,7 +16,7 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun SideMenuContentItemCollapsed(
+fun NavigationMenuContentItemCollapsed(
     icon: DrawableResource,
     iconTint: Color,
     iconSize: Dp? = null,
@@ -25,21 +25,21 @@ fun SideMenuContentItemCollapsed(
     contentDescription: String,
     backgroundColor: Color,
     isSelected: Boolean = false,
-    onSideMenuItemClick: () -> Unit
+    onItemClick: () -> Unit
 ) {
-    val sideMenuTheme = LocalComponentTheme.current.sideMenu
-    val finalIconSize = iconSize ?: sideMenuTheme.collapsedItemIconSize
+    val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
+    val finalIconSize = iconSize ?: navigationMenuTheme.collapsedItemIconSize
 
     Box(
         modifier = itemModifier
-            .size(sideMenuTheme.collapsedItemSize)
+            .size(navigationMenuTheme.collapsedItemSize)
             .background(
                 color = backgroundColor,
-                shape = RoundedCornerShape(sideMenuTheme.collapsedItemCornerRadius)
+                shape = RoundedCornerShape(navigationMenuTheme.collapsedItemCornerRadius)
             )
             .selectable(
                 selected = isSelected,
-                onClick = onSideMenuItemClick
+                onClick = onItemClick
             )
     ) {
         Icon(

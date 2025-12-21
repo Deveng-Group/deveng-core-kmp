@@ -1,4 +1,4 @@
-package core.presentation.component.sidemenu
+package core.presentation.component.navigationmenu
 
 /**
  * Display mode options for the menu component.
@@ -8,7 +8,7 @@ enum class MenuMode {
      * Vertical side menu mode with expand/collapse functionality.
      */
     Vertical,
-    
+
     /**
      * Horizontal header mode, always expanded and fixed.
      */
