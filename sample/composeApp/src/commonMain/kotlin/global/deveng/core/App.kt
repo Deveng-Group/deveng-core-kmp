@@ -47,15 +47,15 @@ import core.presentation.component.datepicker.CustomDateRangePicker
 import core.presentation.component.json.JsonViewer
 import core.presentation.component.labeledslot.Label
 import core.presentation.component.labeledslot.LabeledSlot
+import core.presentation.component.navigationmenu.MenuMode
+import core.presentation.component.navigationmenu.NavigationMenu
+import core.presentation.component.navigationmenu.NavigationMenuItem
 import core.presentation.component.optionitemlist.OptionItemLazyListDialog
 import core.presentation.component.optionitemlist.OptionItemList
 import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
-import core.presentation.component.sidemenu.CustomSideMenu
-import core.presentation.component.sidemenu.MenuMode
-import core.presentation.component.sidemenu.SideMenuItem
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
@@ -73,13 +73,13 @@ import core.presentation.theme.HeaderTheme
 import core.presentation.theme.IconButtonTheme
 import core.presentation.theme.JsonViewerTheme
 import core.presentation.theme.LabeledSwitchTheme
+import core.presentation.theme.NavigationMenuTheme
 import core.presentation.theme.OptionItemListTheme
 import core.presentation.theme.OptionItemTheme
 import core.presentation.theme.ProgressIndicatorBarsTheme
 import core.presentation.theme.ScrollbarWithLazyListStateTheme
 import core.presentation.theme.ScrollbarWithScrollStateTheme
 import core.presentation.theme.SearchFieldTheme
-import core.presentation.theme.SideMenuTheme
 import core.presentation.theme.SurfaceTheme
 import core.presentation.theme.TypographyTheme
 import core.util.datetime.CustomSelectableDates
@@ -248,11 +248,11 @@ internal fun App() {
             buttonBackgroundColor = Color(0xFF1976D2),
             buttonTextColor = Color.White
         ),
-        sideMenu = SideMenuTheme(
-            sideMenuBackgroundColor = Color(0xFF111827),
-            sideMenuSectionSeparatorColor = Color(0xFF1F2937),
-            sideMenuItemSelectedBackgroundColor = Color(0xFF111827),
-            sideMenuItemUnselectedBackgroundColor = Color(0xFF111827),
+        navigationMenu = NavigationMenuTheme(
+            backgroundColor = Color(0xFF111827),
+            sectionSeparatorColor = Color(0xFF1F2937),
+            itemSelectedBackgroundColor = Color(0xFF111827),
+            itemUnselectedBackgroundColor = Color(0xFF111827),
             verticalDividerColor = Color(0xFF374151)
         )
     )
@@ -294,7 +294,7 @@ private fun ThemingDemo() {
     var dateTimeValue by remember { mutableStateOf("") }
     var isJsonCopied by remember { mutableStateOf(false) }
     var currentPage by remember { mutableStateOf(0) }
-    var isSideMenuExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
     val selectableDates = remember { CustomSelectableDates() }
     val selectableDatesPast = remember { CustomSelectableDates() }
     val selectableDatesFuture = remember { CustomSelectableDates() }
@@ -320,8 +320,8 @@ private fun ThemingDemo() {
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     val lazyListState = rememberLazyListState()
 
-    val sideMenuItems = listOf(
-        SideMenuItem(
+    val navigationMenuItems = listOf(
+        NavigationMenuItem(
             screenRoute = "dashboard",
             icon = Res.drawable.ic_rotate_right,
             iconTint = Color.White,
@@ -329,7 +329,7 @@ private fun ThemingDemo() {
             text = Res.string.theme,
             textColor = Color.White
         ),
-        SideMenuItem(
+        NavigationMenuItem(
             screenRoute = "logs",
             icon = Res.drawable.ic_dark_mode,
             iconTint = Color.White,
@@ -337,7 +337,7 @@ private fun ThemingDemo() {
             text = Res.string.theme,
             textColor = Color.White
         ),
-        SideMenuItem(
+        NavigationMenuItem(
             screenRoute = "dashboard",
             icon = Res.drawable.ic_rotate_right,
             iconTint = Color.White,
@@ -345,7 +345,7 @@ private fun ThemingDemo() {
             text = Res.string.theme,
             textColor = Color.White
         ),
-        SideMenuItem(
+        NavigationMenuItem(
             screenRoute = "logs",
             icon = Res.drawable.ic_dark_mode,
             iconTint = Color.White,
@@ -356,11 +356,11 @@ private fun ThemingDemo() {
     )
 
     Column {
-        CustomSideMenu(
-            isSideMenuExpanded = isSideMenuExpanded,
+        NavigationMenu(
+            isExpanded = isExpanded,
             menuMode = MenuMode.Horizontal,
-            sideMenuItemList = sideMenuItems,
-            sideMenuExpandedHeader = {
+            itemList = navigationMenuItems,
+            expandedLeadingSlot = {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -381,7 +381,7 @@ private fun ThemingDemo() {
                     )
                 }
             },
-            sideMenuExpandedFooter = {
+            expandedTrailingSlot = {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -395,7 +395,7 @@ private fun ThemingDemo() {
                     )
                 }
             },
-            sideMenuCollapsedHeader = {
+            collapsedLeadingSlot = {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -409,7 +409,7 @@ private fun ThemingDemo() {
                     )
                 }
             },
-            sideMenuCollapsedFooter = {
+            collapsedTrailingSlot = {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -423,21 +423,21 @@ private fun ThemingDemo() {
                     )
                 }
             },
-            onSideMenuItemClick = { },
-            isSideMenuItemSelected = { true },
-            sideMenuItemText = { stringResource(it.text) },
-            sideMenuItemTextStyle = { CoreMediumTextStyle().copy() },
-            sideMenuItemIcon = { it.icon },
-            sideMenuItemIconTint = { it.iconTint },
-            sideMenuItemIconDescription = { stringResource(it.iconDescription) }
+            onItemClick = { },
+            isItemSelected = { true },
+            itemText = { stringResource(it.text) },
+            itemTextStyle = { CoreMediumTextStyle().copy() },
+            itemIcon = { it.icon },
+            itemIconTint = { it.iconTint },
+            itemIconDescription = { stringResource(it.iconDescription) }
         )
 
         Row {
-            CustomSideMenu(
-                isSideMenuExpanded = isSideMenuExpanded,
+            NavigationMenu(
+                isExpanded = isExpanded,
                 menuMode = MenuMode.Vertical,
-                sideMenuItemList = sideMenuItems,
-                sideMenuExpandedHeader = {
+                itemList = navigationMenuItems,
+                expandedLeadingSlot = {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -458,7 +458,7 @@ private fun ThemingDemo() {
                         )
                     }
                 },
-                sideMenuExpandedFooter = {
+                expandedTrailingSlot = {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -472,7 +472,7 @@ private fun ThemingDemo() {
                         )
                     }
                 },
-                sideMenuCollapsedHeader = {
+                collapsedLeadingSlot = {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -486,7 +486,7 @@ private fun ThemingDemo() {
                         )
                     }
                 },
-                sideMenuCollapsedFooter = {
+                collapsedTrailingSlot = {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -500,13 +500,13 @@ private fun ThemingDemo() {
                         )
                     }
                 },
-                onSideMenuItemClick = { },
-                isSideMenuItemSelected = { true },
-                sideMenuItemText = { stringResource(it.text) },
-                sideMenuItemTextStyle = { CoreMediumTextStyle().copy() },
-                sideMenuItemIcon = { it.icon },
-                sideMenuItemIconTint = { it.iconTint },
-                sideMenuItemIconDescription = { stringResource(it.iconDescription) }
+                onItemClick = { },
+                isItemSelected = { true },
+                itemText = { stringResource(it.text) },
+                itemTextStyle = { CoreMediumTextStyle().copy() },
+                itemIcon = { it.icon },
+                itemIconTint = { it.iconTint },
+                itemIconDescription = { stringResource(it.iconDescription) }
             )
 
             LazyColumn(
@@ -533,7 +533,7 @@ private fun ThemingDemo() {
 
                         CustomButton(
                             text = "Side Menu Opener and Closer",
-                            onClick = { isSideMenuExpanded = !isSideMenuExpanded }
+                            onClick = { isExpanded = !isExpanded }
                         )
 
                         CustomButton(
