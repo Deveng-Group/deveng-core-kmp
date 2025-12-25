@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.theme.CoreCustomBlackColor
 import core.presentation.theme.LocalComponentTheme
+import core.util.EMPTY
 import core.util.debouncedCombinedClickable
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_content_desc_icon_direction
@@ -37,7 +38,7 @@ import org.jetbrains.compose.resources.stringResource
  * @param modifier Modifier to be applied to the picker field container.
  * @param isEnabled Whether the field is enabled and can be clicked. Default is true.
  * @param text Selected text to display. If null or empty, shows hint text instead.
- * @param hint Placeholder text displayed when no text is selected.
+ * @param hint Placeholder text displayed when no text is selected. Optional.
  * @param title Optional title text displayed above the field.
  * @param titleColor Color of the title text. If null, uses theme default.
  * @param titleTrailingIcon Optional composable icon displayed after the title.
@@ -64,7 +65,7 @@ fun PickerField(
     modifier: Modifier = Modifier,
     isEnabled: Boolean = true,
     text: String? = null,
-    hint: String,
+    hint: String? = null,
     title: String? = null,
     titleColor: Color? = null,
     titleTrailingIcon: @Composable (() -> Unit)? = null,
@@ -166,7 +167,7 @@ fun PickerField(
 
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = text?.takeIf { it.isNotEmpty() } ?: hint,
+                    text = text?.takeIf { it.isNotEmpty() } ?: hint ?: String.EMPTY,
                     color = if (isEnabled) {
                         if (!text.isNullOrEmpty()) {
                             finalEnabledTextColor
