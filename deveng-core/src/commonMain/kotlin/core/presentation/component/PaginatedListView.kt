@@ -96,8 +96,6 @@ fun <T> PaginatedListView(
     errorText: String? = null,
     pullToRetryText: String? = null
 ) {
-    val componentTheme = LocalComponentTheme.current
-    val scrollbarWithLazyListStateTheme = componentTheme.scrollbarWithLazyListState
     // auto scroll to end in reverse mode
     var didAutoScrollToEnd by remember { mutableStateOf(false) }
 
@@ -203,13 +201,6 @@ fun <T> PaginatedListView(
         modifier = modifier
             .then(retryDragModifier)
             .padding(horizontal = horizontalPadding.dp)
-            .scrollbarWithLazyListState(
-                listState = listState,
-                width = scrollbarWithLazyListStateTheme.scrollBarWidth,
-                scrollBarColor = scrollbarWithLazyListStateTheme.scrollBarColor,
-                topPadding = scrollbarWithLazyListStateTheme.scrollBarTopPadding,
-                bottomPadding = scrollbarWithLazyListStateTheme.scrollBarBottomPadding
-            )
     ) {
         LazyColumn(
             state = listState,
