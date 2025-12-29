@@ -1,5 +1,7 @@
 package core.presentation.component.optionitemlist
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -71,41 +73,43 @@ fun <T> OptionItemLazyListDialog(
                 .heightIn(max = 585.dp),
             onDismissRequest = onDismissRequest
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .scrollbarWithLazyListState(
-                        listState = lazyListState,
-                        width = optionListTheme.lazyListScrollbarWidth,
-                        scrollBarColor = optionListTheme.lazyListScrollbarColor,
-                        topPadding = optionListTheme.lazyListScrollbarTopPadding,
-                        bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
-                    ),
-                state = lazyListState
-            ) {
-                itemsIndexed(
-                    items = optionsList,
-                    key = { _, item -> optionId(item) }
-                ) { index, item ->
-                    OptionItem(
-                        text = optionText(item),
-                        isCheckIconVisible = isCheckIconsVisible,
-                        leadingIcon = leadingIcon?.invoke(item),
-                        leadingSlot = { leadingOptionSlot(item) },
-                        isSelected = selectedOption?.let { optionId(it) == optionId(item) }
-                            ?: false,
-                        onItemClick = { onOptionItemClick(item) },
-                        backgroundColor = finalOptionItemBackgroundColor,
-                        horizontalPadding = finalOptionItemHorizontalPadding,
-                        checkIconTint = finalOptionItemCheckIconTint,
-                        textStyle = finalOptionItemTextStyle
-                    )
-
-                    if (index < optionsList.size - 1) {
-                        HorizontalDivider(
-                            modifier = Modifier.height(1.dp),
-                            color = optionListTheme.dividerColor
+            Column{
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(weight = 1f, fill = false)
+                        .scrollbarWithLazyListState(
+                            listState = lazyListState,
+                            width = optionListTheme.lazyListScrollbarWidth,
+                            scrollBarColor = optionListTheme.lazyListScrollbarColor,
+                            topPadding = optionListTheme.lazyListScrollbarTopPadding,
+                            bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
+                        ),
+                    state = lazyListState
+                ) {
+                    itemsIndexed(
+                        items = optionsList,
+                        key = { _, item -> optionId(item) }
+                    ) { index, item ->
+                        OptionItem(
+                            text = optionText(item),
+                            isCheckIconVisible = isCheckIconsVisible,
+                            leadingIcon = leadingIcon?.invoke(item),
+                            leadingSlot = { leadingOptionSlot(item) },
+                            isSelected = selectedOption?.let { optionId(it) == optionId(item) }
+                                ?: false,
+                            onItemClick = { onOptionItemClick(item) },
+                            backgroundColor = finalOptionItemBackgroundColor,
+                            horizontalPadding = finalOptionItemHorizontalPadding,
+                            checkIconTint = finalOptionItemCheckIconTint,
+                            textStyle = finalOptionItemTextStyle
                         )
+
+                        if (index < optionsList.size - 1) {
+                            HorizontalDivider(
+                                modifier = Modifier.height(1.dp),
+                                color = optionListTheme.dividerColor
+                            )
+                        }
                     }
                 }
             }
