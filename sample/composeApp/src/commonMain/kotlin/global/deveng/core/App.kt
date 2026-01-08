@@ -2,6 +2,7 @@ package global.deveng.core
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -244,9 +247,7 @@ internal fun App() {
             indicatorCornerRadius = 3.dp
         ),
         jsonViewer = JsonViewerTheme(
-            containerColor = Color(0xFFF9F9F9),
-            buttonBackgroundColor = Color(0xFF1976D2),
-            buttonTextColor = Color.White
+            containerColor = Color(0xFFF9F9F9)
         ),
         navigationMenu = NavigationMenuTheme(
             backgroundColor = Color(0xFF111827),
@@ -930,23 +931,16 @@ private fun ThemingDemo() {
 
                         val sampleJson = remember {
                             """
-                    {
-                        "id": 1,
-                        "name": "John Doe",
-                        "email": "john@example.com",
-                        "age": 28,
-                        "isActive": true,
-                        "address": {
-                            "street": "123 Main St",
-                            "city": "New York",
-                            "zipCode": "10001"
-                        },
-                        "tags": ["developer", "kotlin", "compose"]
-                    }
-                    """.trimIndent()
+                                [\n  {\n    \"id\": 7,\n    \"name\": \"Adana\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 8,\n    \"name\": \"Adıyaman\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 9,\n    \"name\": \"Afyonkarahisar\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 10,\n    \"name\": \"Ağrı\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 11,\n    \"name\": \"Aksaray\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 12,\n    \"name\": \"Amasya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 13,\n    \"name\": \"Ankara\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 14,\n    \"name\": \"Antalya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 15,\n    \"name\": \"Ardahan\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 16,\n    \"name\": \"Artvin\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 17,\n    \"name\": \"Aydın\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 18,\n    \"name\": \"Balıkesir\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 19,\n    \"name\": \"Bartın\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 20,\n    \"name\": \"Batman\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 21,\n    \"name\": \"Bayburt\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 22,\n    \"name\": \"Bilecik\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 23,\n    \"name\": \"Bingöl\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 24,\n    \"name\": \"Bitlis\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 25,\n    \"name\": \"Bolu\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 26,\n    \"name\": \"Burdur\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 27,\n    \"name\": \"Bursa\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 28,\n    \"name\": \"Çanakkale\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 29,\n    \"name\": \"Çankırı\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 30,\n    \"name\": \"Çorum\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 31,\n    \"name\": \"Denizli\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 32,\n    \"name\": \"Diyarbakır\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 33,\n    \"name\": \"Düzce\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 34,\n    \"name\": \"Edirne\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 35,\n    \"name\": \"Elazığ\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 36,\n    \"name\": \"Erzincan\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 37,\n    \"name\": \"Erzurum\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 38,\n    \"name\": \"Eskişehir\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 39,\n    \"name\": \"Gaziantep\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 40,\n    \"name\": \"Giresun\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 41,\n    \"name\": \"Gümüşhane\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 42,\n    \"name\": \"Hakkari\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 43,\n    \"name\": \"Hatay\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 44,\n    \"name\": \"Iğdır\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 45,\n    \"name\": \"Isparta\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 46,\n    \"name\": \"İstanbul\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 47,\n    \"name\": \"İzmir\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 48,\n    \"name\": \"Kahramanmaraş\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 49,\n    \"name\": \"Karabük\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 50,\n    \"name\": \"Karaman\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 51,\n    \"name\": \"Kars\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 52,\n    \"name\": \"Kastamonu\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 53,\n    \"name\": \"Kayseri\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 54,\n    \"name\": \"Kilis\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 55,\n    \"name\": \"Kırıkkale\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 56,\n    \"name\": \"Kırklareli\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 57,\n    \"name\": \"Kırşehir\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 58,\n    \"name\": \"Kocaeli\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 59,\n    \"name\": \"Konya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 60,\n    \"name\": \"Kütahya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 61,\n    \"name\": \"Malatya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 62,\n    \"name\": \"Manisa\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 63,\n    \"name\": \"Mardin\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 64,\n    \"name\": \"Mersin\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 65,\n    \"name\": \"Muğla\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 66,\n    \"name\": \"Muş\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 67,\n    \"name\": \"Nevşehir\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 68,\n    \"name\": \"Niğde\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 69,\n    \"name\": \"Ordu\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 70,\n    \"name\": \"Osmaniye\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 71,\n    \"name\": \"Rize\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 72,\n    \"name\": \"Sakarya\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 73,\n    \"name\": \"Samsun\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 74,\n    \"name\": \"Şanlıurfa\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 75,\n    \"name\": \"Siirt\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 76,\n    \"name\": \"Sinop\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 77,\n    \"name\": \"Sivas\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 78,\n    \"name\": \"Şırnak\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 79,\n    \"name\": \"Tekirdağ\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 80,\n    \"name\": \"Tokat\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 81,\n    \"name\": \"Trabzon\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 82,\n    \"name\": \"Tunceli\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 83,\n    \"name\": \"Uşak\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 84,\n    \"name\": \"Van\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 85,\n    \"name\": \"Yalova\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 86,\n    \"name\": \"Yozgat\",\n    \"countryId\": 7,\n    \"isActive\": true\n  },\n  {\n    \"id\": 87,\n    \"name\": \"Zonguldak\",\n    \"countryId\": 7,\n    \"isActive\": true\n  }\n]                            
+                            """
                         }
 
                         JsonViewer(
+                            modifier = Modifier
+                                .height(200.dp)
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .horizontalScroll(rememberScrollState()),
                             title = "User Data",
                             json = sampleJson,
                             copyText = "Copy",
@@ -955,24 +949,7 @@ private fun ThemingDemo() {
                             copiedText = "Copied",
                             copiedIcon = Res.drawable.ic_cyclone,
                             copiedIconDescription = "",
-                            isJsonCopied = isJsonCopied,
-                            onClickCopyJsonIcon = { isJsonCopied = true }
-                        )
-
-                        JsonViewer(
-                            title = "Custom Styled JSON",
-                            json = """{"status":"success","data":{"count":42}}""",
-                            containerColor = Color(0xFFF5F5F5),
-                            buttonColor = Color(0xFF1976D2),
-                            buttonTextColor = Color.White,
-                            copyText = "Copy JSON",
-                            copyIcon = Res.drawable.ic_cyclone,
-                            copyIconDescription = "",
-                            copiedText = "Copied!",
-                            copiedIcon = Res.drawable.ic_cyclone,
-                            copiedIconDescription = "",
-                            isJsonCopied = isJsonCopied,
-                            onClickCopyJsonIcon = { isJsonCopied = true }
+                            onClickCopyJsonIcon = {}
                         )
 
                         SectionTitle("SearchField Examples")

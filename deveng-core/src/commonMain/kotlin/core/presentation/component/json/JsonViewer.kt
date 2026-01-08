@@ -15,6 +15,11 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,16 +29,16 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.PickerField
 import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
-import core.util.EMPTY
 import core.util.calculateTextWidthAsDp
 import global.deveng.deveng_core.generated.resources.shared_ic_checked_circle
 import global.deveng.deveng_core.generated.resources.shared_ic_send
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * A component for displaying and copying JSON text with formatting.
+ * A component for displaying JSON text with formatting.
  * Includes a title, formatted JSON display container, and a copy button that changes state when clicked.
  *
  * @param title Title text displayed above the JSON viewer.
@@ -49,7 +54,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param copiedIcon Drawable resource for the icon displayed when JSON has been copied.
  * @param copiedIconTint Color tint for the copied icon. If null, uses theme default.
  * @param copiedIconDescription Content description for accessibility for the copied icon.
- * @param isJsonCopied Whether the JSON has been copied (affects button text and icon).
  * @param onClickCopyJsonIcon Callback invoked when the copy button is clicked, receives the JSON string.
  * @param titleTextStyle Text style for the title. If null, uses theme default.
  * @param jsonTextStyle Text style for the formatted JSON text. If null, uses theme default.
@@ -58,9 +62,15 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param buttonShape Shape of the copy button. If null, uses theme default.
  * @param buttonHeight Height of the copy button. If null, uses theme default.
  * @param buttonIconSize Size of the button icon. If null, uses theme default.
+ * @param containerColor Background color of the JSON display container.
+ * @param titleTextStyle Text style for the title.
+ * @param jsonTextStyle Text style for the formatted JSON text.
+ * @param containerShape Shape of the JSON display container.
+ * @param containerPadding Padding inside the JSON display container.
  */
 @Composable
 fun JsonViewer(
+    modifier: Modifier = Modifier,
     title: String,
     json: String,
     containerColor: Color? = null,
@@ -74,7 +84,6 @@ fun JsonViewer(
     copiedIcon: DrawableResource,
     copiedIconTint: Color? = null,
     copiedIconDescription: String,
-    isJsonCopied: Boolean,
     onClickCopyJsonIcon: (String) -> Unit,
     titleTextStyle: TextStyle? = null,
     jsonTextStyle: TextStyle? = null,
@@ -100,6 +109,20 @@ fun JsonViewer(
     val finalButtonIconSize = buttonIconSize ?: jsonViewerTheme.buttonIconSize
     val finalCopyIconTint = copyIconTint ?: jsonViewerTheme.copyIconTint
     val finalCopiedIconTint = copiedIconTint ?: jsonViewerTheme.copiedIconTint
+
+    var isJsonCopied by remember { mutableStateOf(false) }
+
+    if (isJsonCopied) {
+        LaunchedEffect(Unit) {
+            /**
+             * Provides visual feedback to the user that the copying operation was successful.
+             * Temporarily sets the text to "Copied" to confirm the action
+             * and returns the button to its default state ("Copy") after a 2-second delay to allow reuse.
+             **/
+            delay(2000)
+            isJsonCopied = false
+        }
+    }
 
     val buttonSize = calculateTextWidthAsDp(
         text = if (isJsonCopied) copiedText else copyText,
@@ -145,8 +168,10 @@ fun JsonViewer(
                             finalCopyIconTint
                     )
                 },
-                hint = String.EMPTY,
-                onClick = { onClickCopyJsonIcon(json) }
+                onClick = {
+                    onClickCopyJsonIcon(json)
+                    isJsonCopied = true
+                }
             )
         }
 
@@ -160,7 +185,7 @@ fun JsonViewer(
                 .align(Alignment.CenterHorizontally)
         ) {
             Text(
-                modifier = Modifier.padding(finalContainerPadding),
+                modifier = modifier.padding(finalContainerPadding),
                 text = formatJson(json),
                 style = finalJsonTextStyle
             )
@@ -174,14 +199,13 @@ fun JsonViewerPreview() {
     AppTheme {
         JsonViewer(
             title = "Input Json",
-            json = """{"id":1,"name":"Ahmet Yılmaz","email":"ahmet@example.com","age":28,"isActive":true}""",
+            json = """[\n  {\n    \"id\": 3,\n    \"currencyCode\": \"TL\",\n    \"currencyName\": \"Türk Lirası\",\n    \"currencySymbolURL\": \"https://giris.turkiye.gov.tr/\"\n  },\n  {\n    \"id\": 4,\n    \"currencyCode\": \"USD\",\n    \"currencyName\": \"Dolar\",\n    \"currencySymbolURL\": \"https://dolar.com/\"\n  }\n]""",
             copyText = "Copy",
             copyIcon = global.deveng.deveng_core.generated.resources.Res.drawable.shared_ic_send,
             copyIconDescription = "",
             copiedText = "Copied",
             copiedIcon = global.deveng.deveng_core.generated.resources.Res.drawable.shared_ic_checked_circle,
             copiedIconDescription = "",
-            isJsonCopied = false,
             onClickCopyJsonIcon = {}
         )
     }
