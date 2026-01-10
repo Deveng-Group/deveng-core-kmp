@@ -26,6 +26,7 @@ fun <T> NavigationMenuContentHorizontal(
     leadingSlot: Slot? = null,
     trailingSlot: Slot? = null,
     horizontalDividerColor: Color? = null,
+    isIconVisible: Boolean = true,
     itemList: List<T>,
     isItemSelected: (T) -> Boolean,
     itemText: @Composable (T) -> String,
@@ -85,6 +86,7 @@ fun <T> NavigationMenuContentHorizontal(
                     iconDescription = itemIconDescription(item),
                     isSelected = isSelected,
                     backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
+                    isIconVisible = isIconVisible,
                     onItemClick = {
                         onItemClick(item)
                     }

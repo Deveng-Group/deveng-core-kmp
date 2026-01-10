@@ -30,6 +30,7 @@ fun NavigationMenuContentItemHorizontal(
     iconDescription: String,
     isSelected: Boolean = false,
     backgroundColor: Color,
+    isIconVisible: Boolean = true,
     onItemClick: () -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
@@ -50,12 +51,14 @@ fun NavigationMenuContentItemHorizontal(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(navigationMenuTheme.expandedItemSpacedBy)
     ) {
-        Icon(
-            modifier = Modifier.size(finalIconSize),
-            painter = painterResource(icon),
-            contentDescription = iconDescription,
-            tint = iconTint
-        )
+        if (isIconVisible) {
+            Icon(
+                modifier = Modifier.size(finalIconSize),
+                painter = painterResource(icon),
+                contentDescription = iconDescription,
+                tint = iconTint
+            )
+        }
 
         Text(
             text = text,
