@@ -55,6 +55,7 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param verticalDividerColor Color of the vertical divider. If null, uses theme default.
  * @param verticalDividerThickness Thickness of the vertical divider. If null, uses theme default.
  * @param sectionSeparatorColor Color of horizontal dividers separating menu sections. If null, uses theme default.
+ * @param isHorizontalIconVisible Whether to show icons in horizontal/header mode. Defaults to true.
  * @param expandedLeadingSlot Composable leading content displayed when menu is expanded.
  * @param expandedTrailingSlot Composable trailing content displayed when menu is expanded in vertical mode.
  * @param collapsedLeadingSlot Composable leading content displayed when menu is collapsed.
@@ -86,6 +87,7 @@ fun <T> NavigationMenu(
     verticalDividerColor: Color? = null,
     verticalDividerThickness: Dp? = null,
     sectionSeparatorColor: Color? = null,
+    isHorizontalIconVisible: Boolean = true,
     expandedLeadingSlot: Slot? = null,
     expandedTrailingSlot: Slot? = null,
     collapsedLeadingSlot: Slot? = null,
@@ -200,6 +202,7 @@ fun <T> NavigationMenu(
                 leadingSlot = expandedLeadingSlot,
                 trailingSlot = expandedTrailingSlot,
                 horizontalDividerColor = finalSectionSeparatorColor,
+                isIconVisible = isHorizontalIconVisible,
                 onItemClick = onItemClick,
                 isItemSelected = isItemSelected,
                 itemText = itemText,
