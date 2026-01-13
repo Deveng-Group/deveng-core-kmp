@@ -30,11 +30,17 @@ import core.presentation.component.PickerField
 import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
 import core.util.calculateTextWidthAsDp
-import global.deveng.deveng_core.generated.resources.shared_ic_checked_circle
-import global.deveng.deveng_core.generated.resources.shared_ic_send
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.shared_content_desc_icon_copied
+import global.deveng.deveng_core.generated.resources.shared_content_desc_icon_copy
+import global.deveng.deveng_core.generated.resources.shared_copied
+import global.deveng.deveng_core.generated.resources.shared_copy
+import global.deveng.deveng_core.generated.resources.shared_ic_accept
+import global.deveng.deveng_core.generated.resources.shared_ic_copy
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -46,11 +52,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param containerColor Background color of the JSON display container. If null, uses theme default.
  * @param buttonTextColor Text color of the copy button. If null, uses theme default.
  * @param buttonColor Background color of the copy button. If null, uses theme default.
- * @param copyText Text displayed on the copy button when JSON is not copied.
  * @param copyIcon Drawable resource for the icon displayed when JSON is not copied.
  * @param copyIconTint Color tint for the copy icon. If null, uses theme default.
  * @param copyIconDescription Content description for accessibility for the copy icon.
- * @param copiedText Text displayed on the button when JSON has been copied.
  * @param copiedIcon Drawable resource for the icon displayed when JSON has been copied.
  * @param copiedIconTint Color tint for the copied icon. If null, uses theme default.
  * @param copiedIconDescription Content description for accessibility for the copied icon.
@@ -72,26 +76,24 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun JsonViewer(
     modifier: Modifier = Modifier,
     title: String,
-    json: String,
-    containerColor: Color? = null,
-    buttonTextColor: Color? = null,
-    buttonColor: Color? = null,
-    copyText: String,
-    copyIcon: DrawableResource,
-    copyIconTint: Color? = null,
-    copyIconDescription: String,
-    copiedText: String,
-    copiedIcon: DrawableResource,
-    copiedIconTint: Color? = null,
-    copiedIconDescription: String,
-    onClickCopyJsonIcon: (String) -> Unit,
     titleTextStyle: TextStyle? = null,
+    json: String,
     jsonTextStyle: TextStyle? = null,
+    containerColor: Color? = null,
     containerShape: CornerBasedShape? = null,
     containerPadding: Dp? = null,
+    buttonTextColor: Color? = null,
+    buttonColor: Color? = null,
     buttonShape: CornerBasedShape? = null,
     buttonHeight: Dp? = null,
-    buttonIconSize: Dp? = null
+    buttonIconSize: Dp? = null,
+    copyIcon: DrawableResource = Res.drawable.shared_ic_copy,
+    copyIconTint: Color? = null,
+    copyIconDescription: String = stringResource(Res.string.shared_content_desc_icon_copy),
+    copiedIcon: DrawableResource = Res.drawable.shared_ic_accept,
+    copiedIconTint: Color? = null,
+    copiedIconDescription: String = stringResource(Res.string.shared_content_desc_icon_copied),
+    onClickCopyJsonIcon: (String) -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
     val jsonViewerTheme = componentTheme.jsonViewer
@@ -124,8 +126,13 @@ fun JsonViewer(
         }
     }
 
+    val buttonText = if (isJsonCopied)
+        stringResource(Res.string.shared_copied)
+    else
+        stringResource(Res.string.shared_copy)
+
     val buttonSize = calculateTextWidthAsDp(
-        text = if (isJsonCopied) copiedText else copyText,
+        text = buttonText,
         style = finalButtonTextStyle
     )
 
@@ -150,7 +157,7 @@ fun JsonViewer(
                     .height(finalButtonHeight),
                 shape = finalButtonShape,
                 enabledBackGroundColor = finalButtonBackgroundColor,
-                text = if (isJsonCopied) copiedText else copyText,
+                text = buttonText,
                 textStyle = finalButtonTextStyle,
                 enabledTextColor = finalButtonTextColor,
                 trailingSlot = null,
@@ -200,12 +207,6 @@ fun JsonViewerPreview() {
         JsonViewer(
             title = "Input Json",
             json = """[\n  {\n    \"id\": 3,\n    \"currencyCode\": \"TL\",\n    \"currencyName\": \"Türk Lirası\",\n    \"currencySymbolURL\": \"https://giris.turkiye.gov.tr/\"\n  },\n  {\n    \"id\": 4,\n    \"currencyCode\": \"USD\",\n    \"currencyName\": \"Dolar\",\n    \"currencySymbolURL\": \"https://dolar.com/\"\n  }\n]""",
-            copyText = "Copy",
-            copyIcon = global.deveng.deveng_core.generated.resources.Res.drawable.shared_ic_send,
-            copyIconDescription = "",
-            copiedText = "Copied",
-            copiedIcon = global.deveng.deveng_core.generated.resources.Res.drawable.shared_ic_checked_circle,
-            copiedIconDescription = "",
             onClickCopyJsonIcon = {}
         )
     }

@@ -293,7 +293,6 @@ private fun ThemingDemo() {
     var amountValue by remember { mutableStateOf("125") }
     var borderOverrideValue by remember { mutableStateOf("") }
     var dateTimeValue by remember { mutableStateOf("") }
-    var isJsonCopied by remember { mutableStateOf(false) }
     var currentPage by remember { mutableStateOf(0) }
     var isExpanded by remember { mutableStateOf(false) }
     val selectableDates = remember { CustomSelectableDates() }
@@ -943,12 +942,6 @@ private fun ThemingDemo() {
                                 .horizontalScroll(rememberScrollState()),
                             title = "User Data",
                             json = sampleJson,
-                            copyText = "Copy",
-                            copyIcon = Res.drawable.ic_cyclone,
-                            copyIconDescription = "",
-                            copiedText = "Copied",
-                            copiedIcon = Res.drawable.ic_cyclone,
-                            copiedIconDescription = "",
                             onClickCopyJsonIcon = {}
                         )
 
