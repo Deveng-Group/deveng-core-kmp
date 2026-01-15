@@ -42,7 +42,8 @@ fun CustomDialog(
         properties.let {
             DialogProperties(
                 dismissOnBackPress = it.dismissOnBackPress,
-                dismissOnClickOutside = it.dismissOnClickOutside
+                dismissOnClickOutside = it.dismissOnClickOutside,
+                usePlatformDefaultWidth = it.usePlatformDefaultWidth
             )
         },
         content = {
