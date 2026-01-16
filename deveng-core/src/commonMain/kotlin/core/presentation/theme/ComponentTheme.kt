@@ -380,7 +380,10 @@ data class LabeledImageBoxTheme(
     val containerWidth: Dp = 112.dp,
     val containerHeight: Dp = 100.dp,
     val containerShape: CornerBasedShape = RoundedCornerShape(16.dp),
-    val labelFontSize: TextUnit = 8.sp
+    val labelPadding: PaddingValues = PaddingValues(5.dp),
+    val labelTextStyle: TextStyle = TextStyle(
+        fontSize = 8.sp
+    )
 )
 
 /**
