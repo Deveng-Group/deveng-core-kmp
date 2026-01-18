@@ -53,6 +53,7 @@ import core.presentation.component.labeledslot.LabeledSlot
 import core.presentation.component.navigationmenu.MenuMode
 import core.presentation.component.navigationmenu.NavigationMenu
 import core.presentation.component.navigationmenu.NavigationMenuItem
+import core.presentation.component.optionitemlist.OptionItem
 import core.presentation.component.optionitemlist.OptionItemLazyListDialog
 import core.presentation.component.optionitemlist.OptionItemList
 import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
@@ -278,6 +279,7 @@ private fun ThemingDemo() {
             "Themed option D"
         )
     }
+    val clickOption by remember {mutableStateOf(true)}
     var selectedOption by remember { mutableStateOf(sampleOptions.first()) }
     var selectedOptions by remember { mutableStateOf(setOf<String>()) }
     var labeledSwitchEnabled by remember { mutableStateOf(true) }
@@ -1147,6 +1149,13 @@ private fun ThemingDemo() {
                             defaultIndicatorColor = Color(0xFFFFCDD2),
                             indicatorHeight = 10.dp,
                             indicatorSpacing = 5.dp
+                        )
+
+                        OptionItem(
+                            text = "i read and i approve",
+                            onItemClick = {clickOption},
+                            backgroundColor = Color.Transparent,
+                            ic
                         )
 
                         Row(

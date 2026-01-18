@@ -1,5 +1,6 @@
 package core.presentation.component
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import core.presentation.theme.LocalComponentTheme
 import core.presentation.theme.CoreSemiBoldTextStyle
+import core.presentation.theme.LocalComponentTheme
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -60,6 +61,7 @@ fun CustomButton(
     textModifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: CornerBasedShape = RoundedCornerShape(8.dp),
+    border: BorderStroke? = null,
     containerColor: Color? = null,
     disabledContainerColor: Color? = null,
     disabledContentColor: Color? = null,
@@ -78,7 +80,7 @@ fun CustomButton(
 ) {
     val componentTheme = LocalComponentTheme.current
     val buttonTheme = componentTheme.button
-    
+
     val finalTextStyle = textStyle ?: CoreSemiBoldTextStyle().copy(
         fontSize = buttonTheme.defaultTextStyle.fontSize,
         textAlign = buttonTheme.defaultTextStyle.textAlign
@@ -98,6 +100,7 @@ fun CustomButton(
         ),
         elevation = elevation,
         shape = shape,
+        border = border,
         onClick = onClick
     ) {
         Row(

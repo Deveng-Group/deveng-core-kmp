@@ -65,6 +65,7 @@ fun PickerField(
     modifier: Modifier = Modifier,
     isEnabled: Boolean = true,
     text: String? = null,
+    containerHeight: Int = 56,
     hint: String? = null,
     title: String? = null,
     titleColor: Color? = null,
@@ -144,7 +145,7 @@ fun PickerField(
                 color = finalDisabledBorderColor
             ) else BorderStroke(finalEnabledBorderWidth, finalEnabledBorderColor),
             modifier = Modifier
-                .height(56.dp)
+                .height(containerHeight.dp)
                 .fillMaxWidth()
                 .debouncedCombinedClickable {
                     if (isEnabled) {
