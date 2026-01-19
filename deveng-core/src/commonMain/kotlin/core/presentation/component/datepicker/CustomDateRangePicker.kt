@@ -91,6 +91,7 @@ fun CustomDateRangePicker(
     enabledBorderColor: Color? = null,
     enabledTextColor: Color? = null,
     rangeText: String,
+    placeholderText: String = "-",
     initialSelectedStartDate: LocalDate?,
     initialSelectedEndDate: LocalDate?,
     trailingIconModifier: Modifier = Modifier,
@@ -272,7 +273,7 @@ fun CustomDateRangePicker(
         enabledTextColor = finalEnabledTextColor,
         enabledBorderColor = finalEnabledBorderColor,
         enabledBorderWidth = finalEnabledBorderWidth,
-        hint = "-",
+        hint = placeholderText,
         trailingSlot = {
             Icon(
                 modifier = trailingIconModifier,

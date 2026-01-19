@@ -4,9 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -36,11 +36,11 @@ fun RoundedSurface(
 ) {
     val componentTheme = LocalComponentTheme.current
     val surfaceTheme = componentTheme.surface
-    
+
     val finalColor = color ?: surfaceTheme.defaultColor
     val finalContentColor = contentColor ?: surfaceTheme.defaultContentColor
     Surface(
-        modifier = modifier,
+        modifier = modifier.clip(shape),
         color = finalColor,
         contentColor = finalContentColor,
         shape = shape,

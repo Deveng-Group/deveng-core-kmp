@@ -1,7 +1,6 @@
 package core.presentation.component.optionitemlist
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,13 +76,13 @@ fun OptionItem(
 
     Row(
         modifier = Modifier
-            .background(color = finalBackgroundColor)
-            .height(optionItemTheme.rowHeight)
-            .padding(horizontal = finalHorizontalPadding)
             .fillMaxWidth()
-            .debouncedCombinedClickable { onItemClick() },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
+            .height(optionItemTheme.rowHeight)
+            .background(color = finalBackgroundColor)
+            .clip(RectangleShape)
+            .debouncedCombinedClickable { onItemClick() }
+            .padding(horizontal = finalHorizontalPadding),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         if (leadingSlot != null) {
             leadingSlot()
@@ -136,7 +137,7 @@ fun OptionItem(
 
 @Preview
 @Composable
-fun ReportOptionItemPreview() {
+fun OptionItemPreview() {
     OptionItem(
         text = "test 1",
         onItemClick = {}
