@@ -1,8 +1,6 @@
 package core.presentation.component.optionitemlist
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +31,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param leadingOptionSlot Composable slot for custom leading content for each item. Default is empty.
  * @param isDialogVisible Whether the dialog is visible.
  * @param isCheckIconsVisible Whether to display check icons indicating selected items. Default is true.
+ * @param isScrollBarVisible Whether to display a scrollbar at the right of the list. Default is true.
  * @param selectedOption Currently selected item, or null if none selected.
  * @param onOptionItemClick Callback invoked when an option item is clicked, receives the clicked item.
  * @param onDismissRequest Callback invoked when the dialog should be dismissed.
@@ -50,6 +49,7 @@ fun <T> OptionItemLazyListDialog(
     leadingOptionSlot: @Composable (T) -> Unit = {},
     isDialogVisible: Boolean,
     isCheckIconsVisible: Boolean = true,
+    isScrollBarVisible: Boolean = true,
     selectedOption: T? = null,
     onOptionItemClick: (T) -> Unit,
     onDismissRequest: () -> Unit,
@@ -62,10 +62,26 @@ fun <T> OptionItemLazyListDialog(
     val componentTheme = LocalComponentTheme.current
     val optionListTheme = componentTheme.optionItemList
 
-    val finalOptionItemBackgroundColor = optionItemBackgroundColor ?: optionListTheme.optionItemBackgroundColor
-    val finalOptionItemHorizontalPadding = optionItemHorizontalPadding ?: optionListTheme.optionItemHorizontalPadding
-    val finalOptionItemCheckIconTint = optionItemCheckIconTint ?: optionListTheme.optionItemCheckIconTint
+    val finalOptionItemBackgroundColor =
+        optionItemBackgroundColor ?: optionListTheme.optionItemBackgroundColor
+    val finalOptionItemHorizontalPadding =
+        optionItemHorizontalPadding ?: optionListTheme.optionItemHorizontalPadding
+    val finalOptionItemCheckIconTint =
+        optionItemCheckIconTint ?: optionListTheme.optionItemCheckIconTint
     val finalOptionItemTextStyle = optionItemTextStyle ?: optionListTheme.optionItemTextStyle
+
+    val lazyColumnModifier = if (isScrollBarVisible) {
+        Modifier
+            .scrollbarWithLazyListState(
+                listState = lazyListState,
+                width = optionListTheme.lazyListScrollbarWidth,
+                scrollBarColor = optionListTheme.lazyListScrollbarColor,
+                topPadding = optionListTheme.lazyListScrollbarTopPadding,
+                bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
+            )
+    } else {
+        Modifier
+    }
 
     if (isDialogVisible) {
         CustomDialog(
@@ -73,17 +89,10 @@ fun <T> OptionItemLazyListDialog(
                 .heightIn(max = 585.dp),
             onDismissRequest = onDismissRequest
         ) {
-            Column{
+            Column {
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(weight = 1f, fill = false)
-                        .scrollbarWithLazyListState(
-                            listState = lazyListState,
-                            width = optionListTheme.lazyListScrollbarWidth,
-                            scrollBarColor = optionListTheme.lazyListScrollbarColor,
-                            topPadding = optionListTheme.lazyListScrollbarTopPadding,
-                            bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
-                        ),
+                    modifier = lazyColumnModifier
+                        .weight(weight = 1f, fill = false),
                     state = lazyListState
                 ) {
                     itemsIndexed(

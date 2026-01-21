@@ -1154,8 +1154,7 @@ private fun ThemingDemo() {
                         OptionItem(
                             text = "i read and i approve",
                             onItemClick = {clickOption},
-                            backgroundColor = Color.Transparent,
-                            ic
+                            backgroundColor = Color.Transparent
                         )
 
                         Row(
@@ -1201,6 +1200,7 @@ private fun ThemingDemo() {
                 optionText = { it },
                 optionId = { it.hashCode() },
                 isDialogVisible = showOptionDialog,
+                isScrollBarVisible = false,
                 selectedOption = selectedOption,
                 onOptionItemClick = {
                     selectedOption = it
