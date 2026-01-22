@@ -12,7 +12,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.DrawableResource
@@ -374,9 +373,9 @@ data class JsonViewerTheme(
 )
 
 /**
- * Theme for LabeledImageBox component
+ * Theme for LabeledSlot component
  */
-data class LabeledImageBoxTheme(
+data class LabeledSlotTheme(
     val containerWidth: Dp = 112.dp,
     val containerHeight: Dp = 100.dp,
     val containerShape: CornerBasedShape = RoundedCornerShape(16.dp),
@@ -475,7 +474,7 @@ data class ComponentTheme(
     val scrollbarWithScrollState: ScrollbarWithScrollStateTheme = ScrollbarWithScrollStateTheme(),
     val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
     val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
-    val labeledImageBox: LabeledImageBoxTheme = LabeledImageBoxTheme(),
+    val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme()
 )
 

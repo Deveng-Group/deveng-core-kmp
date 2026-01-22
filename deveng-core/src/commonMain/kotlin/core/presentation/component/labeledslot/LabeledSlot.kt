@@ -48,12 +48,12 @@ fun LabeledSlot(
     contentSlot: @Composable () -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
-    val labeledImageBoxTheme = componentTheme.labeledImageBox
-    val finalContainerWidth = containerWidth ?: labeledImageBoxTheme.containerWidth
-    val finalContainerHeight = containerHeight ?: labeledImageBoxTheme.containerHeight
-    val finalContainerShape = containerShape ?: labeledImageBoxTheme.containerShape
-    val finalLabelPadding = labelPadding ?: labeledImageBoxTheme.labelPadding
-    val textStyle = labelTextStyle ?: labeledImageBoxTheme.labelTextStyle
+    val labeledSlotTheme = componentTheme.labeledSlot
+    val finalContainerWidth = containerWidth ?: labeledSlotTheme.containerWidth
+    val finalContainerHeight = containerHeight ?: labeledSlotTheme.containerHeight
+    val finalContainerShape = containerShape ?: labeledSlotTheme.containerShape
+    val finalLabelPadding = labelPadding ?: labeledSlotTheme.labelPadding
+    val textStyle = labelTextStyle ?: labeledSlotTheme.labelTextStyle
     val finalTextStyle = if (labelFontSize != null) {
         textStyle.copy(fontSize = labelFontSize)
     } else {
