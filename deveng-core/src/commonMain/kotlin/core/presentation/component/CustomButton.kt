@@ -58,6 +58,9 @@ fun CustomButton(
         .width(200.dp),
     text: String? = null,
     textStyle: TextStyle? = null,
+    secondaryText: String? = null,
+    secondaryTextStyle: TextStyle? = null,
+    secondaryTextModifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: CornerBasedShape = RoundedCornerShape(8.dp),
@@ -123,6 +126,16 @@ fun CustomButton(
                     modifier = textModifier,
                     text = text,
                     style = finalTextStyle
+                )
+            }
+
+            if (secondaryText != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+
+                Text(
+                    modifier = secondaryTextModifier,
+                    text = secondaryText,
+                    style = secondaryTextStyle ?: finalTextStyle
                 )
             }
 

@@ -540,6 +540,15 @@ private fun ThemingDemo() {
 
                         CustomButton(
                             text = "Themed Button",
+                            textStyle = CoreRegularTextStyle().copy(
+                                fontSize = 12.sp,
+                                color = Color(0xFF94A3B8)
+                            ),
+                            secondaryText = "Secondary Text",
+                            secondaryTextStyle = CoreRegularTextStyle().copy(
+                                fontSize = 8.sp,
+                                color = Color(0xFF94A3B8)
+                            ),
                             onClick = { }
                         )
 
