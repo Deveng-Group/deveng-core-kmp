@@ -22,6 +22,7 @@ import core.presentation.component.alertdialog.CustomDialog
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
 import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.LocalComponentTheme
+import core.util.ifTrue
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_save
 import org.jetbrains.compose.resources.DrawableResource
@@ -63,6 +64,7 @@ fun <T> OptionItemMultiSelectLazyListDialog(
     leadingOptionSlot: @Composable (T) -> Unit = {},
     isDialogVisible: Boolean,
     isCheckIconsVisible: Boolean = true,
+    isScrollBarVisible: Boolean = true,
     selectedOptions: List<T>? = null,
     onOptionItemClick: (T) -> Unit,
     onSaveButtonClick: () -> Unit,
@@ -116,13 +118,15 @@ fun <T> OptionItemMultiSelectLazyListDialog(
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f, fill = false)
-                        .scrollbarWithLazyListState(
-                            listState = lazyListState,
-                            width = optionListTheme.lazyListScrollbarWidth,
-                            scrollBarColor = optionListTheme.lazyListScrollbarColor,
-                            topPadding = optionListTheme.lazyListScrollbarTopPadding,
-                            bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
-                        ),
+                        .ifTrue(isScrollBarVisible) {
+                            scrollbarWithLazyListState(
+                                listState = lazyListState,
+                                width = optionListTheme.lazyListScrollbarWidth,
+                                scrollBarColor = optionListTheme.lazyListScrollbarColor,
+                                topPadding = optionListTheme.lazyListScrollbarTopPadding,
+                                bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
+                            )
+                        },
                     state = lazyListState
                 ) {
                     itemsIndexed(

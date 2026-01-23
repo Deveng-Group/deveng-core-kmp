@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.alertdialog.CustomDialog
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
 import core.presentation.theme.LocalComponentTheme
+import core.util.ifTrue
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -70,19 +71,6 @@ fun <T> OptionItemLazyListDialog(
         optionItemCheckIconTint ?: optionListTheme.optionItemCheckIconTint
     val finalOptionItemTextStyle = optionItemTextStyle ?: optionListTheme.optionItemTextStyle
 
-    val lazyColumnModifier = if (isScrollBarVisible) {
-        Modifier
-            .scrollbarWithLazyListState(
-                listState = lazyListState,
-                width = optionListTheme.lazyListScrollbarWidth,
-                scrollBarColor = optionListTheme.lazyListScrollbarColor,
-                topPadding = optionListTheme.lazyListScrollbarTopPadding,
-                bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
-            )
-    } else {
-        Modifier
-    }
-
     if (isDialogVisible) {
         CustomDialog(
             modifier = Modifier
@@ -91,8 +79,17 @@ fun <T> OptionItemLazyListDialog(
         ) {
             Column {
                 LazyColumn(
-                    modifier = lazyColumnModifier
-                        .weight(weight = 1f, fill = false),
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .ifTrue(isScrollBarVisible) {
+                            scrollbarWithLazyListState(
+                                listState = lazyListState,
+                                width = optionListTheme.lazyListScrollbarWidth,
+                                scrollBarColor = optionListTheme.lazyListScrollbarColor,
+                                topPadding = optionListTheme.lazyListScrollbarTopPadding,
+                                bottomPadding = optionListTheme.lazyListScrollbarBottomPadding
+                            )
+                        },
                     state = lazyListState
                 ) {
                     itemsIndexed(

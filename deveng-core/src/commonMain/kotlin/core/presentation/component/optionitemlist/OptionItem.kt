@@ -79,11 +79,11 @@ fun OptionItem(
             .fillMaxWidth()
             .height(optionItemTheme.rowHeight)
             .background(color = finalBackgroundColor)
-            .clip(RectangleShape)
-            .debouncedCombinedClickable { onItemClick() }
-            .padding(horizontal = finalHorizontalPadding),
+            .debouncedCombinedClickable { onItemClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Spacer(modifier = Modifier.width(finalHorizontalPadding))
+
         if (leadingSlot != null) {
             leadingSlot()
         }
@@ -132,6 +132,9 @@ fun OptionItem(
                 onClick = { onCheckboxClick() }
             )
         }
+
+        Spacer(modifier = Modifier.width(finalHorizontalPadding))
+
     }
 }
 
