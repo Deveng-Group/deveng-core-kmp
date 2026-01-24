@@ -36,4 +36,5 @@
     <string name="shared_content_desc_icon_copied">Copied icon</string>
     <string name="shared_copy">Copy</string>
     <string name="shared_copied">Copied</string>
+    <string name="shared_content_dest_icon_bell">Bell icon</string>
 </resources>

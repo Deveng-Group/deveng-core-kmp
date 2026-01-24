@@ -2,7 +2,6 @@ package core.util
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,13 +15,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 fun Modifier.debouncedCombinedClickable(
     debounceMillis: Long = 600L,
+    isDebounce: Boolean = true,
     enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     shape: Shape? = null,
@@ -49,7 +48,9 @@ fun Modifier.debouncedCombinedClickable(
             canClick = false
             clickLatest()
             scope.launch {
-                delay(debounceMillis)
+                if (isDebounce) {
+                    delay(debounceMillis)
+                }
                 canClick = true
             }
         },

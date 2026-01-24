@@ -419,6 +419,44 @@ data class NavigationMenuTheme(
 )
 
 /**
+ * Theme for Chip item component
+ */
+data class ChipItemTheme(
+    val selectedBackgroundColor: Color = CoreSecondaryColor,
+    val unselectedBackgroundColor: Color = Color.Transparent,
+    val selectedBorderStroke: BorderStroke = BorderStroke(
+        width = 1.dp,
+        color = CoreSecondaryColor
+    ),
+    val unselectedBorderStroke: BorderStroke = BorderStroke(
+        width = 1.dp,
+        color = CoreChipItemUnselectedBorderColor
+    ),
+    val shape: CornerBasedShape = RoundedCornerShape(59.dp),
+    val horizontalPadding: Dp = 16.dp,
+    val verticalPadding: Dp = 8.dp,
+    val contentSpacing: Dp = 12.dp,
+    val textStyle: TextStyle = TextStyle(
+        fontSize = 16.sp,
+        color = CoreCustomBlackColor
+    ),
+    val selectedTextColor: Color = Color.White,
+    val unselectedTextColor: Color = CoreCustomBlackColor,
+    val leadingIconTint: Color? = null,
+    val selectedLeadingIconTint: Color = Color.White,
+    val unselectedLeadingIconTint: Color = CoreCustomBlackColor,
+    val countSectionBackgroundColor: Color = CoreSecondaryColor,
+    val countSectionTextColor: Color = Color.White,
+    val countSectionTextStyle: TextStyle = TextStyle(
+        fontSize = 12.sp,
+        color = Color.White
+    ),
+    val countSectionHeight: Dp = 20.dp,
+    val countSectionWidth: Dp = 29.dp,
+    val countSectionShape: CornerBasedShape = RoundedCornerShape(8.dp)
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -475,7 +513,8 @@ data class ComponentTheme(
     val scrollbarWithLazyListState: ScrollbarWithLazyListStateTheme = ScrollbarWithLazyListStateTheme(),
     val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
     val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
-    val navigationMenu: NavigationMenuTheme = NavigationMenuTheme()
+    val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
+    val chipItem: ChipItemTheme = ChipItemTheme()
 )
 
 /**

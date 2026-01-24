@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.theme.CoreCustomDividerColor
 import core.presentation.theme.LocalComponentTheme
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.DrawableResource
 
 /**
@@ -27,6 +29,7 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param searchText Current search text value.
  * @param onSearchTextChange Callback invoked when the search text changes.
  * @param onSearchButtonClick Callback invoked when the search button is clicked.
+ * @param onTypingStop Callback invoked when the user stops typing.
  * @param searchBarHint Placeholder text for the search field.
  * @param textFieldContainerModifier Modifier to be applied to the text field container.
  * @param textFieldModifier Modifier to be applied to the text field itself.
@@ -48,6 +51,7 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param enabled Whether the text field is enabled. Default is true.
  * @param requestFocus Whether to request focus when the component is composed. Default is false.
  * @param textStyle Text style for the text field. If null, uses theme default.
+ * @param hintTextStyle Text style for the hint text. If null, uses theme default.
  * @param containerColor Background color of the text field when enabled. If null, uses theme default.
  * @param disabledContainerColor Background color when disabled. If null, uses theme default.
  * @param textColor Text color when enabled. If null, uses theme default.
@@ -61,16 +65,16 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param buttonIconTint Color tint for the search button icon. If null, uses theme default.
  * @param buttonShadowElevation Shadow elevation of the search button. If null, uses theme default.
  * @param isButtonAtEnd Whether the button is positioned at the end (true) or start (false). Default is true.
+ * @param isButtonVisible Whether the button is visible. Default is true.
+ * @param debounceTime Time in milliseconds to debounce text changes. If no text is entered before this time expires, searchText will be triggered. Default is 500ms.
  */
 @Composable
 fun SearchField(
-    // Row
     modifier: Modifier = Modifier,
-    // Value and actions
     searchText: String,
     onSearchTextChange: (String) -> Unit,
-    onSearchButtonClick: () -> Unit,
-    // TextField
+    onSearchButtonClick: () -> Unit = {},
+    onTypingStop: () -> Unit = {},
     searchBarHint: String,
     textFieldContainerModifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier,
@@ -92,11 +96,11 @@ fun SearchField(
     enabled: Boolean = true,
     requestFocus: Boolean = false,
     textStyle: TextStyle? = null,
+    hintTextStyle: TextStyle? = null,
     containerColor: Color? = null,
     disabledContainerColor: Color? = null,
     textColor: Color? = null,
     disabledTextColor: Color? = null,
-    // Button customization
     isButtonEnabled: Boolean = true,
     buttonSize: Dp? = null,
     buttonShape: Shape? = null,
@@ -105,8 +109,9 @@ fun SearchField(
     buttonIconDescription: String? = null,
     buttonIconTint: Color? = null,
     buttonShadowElevation: Dp? = null,
-    // Layout
-    isButtonAtEnd: Boolean = true
+    isButtonAtEnd: Boolean = true,
+    isButtonVisible: Boolean = true,
+    debounceTime: Long = 500
 ) {
     val componentTheme = LocalComponentTheme.current
     val searchFieldTheme = componentTheme.searchField
@@ -120,11 +125,19 @@ fun SearchField(
     val finalTextFieldShape = textFieldShape
     val finalTextFieldBorder = textFieldBorder
     val finalTextStyle = textStyle ?: customTextFieldTheme.textStyle
+    val finalHintTextStyle = hintTextStyle ?: customTextFieldTheme.hintTextStyle
     val finalContainerColor = containerColor ?: customTextFieldTheme.containerColor
     val finalDisabledContainerColor =
         disabledContainerColor ?: customTextFieldTheme.disabledContainerColor
     val finalTextColor = textColor ?: customTextFieldTheme.textColor
     val finalDisabledTextColor = disabledTextColor ?: customTextFieldTheme.disabledTextColor
+
+    LaunchedEffect(searchText) {
+        if (searchText.isNotBlank()) {
+            delay(debounceTime)
+            onTypingStop()
+        }
+    }
 
     Row(
         modifier = modifier,
@@ -146,7 +159,7 @@ fun SearchField(
             )
         }
 
-        if (!isButtonAtEnd) {
+        if (!isButtonAtEnd && isButtonVisible) {
             actionButton()
         }
 
@@ -173,6 +186,7 @@ fun SearchField(
             enabled = enabled,
             requestFocus = requestFocus,
             textStyle = finalTextStyle,
+            hintTextStyle = finalHintTextStyle,
             containerColor = finalContainerColor,
             disabledContainerColor = finalDisabledContainerColor,
             textColor = finalTextColor,
@@ -180,7 +194,7 @@ fun SearchField(
             onValueChange = onSearchTextChange
         )
 
-        if (isButtonAtEnd) {
+        if (isButtonAtEnd && isButtonVisible) {
             actionButton()
         }
     }
