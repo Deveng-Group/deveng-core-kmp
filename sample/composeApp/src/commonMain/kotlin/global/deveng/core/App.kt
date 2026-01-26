@@ -279,7 +279,7 @@ private fun ThemingDemo() {
             "Themed option D"
         )
     }
-    val clickOption by remember {mutableStateOf(true)}
+    val clickOption by remember { mutableStateOf(true) }
     var selectedOption by remember { mutableStateOf(sampleOptions.first()) }
     var selectedOptions by remember { mutableStateOf(setOf<String>()) }
     var labeledSwitchEnabled by remember { mutableStateOf(true) }
@@ -514,6 +514,7 @@ private fun ThemingDemo() {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(Color.White)
                     .windowInsetsPadding(WindowInsets.safeDrawing)
                     .scrollbarWithLazyListState(lazyListState),
                 state = lazyListState,
@@ -1107,6 +1108,166 @@ private fun ThemingDemo() {
                             onRightIconClick = { }
                         )
 
+                        SectionTitle("CustomHeader - Trailing Slot Examples")
+
+                        CustomHeader(
+                            onLeftIconClick = { },
+                            trailingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            }
+                        )
+
+                        CustomHeader(
+                            onLeftIconClick = { },
+                            centerIcon = Res.drawable.ic_cyclone,
+                            trailingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            }
+                        )
+
+                        CustomHeader(
+                            onLeftIconClick = { },
+                            trailingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            },
+                            rightIcon = Res.drawable.ic_rotate_right,
+                            onRightIconClick = { }
+                        )
+
+                        var showExtraOptions by remember { mutableStateOf(false) }
+                        var isSelectionMode by remember { mutableStateOf(false) }
+
+                        CustomHeader(
+                            isCenterIconVisible = !isSelectionMode,
+                            centerIcon = Res.drawable.ic_cyclone,
+                            trailingSlot = if (showExtraOptions || isSelectionMode) {
+                                {
+                                    if (showExtraOptions) {
+                                        CustomIconButton(
+                                            icon = Res.drawable.ic_cyclone,
+                                            onClick = { },
+                                            iconDescription = ""
+                                        )
+                                        CustomIconButton(
+                                            icon = Res.drawable.ic_cyclone,
+                                            onClick = { },
+                                            iconDescription = ""
+                                        )
+                                    }
+                                    if (isSelectionMode) {
+                                        CustomIconButton(
+                                            icon = Res.drawable.ic_cyclone,
+                                            onClick = {},
+                                            iconDescription = ""
+                                        )
+                                    }
+                                }
+                            } else null,
+                            rightIcon = if (!isSelectionMode) Res.drawable.ic_rotate_right else null,
+                            onRightIconClick = {},
+                            onLeftIconClick = { }
+                        )
+
+                        SectionTitle("CustomHeader - Leading Slot Examples")
+
+                        CustomHeader(
+                            leadingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            }
+                        )
+
+                        CustomHeader(
+                            onLeftIconClick = { },
+                            leadingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            }
+                        )
+
+                        CustomHeader(
+                            onLeftIconClick = { },
+                            leadingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            },
+                            centerIcon = Res.drawable.ic_cyclone,
+                            trailingSlot = {
+                                CustomIconButton(
+                                    icon = Res.drawable.ic_cyclone,
+                                    onClick = { },
+                                    iconDescription = ""
+                                )
+                            },
+                            rightIcon = Res.drawable.ic_rotate_right,
+                            onRightIconClick = { }
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            CustomButton(
+                                text = "Toggle Selection Mode",
+                                onClick = { isSelectionMode = !isSelectionMode }
+                            )
+                            CustomButton(
+                                text = "Toggle Extra Options",
+                                onClick = { showExtraOptions = !showExtraOptions }
+                            )
+                        }
+
                         SectionTitle("CustomIconButton Examples")
 
                         Row(
@@ -1162,7 +1323,7 @@ private fun ThemingDemo() {
 
                         OptionItem(
                             text = "i read and i approve",
-                            onItemClick = {clickOption},
+                            onItemClick = { clickOption },
                             backgroundColor = Color.Transparent
                         )
 

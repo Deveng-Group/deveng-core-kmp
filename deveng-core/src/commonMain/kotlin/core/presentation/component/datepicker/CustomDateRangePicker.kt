@@ -3,6 +3,7 @@ package core.presentation.component.datepicker
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
@@ -48,6 +49,7 @@ import kotlin.time.Instant
  * @param modifier Modifier to be applied to the picker field container.
  * @param title Optional title text displayed above the picker field.
  * @param titleColor Color of the title text. If null, uses theme default.
+ * @param shape Shape of the picker field container. If null, uses theme default.
  * @param enabledBorderWidth Width of the border when enabled. If null, uses theme default.
  * @param enabledBorderColor Border color when enabled. If null, uses theme default.
  * @param enabledTextColor Text color when enabled. If null, uses theme default.
@@ -87,6 +89,7 @@ fun CustomDateRangePicker(
     modifier: Modifier = Modifier,
     title: String? = null,
     titleColor: Color? = null,
+    shape: CornerBasedShape? = null,
     enabledBorderWidth: Dp? = null,
     enabledBorderColor: Color? = null,
     enabledTextColor: Color? = null,
@@ -271,8 +274,9 @@ fun CustomDateRangePicker(
         titleColor = finalTitleColor,
         text = rangeText,
         enabledTextColor = finalEnabledTextColor,
-        enabledBorderColor = finalEnabledBorderColor,
+        shape = shape,
         enabledBorderWidth = finalEnabledBorderWidth,
+        enabledBorderColor = finalEnabledBorderColor,
         hint = placeholderText,
         trailingSlot = {
             Icon(

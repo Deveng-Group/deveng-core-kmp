@@ -2,6 +2,8 @@ package core.util
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,8 +12,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -20,6 +25,7 @@ fun Modifier.debouncedCombinedClickable(
     debounceMillis: Long = 600L,
     enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
+    shape: Shape? = null,
     onClick: () -> Unit
 ): Modifier = composed {
     val clickLatest by rememberUpdatedState(onClick)
@@ -29,7 +35,13 @@ fun Modifier.debouncedCombinedClickable(
     val scope = rememberCoroutineScope()
     val interactionSource = remember { MutableInteractionSource() }
 
-    combinedClickable(
+    val modifierWithClip = if (shape != null) {
+        this.clip(shape)
+    } else {
+        this
+    }
+
+    modifierWithClip.combinedClickable(
         enabled = enabled,
         interactionSource = interactionSource,
         onClick = {
@@ -67,3 +79,9 @@ fun Modifier.disableSplitMotionEvents() =
             }
         }
     }
+
+@Composable
+fun Modifier.ifTrue(
+    condition: Boolean,
+    block: @Composable Modifier.() -> Modifier
+): Modifier = if (condition) block() else this

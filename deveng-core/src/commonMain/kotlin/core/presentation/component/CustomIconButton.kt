@@ -80,7 +80,9 @@ fun CustomIconButton(
                 shape = finalShape
             )
             .clip(shape = finalShape)
-            .debouncedCombinedClickable {
+            .debouncedCombinedClickable(
+                shape = finalShape
+            ) {
                 if (isEnabled) {
                     onClick()
                 }

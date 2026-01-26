@@ -104,8 +104,8 @@ fun PickerField(
     )
     val finalEnabledBackgroundColor =
         enabledBackGroundColor ?: pickerFieldTheme.enabledBackgroundColor
-    val finalEnabledBorderColor = enabledBorderColor ?: pickerFieldTheme.enabledBorderColor
     val finalEnabledBorderWidth = enabledBorderWidth ?: pickerFieldTheme.enabledBorderWidth
+    val finalEnabledBorderColor = enabledBorderColor ?: pickerFieldTheme.enabledBorderColor
     val finalEnabledTextColor = enabledTextColor ?: pickerFieldTheme.enabledTextColor
     val finalHintTextColor = hintTextColor ?: pickerFieldTheme.hintTextColor
     val finalDisabledBackgroundColor =
@@ -147,7 +147,9 @@ fun PickerField(
             modifier = Modifier
                 .height(containerHeight.dp)
                 .fillMaxWidth()
-                .debouncedCombinedClickable {
+                .debouncedCombinedClickable(
+                    shape = finalShape
+                ) {
                     if (isEnabled) {
                         onClick()
                     }

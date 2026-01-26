@@ -40,7 +40,7 @@ fun RoundedSurface(
     val finalColor = color ?: surfaceTheme.defaultColor
     val finalContentColor = contentColor ?: surfaceTheme.defaultContentColor
     Surface(
-        modifier = modifier.clip(shape),
+        modifier = modifier,
         color = finalColor,
         contentColor = finalContentColor,
         shape = shape,

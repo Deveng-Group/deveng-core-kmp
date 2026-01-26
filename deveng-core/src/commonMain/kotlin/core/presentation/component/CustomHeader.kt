@@ -1,8 +1,11 @@
 package core.presentation.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,13 +35,23 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * @param modifier Modifier to be applied to the header container.
  * @param leftIcon Drawable resource for the left icon button. Default is arrow left icon.
+ * Used for backward compatibility. If provided and visible, appears as the leftmost icon.
+ * @param leadingSlot Optional composable slot for leading icons/content.
+ * Can contain multiple icons. If leftIcon is null or not visible, this slot aligns to the far left.
+ * If leftIcon is visible, this slot appears to the right of leftIcon.
  * @param rightIcon Optional drawable resource for the right icon button.
+ * Used for backward compatibility. If provided and visible, appears as the rightmost icon.
+ * @param trailingSlot Optional composable slot for trailing icons/content.
+ * Can contain multiple icons. If rightIcon is null or not visible, this slot aligns to the far right.
+ * If rightIcon is visible, this slot appears to the left of rightIcon.
  * @param centerIcon Optional drawable resource for the center icon/logo.
  * @param leftIconDescription Content description for accessibility for the left icon.
  * @param rightIconDescription Content description for accessibility for the right icon.
  * @param centerIconDescription Content description for accessibility for the center icon.
- * @param isLeftIconButtonVisible Whether the left icon button is visible. Default is true.
- * @param isRightIconButtonVisible Whether the right icon button is visible. Default is true if rightIcon is not null.
+ * @param isLeftIconButtonVisible Whether the left icon button area is visible.
+ * Default is true if leftIcon is not null or leadingSlot is provided.
+ * @param isRightIconButtonVisible Whether the right icon button area is visible.
+ * Default is true if rightIcon is not null or trailingSlot is provided.
  * @param isCenterIconVisible Whether the center icon is visible. Default is true.
  * @param containerPadding Padding values for the header container. If null, uses theme default.
  * @param backgroundColor Background color of the header. If null, uses theme default.
@@ -47,20 +60,24 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param leftIconBackgroundColor Background color of the left icon button. If null, uses theme default.
  * @param rightIconBackgroundColor Background color of the right icon button. If null, uses theme default.
  * @param iconButtonSize Size of the icon buttons. If null, uses theme default.
+ * @param leftIconsSpacing Spacing between leftIcon and leadingSlot content. Default is 10.dp.
+ * @param rightIconsSpacing Spacing between trailingSlot content and rightIcon. Default is 10.dp.
  * @param onLeftIconClick Callback invoked when the left icon is clicked.
  * @param onRightIconClick Callback invoked when the right icon is clicked.
  */
 @Composable
 fun CustomHeader(
     modifier: Modifier = Modifier,
-    leftIcon: DrawableResource = Res.drawable.shared_ic_arrow_left,
+    leftIcon: DrawableResource? = Res.drawable.shared_ic_arrow_left,
+    leadingSlot: Slot? = null,
     rightIcon: DrawableResource? = null,
+    trailingSlot: Slot? = null,
     centerIcon: DrawableResource? = null,
     leftIconDescription: String = stringResource(Res.string.shared_content_desc_icon_left),
     rightIconDescription: String = stringResource(Res.string.shared_content_desc_icon_right),
     centerIconDescription: String = stringResource(Res.string.shared_content_desc_header_center_icon),
-    isLeftIconButtonVisible: Boolean = true,
-    isRightIconButtonVisible: Boolean = rightIcon != null,
+    isLeftIconButtonVisible: Boolean = leftIcon != null || leadingSlot != null,
+    isRightIconButtonVisible: Boolean = rightIcon != null || trailingSlot != null,
     isCenterIconVisible: Boolean = true,
     containerPadding: PaddingValues? = null,
     backgroundColor: Color? = null,
@@ -69,6 +86,8 @@ fun CustomHeader(
     leftIconBackgroundColor: Color? = null,
     rightIconBackgroundColor: Color? = null,
     iconButtonSize: Dp? = null,
+    leftIconsSpacing: Dp = 10.dp,
+    rightIconsSpacing: Dp = 10.dp,
     onLeftIconClick: () -> Unit = {},
     onRightIconClick: () -> Unit = {}
 ) {
@@ -91,21 +110,29 @@ fun CustomHeader(
         contentAlignment = Alignment.CenterStart
     ) {
         if (isLeftIconButtonVisible) {
-            CustomIconButton(
+            Row(
                 modifier = Modifier.align(Alignment.CenterStart),
-                iconModifier = Modifier,
-                buttonSize = finalIconButtonSize,
-                backgroundColor = finalLeftBackground,
-                icon = leftIcon,
-                iconDescription = leftIconDescription,
-                iconTint = finalLeftTint,
-                onClick = onLeftIconClick
-            )
+                horizontalArrangement = Arrangement.spacedBy(leftIconsSpacing)
+            ) {
+                if (leftIcon != null) {
+                    CustomIconButton(
+                        iconModifier = Modifier,
+                        buttonSize = finalIconButtonSize,
+                        backgroundColor = finalLeftBackground,
+                        icon = leftIcon,
+                        iconDescription = leftIconDescription,
+                        iconTint = finalLeftTint,
+                        onClick = onLeftIconClick
+                    )
+                }
+
+                leadingSlot?.invoke()
+            }
         }
 
         val resolvedCenterIcon = centerIcon ?: headerTheme.icon
         if (isCenterIconVisible && resolvedCenterIcon != null) {
-            androidx.compose.foundation.Image(
+            Image(
                 modifier = Modifier
                     .width(126.dp)
                     .height(45.dp)
@@ -115,17 +142,24 @@ fun CustomHeader(
             )
         }
 
-        if (isRightIconButtonVisible && rightIcon != null) {
-            CustomIconButton(
+        if (isRightIconButtonVisible) {
+            Row(
                 modifier = Modifier.align(Alignment.CenterEnd),
-                iconModifier = Modifier,
-                buttonSize = finalIconButtonSize,
-                backgroundColor = finalRightBackground,
-                icon = rightIcon,
-                iconDescription = rightIconDescription,
-                iconTint = finalRightTint,
-                onClick = onRightIconClick
-            )
+                horizontalArrangement = Arrangement.spacedBy(rightIconsSpacing)
+            ) {
+                trailingSlot?.invoke()
+
+                if (rightIcon != null) {
+                    CustomIconButton(
+                        buttonSize = finalIconButtonSize,
+                        backgroundColor = finalRightBackground,
+                        icon = rightIcon,
+                        iconDescription = rightIconDescription,
+                        iconTint = finalRightTint,
+                        onClick = onRightIconClick
+                    )
+                }
+            }
         }
     }
 }
@@ -150,6 +184,95 @@ fun CustomHeaderPreview() {
             rightIcon = Res.drawable.shared_ic_angle_right,
             rightIconDescription = stringResource(Res.string.shared_content_desc_icon_left),
             centerIcon = Res.drawable.shared_ic_angle_right
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomHeaderTrailingSlotPreview() {
+    AppTheme {
+        CustomHeader(
+            onLeftIconClick = {},
+            trailingSlot = {
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+            }
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomHeaderTrailingSlotWithRightIconPreview() {
+    AppTheme {
+        CustomHeader(
+            onLeftIconClick = {},
+            trailingSlot = {
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+            },
+            rightIcon = Res.drawable.shared_ic_angle_right,
+            onRightIconClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomHeaderLeadingSlotPreview() {
+    AppTheme {
+        CustomHeader(
+            leadingSlot = {
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+            }
+        )
+    }
+}
+
+@Preview
+@Composable
+fun CustomHeaderLeadingSlotWithLeftIconPreview() {
+    AppTheme {
+        CustomHeader(
+            onLeftIconClick = {},
+            leadingSlot = {
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+                CustomIconButton(
+                    icon = Res.drawable.shared_ic_angle_right,
+                    iconDescription = "",
+                    onClick = {}
+                )
+            }
         )
     }
 }
