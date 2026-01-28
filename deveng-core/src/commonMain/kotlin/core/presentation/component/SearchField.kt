@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.theme.CoreCustomDividerColor
 import core.presentation.theme.LocalComponentTheme
+import global.deveng.deveng_core.generated.resources.Res
+import global.deveng.deveng_core.generated.resources.shared_ic_find
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.DrawableResource
 
@@ -105,7 +107,7 @@ fun SearchField(
     buttonSize: Dp? = null,
     buttonShape: Shape? = null,
     buttonBackgroundColor: Color? = null,
-    buttonIcon: DrawableResource,
+    buttonIcon: DrawableResource = Res.drawable.shared_ic_find,
     buttonIconDescription: String? = null,
     buttonIconTint: Color? = null,
     buttonShadowElevation: Dp? = null,
