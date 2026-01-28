@@ -17,10 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
@@ -36,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import core.presentation.component.ChipItem
 import core.presentation.component.CustomButton
 import core.presentation.component.CustomDropDownMenu
 import core.presentation.component.CustomHeader
@@ -97,6 +101,7 @@ import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
 import deveng_core_kmp.sample.composeapp.generated.resources.theme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -321,6 +326,10 @@ private fun ThemingDemo() {
     var selectedPriority by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     val lazyListState = rememberLazyListState()
+    var messageCount by remember { mutableStateOf<Int?>(5) }
+    var isChipSelected by remember { mutableStateOf(false) }
+    var isChipCountSectionVisible by remember { mutableStateOf(true) }
+    var selectedIndex by remember { mutableStateOf(0) }
 
     val navigationMenuItems = listOf(
         NavigationMenuItem(
@@ -541,15 +550,6 @@ private fun ThemingDemo() {
 
                         CustomButton(
                             text = "Themed Button",
-                            textStyle = CoreRegularTextStyle().copy(
-                                fontSize = 12.sp,
-                                color = Color(0xFF94A3B8)
-                            ),
-                            secondaryText = "Secondary Text",
-                            secondaryTextStyle = CoreRegularTextStyle().copy(
-                                fontSize = 8.sp,
-                                color = Color(0xFF94A3B8)
-                            ),
                             onClick = { }
                         )
 
@@ -962,10 +962,70 @@ private fun ThemingDemo() {
                         SearchField(
                             searchText = searchText,
                             onSearchTextChange = { searchText = it },
-                            onSearchButtonClick = { },
                             searchBarHint = "Search...",
                             buttonIcon = Res.drawable.ic_cyclone,
-                            buttonIconDescription = "Search"
+                            buttonIconDescription = "Search",
+                            isButtonVisible = false,
+                            trailingSlot = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_cyclone),
+                                    contentDescription = "Search",
+                                    tint = Color.Black
+                                )
+                            },
+                            onTypingStop = {
+                                println("You can search now")
+                            }
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.Black)
+                                .padding(10.dp)
+                        ) {
+                            SearchField(
+                                searchText = searchText,
+                                onSearchTextChange = { searchText = it },
+                                onSearchButtonClick = { },
+                                searchBarHint = "Mesajlarda Ara..",
+                                buttonIcon = Res.drawable.ic_cyclone,
+                                buttonIconDescription = "Search",
+                                buttonSize = 46.dp,
+                                buttonShape = RoundedCornerShape(16.dp),
+                                buttonBackgroundColor = Color(0xFF167D5C),
+                                textFieldShape = RoundedCornerShape(16.dp),
+                                textFieldModifier = Modifier.height(46.dp),
+                                textStyle = CoreMediumTextStyle().copy(
+                                    fontSize = 12.sp
+                                ),
+                                hintTextStyle = CoreMediumTextStyle().copy(
+                                    fontSize = 12.sp,
+                                    color = Color(0XFFB8B8B8)
+                                )
+                            )
+                        }
+
+                        SearchField(
+                            searchText = searchText,
+                            onSearchTextChange = { searchText = it },
+                            onSearchButtonClick = { },
+                            searchBarHint = "Custom styled search",
+                            buttonIcon = Res.drawable.ic_cyclone,
+                            buttonIconDescription = "Search",
+                            buttonSize = 48.dp,
+                            buttonShape = RoundedCornerShape(12.dp),
+                            buttonBackgroundColor = Color(0xFF167D5C),
+                            textFieldShape = RoundedCornerShape(16.dp),
+                            textFieldModifier = Modifier.height(48.dp),
+                            textStyle = CoreMediumTextStyle().copy(
+                                fontSize = 14.sp
+                            ),
+                            hintTextStyle = CoreMediumTextStyle().copy(
+                                fontSize = 14.sp,
+                                color = Color(0XFFB8B8B8)
+                            )
                         )
 
                         SearchField(
@@ -980,18 +1040,59 @@ private fun ThemingDemo() {
                             buttonIconTint = Color.White
                         )
 
-                        SearchField(
-                            searchText = searchText,
-                            onSearchTextChange = { searchText = it },
-                            onSearchButtonClick = { },
-                            searchBarHint = "Custom styled search",
-                            buttonIcon = Res.drawable.ic_cyclone,
-                            buttonIconDescription = "Search",
-                            buttonSize = 50.dp,
-                            buttonShape = RoundedCornerShape(12.dp),
-                            buttonBackgroundColor = Color(0xFF4CAF50),
-                            textFieldShape = RoundedCornerShape(20.dp)
+                        SectionTitle("Chip Item Examples")
+
+                        ChipItem(
+                            text = "Chip 1",
+                            count = messageCount,
+                            isSelected = isChipSelected,
+                            isCountSectionVisible = isChipCountSectionVisible,
+                            onClick = {
+                                isChipSelected = !isChipSelected
+                                isChipCountSectionVisible = false
+                            }
                         )
+
+                        ChipItem(
+                            leadingIcon = Res.drawable.ic_cyclone,
+                            text = "Chip 2",
+                            count = messageCount,
+                            isSelected = isChipSelected,
+                            isCountSectionVisible = isChipCountSectionVisible,
+                            onClick = {
+                                isChipSelected = !isChipSelected
+                                isChipCountSectionVisible = false
+                            }
+                        )
+
+                        ChipItem(
+                            leadingIcon = Res.drawable.ic_cyclone,
+                            text = "Chip 3",
+                            isCountSectionVisible = false,
+                            isSelected = isChipSelected,
+                            onClick = {
+                                isChipSelected = !isChipSelected
+                            }
+                        )
+
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(5) { index ->
+                                ChipItem(
+                                    text = "Chip ${index + 1}",
+                                    isSelected = (selectedIndex == index),
+                                    unselectedBorderStroke = BorderStroke(
+                                        color = Color(0xff167D5C),
+                                        width = 1.dp
+                                    ),
+                                    onClick = {
+                                        selectedIndex = index
+                                    }
+                                )
+                            }
+                        }
 
                         SectionTitle("PickerField Examples")
 

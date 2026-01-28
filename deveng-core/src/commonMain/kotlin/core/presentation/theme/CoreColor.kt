@@ -19,4 +19,5 @@ internal val CoreAlertDialogIconColor = Color(0XFF374151)
 internal val CoreCustomBlackColor = Color(0XFF2A2A2A)
 internal val CoreCustomGrayColor = Color(0XFF64646E)
 internal val CoreCustomDividerColor = Color(0xFFD9D9D9)
+internal val CoreChipItemUnselectedBorderColor = Color(0xFFEAECF0)
 

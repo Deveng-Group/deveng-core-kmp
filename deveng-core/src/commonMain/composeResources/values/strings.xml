@@ -36,4 +36,5 @@
     <string name="shared_content_desc_icon_copied">Kopyalandı ikonu</string>
     <string name="shared_copy">Kopyala</string>
     <string name="shared_copied">Kopyalandı</string>
+    <string name="shared_content_dest_icon_bell">Zil ikonu</string>
 </resources>
