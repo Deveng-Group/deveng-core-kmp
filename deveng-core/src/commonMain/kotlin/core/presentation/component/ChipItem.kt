@@ -139,7 +139,7 @@ fun ChipItem(
         color = resolvedBackgroundColor
     ) {
         Row(
-            modifier = modifier
+            modifier = Modifier
                 .padding(
                     horizontal = finalHorizontalPadding,
                     vertical = finalVerticalPadding
