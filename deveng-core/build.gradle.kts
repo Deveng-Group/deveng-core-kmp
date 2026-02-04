@@ -64,6 +64,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.russhwolf.settings)
 
         }
 
