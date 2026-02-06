@@ -40,7 +40,8 @@ import kotlin.time.Instant
  * Supports selecting a single date with customizable date range restrictions.
  *
  * @param modifier Modifier to be applied to the picker field container.
- * @param trailingIconModifier Modifier to be applied to the trailing calendar icon.
+ * @param trailingIconModifier Modifier to be applied to the trailing calendar icon.,
+ * @param isEnabled Whether the field is enabled and can be clicked. Default is true.
  * @param selectedDate Currently selected date, or null if none selected.
  * @param onDateChange Callback invoked when a date is selected, receives the selected LocalDate.
  * @param targetDates Target date range restriction (PAST, FUTURE, or ALL). Default is PAST.
@@ -68,6 +69,7 @@ import kotlin.time.Instant
 fun CustomDatePicker(
     modifier: Modifier = Modifier,
     trailingIconModifier: Modifier = Modifier,
+    isEnabled: Boolean = true,
     selectedDate: LocalDate?,
     onDateChange: (LocalDate) -> Unit,
     targetDates: TargetDates = TargetDates.PAST,
@@ -194,6 +196,7 @@ fun CustomDatePicker(
 
     PickerField(
         modifier = modifier,
+        isEnabled = isEnabled,
         text = selectedDateText,
         hint = placeholderText,
         title = title,
