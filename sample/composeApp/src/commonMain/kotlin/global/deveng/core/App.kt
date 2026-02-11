@@ -64,7 +64,7 @@ import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListD
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
-import core.presentation.component.starrating.RatingRow
+import core.presentation.component.ratingrow.RatingRow
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
@@ -542,7 +542,7 @@ private fun ThemingDemo() {
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
 
-                        SectionTitle("StarRatingComponent Examples")
+                        SectionTitle("RatingRowComponent Examples")
 
                         RatingRow(
                             maxRating = 5,
@@ -1136,7 +1136,8 @@ private fun ThemingDemo() {
                             targetDates = TargetDates.FUTURE,
                             selectedDateText = selectedDateText,
                             selectableDates = selectableDates,
-                            onDateChange = { selectedDate = it }
+                            onDateChange = { selectedDate = it },
+                            isEnabled = false
                         )
 
                         SectionTitle("CustomDateRangePicker Examples")

@@ -1,4 +1,4 @@
-package core.presentation.component.starrating
+package core.presentation.component.ratingrow
 
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable

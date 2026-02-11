@@ -458,9 +458,9 @@ data class ChipItemTheme(
 )
 
 /**
- * Theme for StarRating component
+ * Theme for RatingRow component
  */
-data class StarRatingTheme(
+data class RatingRowTheme(
     val iconSize: Dp = 45.dp,
     val filledIcon: DrawableResource? = null,
     val filledIconTint: Color = CoreCustomAmberYellow,
@@ -531,7 +531,7 @@ data class ComponentTheme(
     val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
     val chipItem: ChipItemTheme = ChipItemTheme(),
-    val starRating: StarRatingTheme = StarRatingTheme()
+    val ratingRow: RatingRowTheme = RatingRowTheme()
 )
 
 /**
