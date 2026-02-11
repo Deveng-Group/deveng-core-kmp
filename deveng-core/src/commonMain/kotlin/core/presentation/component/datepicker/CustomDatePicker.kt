@@ -196,14 +196,17 @@ fun CustomDatePicker(
 
     PickerField(
         modifier = modifier,
-        isEnabled = isEnabled,
         text = selectedDateText,
         hint = placeholderText,
         title = title,
         leadingSlot = leadingSlot,
         trailingSlot = trailingSlot ?: defaultTrailingSlot,
         errorMessage = errorMessage,
-        onClick = { showDialog = true },
+        onClick = {
+            if (isEnabled) {
+                showDialog = true
+            }
+        },
     )
 }
 

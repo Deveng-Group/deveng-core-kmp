@@ -1,4 +1,4 @@
-package core.presentation.component.starrating
+package core.presentation.component.ratingrow
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -71,12 +71,12 @@ fun RatingRow(
     onRatingChanged: (Int) -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
-    val starRatingTheme = componentTheme.starRating
+    val ratingRowTheme = componentTheme.ratingRow
 
-    val preferredIconSize = iconSize ?: starRatingTheme.iconSize
-    val finalAnimationScale = animationScale ?: starRatingTheme.animationScale
-    val finalAnimationDampingRatio = animationDampingRatio ?: starRatingTheme.animationDampingRatio
-    val finalAnimationStiffness = animationStiffness ?: starRatingTheme.animationStiffness
+    val preferredIconSize = iconSize ?: ratingRowTheme.iconSize
+    val finalAnimationScale = animationScale ?: ratingRowTheme.animationScale
+    val finalAnimationDampingRatio = animationDampingRatio ?: ratingRowTheme.animationDampingRatio
+    val finalAnimationStiffness = animationStiffness ?: ratingRowTheme.animationStiffness
 
     val interactionSource = remember { MutableInteractionSource() }
     var internalRating by remember { mutableIntStateOf(initialRating) }
