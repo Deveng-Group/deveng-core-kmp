@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Spring
 import org.jetbrains.compose.resources.DrawableResource
 
 /**
@@ -457,6 +458,21 @@ data class ChipItemTheme(
 )
 
 /**
+ * Theme for StarRating component
+ */
+data class StarRatingTheme(
+    val iconSize: Dp = 45.dp,
+    val filledIcon: DrawableResource? = null,
+    val filledIconTint: Color = CoreCustomAmberYellow,
+    val unFilledIcon: DrawableResource? = null,
+    val unFilledIconTint: Color = CoreCustomGrayHintColor,
+    val iconDescription: String? = null,
+    val animationScale: Float = 1.2f,
+    val animationDampingRatio: Float = Spring.DampingRatioMediumBouncy,
+    val animationStiffness: Float = 9000f
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -514,7 +530,8 @@ data class ComponentTheme(
     val jsonViewer: JsonViewerTheme = JsonViewerTheme(),
     val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
-    val chipItem: ChipItemTheme = ChipItemTheme()
+    val chipItem: ChipItemTheme = ChipItemTheme(),
+    val starRating: StarRatingTheme = StarRatingTheme()
 )
 
 /**

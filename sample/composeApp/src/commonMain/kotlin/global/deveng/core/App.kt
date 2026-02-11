@@ -64,6 +64,7 @@ import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListD
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
+import core.presentation.component.starrating.RatingRow
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
@@ -539,6 +540,14 @@ private fun ThemingDemo() {
                             text = "ComponentTheme Demo",
                             style = CoreBoldTextStyle().copy(fontSize = 24.sp),
                             modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        SectionTitle("StarRatingComponent Examples")
+
+                        RatingRow(
+                            maxRating = 5,
+                            iconSize = 45.dp,
+                            onRatingChanged = {}
                         )
 
                         SectionTitle("CustomButton Examples")
