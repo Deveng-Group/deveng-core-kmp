@@ -62,4 +62,9 @@ actual class MultiPlatformUtils(
     actual suspend fun getCurrentLocation(): Pair<Double, Double>? {
         TODO("Not yet implemented")
     }
+
+    actual fun shareText(text: String) {
+        if (text.isBlank()) return
+        window.navigator.clipboard.writeText(text)
+    }
 }
