@@ -8,4 +8,5 @@ expect class MultiPlatformUtils {
     fun openUrl(url: String)
     fun getPlatformConfig(): PlatformConfig
     suspend fun getCurrentLocation(): Pair<Double, Double>?
+    fun shareText(text: String)
 }

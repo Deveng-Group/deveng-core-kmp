@@ -53,6 +53,12 @@ actual class MultiPlatformUtils {
         return null
     }
 
+    actual fun shareText(text: String) {
+        if (text.isBlank()) return
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        clipboard.setContents(StringSelection(text), null)
+    }
+
     private fun getDeviceId(): String? {
         val os = System.getProperty("os.name").lowercase()
         return when {
