@@ -61,10 +61,12 @@ import core.presentation.component.optionitemlist.OptionItem
 import core.presentation.component.optionitemlist.OptionItemLazyListDialog
 import core.presentation.component.optionitemlist.OptionItemList
 import core.presentation.component.optionitemlist.OptionItemMultiSelectLazyListDialog
+import core.presentation.component.otpview.OtpSize
+import core.presentation.component.otpview.OtpView
 import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
-import core.presentation.component.scrollbar.scrollbarWithLazyListState
 import core.presentation.component.ratingrow.RatingRow
+import core.presentation.component.scrollbar.scrollbarWithLazyListState
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
@@ -331,6 +333,10 @@ private fun ThemingDemo() {
     var isChipSelected by remember { mutableStateOf(false) }
     var isChipCountSectionVisible by remember { mutableStateOf(true) }
     var selectedIndex by remember { mutableStateOf(0) }
+    var otpDigits by remember { mutableStateOf("") }
+    var otpDigits4 by remember { mutableStateOf("") }
+    var otpDigitsError by remember { mutableStateOf("") }
+    var isOtpError by remember { mutableStateOf(false) }
 
     val navigationMenuItems = listOf(
         NavigationMenuItem(
@@ -1408,6 +1414,36 @@ private fun ThemingDemo() {
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        SectionTitle("OtpView Examples")
+
+                        OtpView(
+                            otpDigits = otpDigits,
+                            onDigitChanged = { otpDigits = it },
+                            otpSize = OtpSize.SIX
+                        )
+
+                        OtpView(
+                            otpDigits = otpDigits4,
+                            onDigitChanged = { otpDigits4 = it },
+                            otpSize = OtpSize.FOUR
+                        )
+
+                        OtpView(
+                            otpDigits = otpDigitsError,
+                            isError = isOtpError,
+                            onDigitChanged = {
+                                otpDigitsError = it
+                                isOtpError =
+                                    otpDigitsError.length == 6 && otpDigitsError != "123456"
+                            },
+                            otpSize = OtpSize.SIX
+                        )
+
+                        CustomButton(
+                            text = "Trigger OTP Error",
+                            onClick = { isOtpError = !isOtpError }
+                        )
+
                         SectionTitle("ProgressIndicatorBars Examples")
 
                         ProgressIndicatorBars(
@@ -1436,6 +1472,29 @@ private fun ThemingDemo() {
                             text = "i read and i approve",
                             onItemClick = { clickOption },
                             backgroundColor = Color.Transparent
+                        )
+
+                        SectionTitle("ApprovalOptionItem")
+
+                        OptionItem(
+                            text = "okudum onaylıyorum",
+                            boldLeadingText = "KVKK Aydınlatma Metni",
+                            backgroundColor = Color.Transparent,
+                            isRowClickEnabled = false,
+                            onItemClick = {},
+                            onCheckboxClick = {},
+                            onBoldLeadingTextClick = {}
+                        )
+
+                        OptionItem(
+                            text = "okudum kabul ediyorum",
+                            boldLeadingText = "Gizlilik Sözleşmesi",
+                            leadingIcon = Res.drawable.ic_cyclone,
+                            backgroundColor = Color.Transparent,
+                            isRowClickEnabled = false,
+                            onItemClick = {},
+                            onCheckboxClick = {},
+                            onBoldLeadingTextClick = {}
                         )
 
                         Row(

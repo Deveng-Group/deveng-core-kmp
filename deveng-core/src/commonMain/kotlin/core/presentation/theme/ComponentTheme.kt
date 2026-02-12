@@ -1,5 +1,6 @@
 package core.presentation.theme
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
@@ -10,11 +11,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.Spring
 import org.jetbrains.compose.resources.DrawableResource
 
 /**
@@ -264,6 +265,7 @@ data class OptionItemTheme(
         textDecoration = TextDecoration.Underline
     ),
     val leadingIconTint: Color = CoreCustomBlackColor,
+    val trailingIconTint: Color = CoreCustomBlackColor,
     val checkIconTint: Color = CoreSecondaryColor,
     val checkIconBackgroundColor: Color = Color.White
 )
@@ -473,6 +475,28 @@ data class RatingRowTheme(
 )
 
 /**
+ * Theme for OtpView component
+ */
+data class OtpViewTheme(
+    val textStyle: TextStyle = TextStyle(
+        fontSize = 20.sp,
+        textAlign = TextAlign.Center
+    ),
+    val shape: CornerBasedShape = RoundedCornerShape(8.dp),
+    val digitSize: Dp = 56.dp,
+    val digitHeight: Dp = 50.dp,
+    val digitSpacing: Dp = 11.dp,
+    val borderWidth: Dp = 2.dp,
+    val focusedBorderColor: Color = CoreSecondaryColor,
+    val unfocusedBorderColor: Color = CoreCustomBlackColor,
+    val errorBorderColor: Color = CoreErrorColor,
+    val textColor: Color = CoreCustomBlackColor,
+    val errorTextColor: Color = CoreErrorColor,
+    val dotColor: Color = Color.Gray,
+    val dotSize: Dp = 8.dp
+)
+
+/**
  * Typography theme for customizing font family across all components.
  *
  * @param fontFamily The default font family to use. If null, uses Urbanist font family.
@@ -531,7 +555,8 @@ data class ComponentTheme(
     val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
     val chipItem: ChipItemTheme = ChipItemTheme(),
-    val ratingRow: RatingRowTheme = RatingRowTheme()
+    val ratingRow: RatingRowTheme = RatingRowTheme(),
+    val otpView: OtpViewTheme = OtpViewTheme()
 )
 
 /**
