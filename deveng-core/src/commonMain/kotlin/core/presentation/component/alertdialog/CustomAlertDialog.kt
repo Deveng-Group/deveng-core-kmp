@@ -17,14 +17,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import core.presentation.component.CustomButton
 import core.presentation.component.Slot
 import core.presentation.theme.AppTheme
-import core.presentation.theme.CoreBoldTextStyle
 import core.presentation.theme.LocalComponentTheme
-import core.presentation.theme.CoreMediumTextStyle
 import global.deveng.deveng_core.generated.resources.Res
 import global.deveng.deveng_core.generated.resources.shared_ic_arrow_left
 import org.jetbrains.compose.resources.DrawableResource
@@ -47,17 +47,22 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param iconTint Color tint for the header icon. If null, uses theme default.
  * @param title Optional title text displayed in the header.
  * @param titleColor Color of the title text. If null, uses theme default.
+ * @param titleTextStyle Text style for the title. If null, uses theme default.
  * @param headerColor Background color of the header. If null, uses theme default.
+ * @param descriptionAnnotated Optional annotated description text displayed in the body.
  * @param description Optional description text displayed in the body.
  * @param descriptionColor Color of the description text. If null, uses theme default.
+ * @param descriptionTextStyle Text style for the description. If null, uses theme default.
  * @param bodyColor Background color of the body. If null, uses theme default.
  * @param positiveButtonText Optional text for the positive/confirm button.
  * @param positiveButtonColor Background color of the positive button. If null, uses theme default.
  * @param positiveButtonTextColor Text color of the positive button. If null, uses theme default.
+ * @param positiveButtonTextStyle Text style for the positive button. If null, uses theme default.
  * @param onPositiveButtonClick Callback invoked when the positive button is clicked.
  * @param negativeButtonText Optional text for the negative/cancel button.
  * @param negativeButtonColor Background color of the negative button. If null, uses theme default.
  * @param negativeButtonTextColor Text color of the negative button. If null, uses theme default.
+ * @param negativeButtonTextStyle Text style for the negative button. If null, uses theme default.
  * @param onNegativeButtonClick Callback invoked when the negative button is clicked.
  * @param onDismissRequest Callback invoked when the dialog should be dismissed.
  * @param content Optional custom composable content displayed in the body.
@@ -76,34 +81,52 @@ fun CustomAlertDialog(
     iconTint: Color? = null,
     title: String? = null,
     titleColor: Color? = null,
+    titleTextStyle: TextStyle? = null,
     headerColor: Color? = null,
+    descriptionAnnotated: AnnotatedString? = null,
     description: String? = null,
     descriptionColor: Color? = null,
+    descriptionTextStyle: TextStyle? = null,
     bodyColor: Color? = null,
     positiveButtonText: String? = null,
     positiveButtonColor: Color? = null,
     positiveButtonTextColor: Color? = null,
+    positiveButtonTextStyle: TextStyle? = null,
     onPositiveButtonClick: () -> Unit = {},
     negativeButtonText: String? = null,
     negativeButtonColor: Color? = null,
     negativeButtonTextColor: Color? = null,
+    negativeButtonTextStyle: TextStyle? = null,
     onNegativeButtonClick: () -> Unit = {},
     onDismissRequest: () -> Unit = {},
     content: Slot? = null
 ) {
     val componentTheme = LocalComponentTheme.current
     val alertDialogTheme = componentTheme.alertDialog
-    
+
     val finalHeaderColor = headerColor ?: alertDialogTheme.headerColor
     val finalBodyColor = bodyColor ?: alertDialogTheme.bodyColor
     val finalTitleColor = titleColor ?: alertDialogTheme.titleColor
     val finalDescriptionColor = descriptionColor ?: alertDialogTheme.descriptionColor
     val finalDividerColor = alertDialogTheme.dividerColor
     val finalPositiveButtonColor = positiveButtonColor ?: alertDialogTheme.positiveButtonColor
-    val finalPositiveButtonTextColor = positiveButtonTextColor ?: alertDialogTheme.positiveButtonTextColor
+    val finalPositiveButtonTextColor =
+        positiveButtonTextColor ?: alertDialogTheme.positiveButtonTextColor
     val finalNegativeButtonColor = negativeButtonColor ?: alertDialogTheme.negativeButtonColor
-    val finalNegativeButtonTextColor = negativeButtonTextColor ?: alertDialogTheme.negativeButtonTextColor
+    val finalNegativeButtonTextColor =
+        negativeButtonTextColor ?: alertDialogTheme.negativeButtonTextColor
     val finalIconTint = iconTint ?: alertDialogTheme.iconColor
+    val finalTitleTextStyle = titleTextStyle ?: alertDialogTheme.titleTextStyle
+    val finalDescriptionTextStyle = descriptionTextStyle ?: alertDialogTheme.descriptionTextStyle
+    val finalPositiveButtonTextStyle =
+        positiveButtonTextStyle ?: alertDialogTheme.buttonTextStyle
+    val finalNegativeButtonTextStyle =
+        negativeButtonTextStyle ?: alertDialogTheme.buttonTextStyle
+
+
+    val finalDescriptionText: AnnotatedString? = descriptionAnnotated
+        ?: description?.let { AnnotatedString(it) }
+
     if (isDialogVisible) {
         CustomDialog(
             modifier = dialogModifier,
@@ -116,7 +139,8 @@ fun CustomAlertDialog(
                     texColor = finalTitleColor,
                     icon = headerIcon,
                     iconDescription = iconDescription,
-                    iconTint = finalIconTint
+                    iconTint = finalIconTint,
+                    style = finalTitleTextStyle
                 )
             },
             onDismissRequest = {
@@ -129,7 +153,7 @@ fun CustomAlertDialog(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (description != null) {
+                if (finalDescriptionText != null) {
                     Text(
                         modifier = Modifier
                             .align(alignment = Alignment.CenterHorizontally)
@@ -137,8 +161,8 @@ fun CustomAlertDialog(
                                 vertical = 15.dp,
                                 horizontal = 30.dp
                             ),
-                        text = description,
-                        style = CoreMediumTextStyle().copy(
+                        text = finalDescriptionText,
+                        style = finalDescriptionTextStyle.copy(
                             fontSize = alertDialogTheme.descriptionTextStyle.fontSize,
                             textAlign = TextAlign.Center
                         ),
@@ -166,7 +190,7 @@ fun CustomAlertDialog(
                         CustomButton(
                             modifier = negativeButtonModifier.weight(1f),
                             text = negativeButtonText,
-                            textStyle = CoreBoldTextStyle().copy(
+                            textStyle = finalNegativeButtonTextStyle.copy(
                                 fontSize = alertDialogTheme.buttonTextStyle.fontSize,
                                 color = finalNegativeButtonTextColor
                             ),
@@ -188,7 +212,7 @@ fun CustomAlertDialog(
                         CustomButton(
                             modifier = positiveButtonModifier.weight(1f),
                             text = positiveButtonText,
-                            textStyle = CoreBoldTextStyle().copy(
+                            textStyle = finalPositiveButtonTextStyle.copy(
                                 fontSize = alertDialogTheme.buttonTextStyle.fontSize,
                                 color = finalPositiveButtonTextColor
                             ),

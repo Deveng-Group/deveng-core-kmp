@@ -33,10 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import core.presentation.component.ChipItem
@@ -447,7 +449,7 @@ private fun ThemingDemo() {
             itemTextStyle = { CoreMediumTextStyle().copy() },
             itemIcon = { it.icon },
             itemIconTint = { it.iconTint },
-            itemIconDescription = { stringResource(it.iconDescription) }
+            itemIconDescription = { it.iconDescription?.let { stringResource(it) } }
         )
 
         Row {
@@ -524,7 +526,7 @@ private fun ThemingDemo() {
                 itemTextStyle = { CoreMediumTextStyle().copy() },
                 itemIcon = { it.icon },
                 itemIconTint = { it.iconTint },
-                itemIconDescription = { stringResource(it.iconDescription) }
+                itemIconDescription = { it.iconDescription?.let { stringResource(it) } }
             )
 
             LazyColumn(
@@ -798,7 +800,24 @@ private fun ThemingDemo() {
                         CustomAlertDialog(
                             isDialogVisible = showDefaultDialog,
                             title = "Default Dialog",
-                            description = "This dialog overrides theme colors at component level.",
+                            descriptionAnnotated = buildAnnotatedString {
+                                withStyle(
+                                    style = CoreBoldTextStyle().copy(
+                                        fontSize = 16.sp
+                                    ).toSpanStyle()
+                                ) {
+                                    append("Username")
+                                }
+
+                                withStyle(
+                                    style = CoreMediumTextStyle().copy(
+                                        fontSize = 14.sp,
+                                        color = Color.Red
+                                    ).toSpanStyle()
+                                ) {
+                                    append(" has been deleted.")
+                                }
+                            },
                             titleColor = Color(0xFF4CAF50),
                             descriptionColor = Color(0xFF666666),
                             positiveButtonText = "Confirm",

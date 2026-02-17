@@ -66,9 +66,9 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param isItemSelected Function that returns whether an item is currently selected.
  * @param itemText Composable function that returns the text to display for each menu item.
  * @param itemTextStyle Composable function that returns the text style for each menu item.
- * @param itemIcon Function that returns the icon drawable resource for each menu item.
- * @param itemIconTint Function that returns the icon tint color for each menu item.
- * @param itemIconDescription Composable function that returns the accessibility description for each menu item icon.
+ * @param itemIcon Function that returns the icon drawable resource for each menu item. Null means no icon (e.g. text-only in expanded mode).
+ * @param itemIconTint Function that returns the icon tint color for each menu item. Used only when itemIcon is non-null.
+ * @param itemIconDescription Composable function that returns the accessibility description for the icon. Null when there is no icon.
  * @param onItemClick Callback invoked when a menu item is clicked, receives the clicked item.
  */
 @Composable
@@ -98,9 +98,9 @@ fun <T> NavigationMenu(
     isItemSelected: (T) -> Boolean,
     itemText: @Composable (T) -> String,
     itemTextStyle: @Composable (T) -> TextStyle,
-    itemIcon: (T) -> DrawableResource,
-    itemIconTint: (T) -> Color,
-    itemIconDescription: @Composable (T) -> String,
+    itemIcon: (T) -> DrawableResource?,
+    itemIconTint: (T) -> Color?,
+    itemIconDescription: @Composable (T) -> String?,
     onItemClick: (T) -> Unit,
 ) {
     val componentTheme = LocalComponentTheme.current

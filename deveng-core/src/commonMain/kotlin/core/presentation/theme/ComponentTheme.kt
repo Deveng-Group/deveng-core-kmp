@@ -483,7 +483,7 @@ data class OtpViewTheme(
         textAlign = TextAlign.Center
     ),
     val shape: CornerBasedShape = RoundedCornerShape(8.dp),
-    val digitSize: Dp = 56.dp,
+    val digitWidth: Dp = 56.dp,
     val digitHeight: Dp = 50.dp,
     val digitSpacing: Dp = 11.dp,
     val borderWidth: Dp = 2.dp,

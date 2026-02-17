@@ -27,9 +27,9 @@ fun <T> NavigationMenuContentCollapsed(
     trailingSlot: Slot? = null,
     itemList: List<T>,
     isItemSelected: (T) -> Boolean,
-    itemIcon: (T) -> DrawableResource,
-    itemIconTint: (T) -> Color,
-    itemIconDescription: @Composable (T) -> String,
+    itemIcon: (T) -> DrawableResource?,
+    itemIconTint: (T) -> Color?,
+    itemIconDescription: @Composable (T) -> String?,
     onItemClick: (T) -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
