@@ -59,7 +59,7 @@ fun OtpView(
             repeat(otpSize.size) { index ->
                 val char = otpDigits.getOrNull(index)?.toString() ?: String.EMPTY
                 OtpDigit(
-                    modifier = Modifier.weight(1f).height(otpViewTheme.digitHeight),
+                    modifier = Modifier.weight(1f),
                     value = char,
                     isError = isError,
                     isFocused = index == otpDigits.length,

@@ -5,13 +5,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,7 +54,9 @@ fun OtpDigit(
     Box(
         modifier = modifier
             .offset(x = shakeOffset.dp)
-            .size(otpViewTheme.digitSize)
+            .alpha(1f)
+            .width(otpViewTheme.digitWidth)
+            .height(otpViewTheme.digitHeight)
             .background(Color.Transparent, otpViewTheme.shape)
             .border(otpViewTheme.borderWidth, borderColor, otpViewTheme.shape)
             .clickable { onDigitClick() },

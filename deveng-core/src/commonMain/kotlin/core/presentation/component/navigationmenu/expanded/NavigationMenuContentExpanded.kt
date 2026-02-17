@@ -30,9 +30,9 @@ fun <T> NavigationMenuContentExpanded(
     isItemSelected: (T) -> Boolean,
     itemText: @Composable (T) -> String,
     itemTextStyle: @Composable (T) -> TextStyle,
-    itemIcon: (T) -> DrawableResource,
-    itemIconTint: (T) -> Color,
-    itemIconDescription: @Composable (T) -> String,
+    itemIcon: (T) -> DrawableResource?,
+    itemIconTint: (T) -> Color?,
+    itemIconDescription: @Composable (T) -> String?,
     onItemClick: (T) -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu

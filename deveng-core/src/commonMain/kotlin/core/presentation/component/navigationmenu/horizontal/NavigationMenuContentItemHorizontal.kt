@@ -24,10 +24,10 @@ import org.jetbrains.compose.resources.painterResource
 fun NavigationMenuContentItemHorizontal(
     text: String,
     textStyle: TextStyle,
-    icon: DrawableResource,
+    icon: DrawableResource?,
     iconSize: Dp? = null,
-    iconTint: Color,
-    iconDescription: String,
+    iconTint: Color?,
+    iconDescription: String?,
     isSelected: Boolean = false,
     backgroundColor: Color,
     isIconVisible: Boolean = true,
@@ -35,6 +35,7 @@ fun NavigationMenuContentItemHorizontal(
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
     val finalIconSize = iconSize ?: navigationMenuTheme.expandedItemIconSize
+    val showIcon = isIconVisible && icon != null && iconTint != null
 
     Row(
         modifier = Modifier
@@ -51,12 +52,12 @@ fun NavigationMenuContentItemHorizontal(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(navigationMenuTheme.expandedItemSpacedBy)
     ) {
-        if (isIconVisible) {
+        if (showIcon) {
             Icon(
                 modifier = Modifier.size(finalIconSize),
-                painter = painterResource(icon),
+                painter = painterResource(icon!!),
                 contentDescription = iconDescription,
-                tint = iconTint
+                tint = iconTint!!
             )
         }
 

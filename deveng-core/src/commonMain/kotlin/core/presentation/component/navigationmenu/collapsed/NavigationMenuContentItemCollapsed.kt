@@ -17,12 +17,12 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun NavigationMenuContentItemCollapsed(
-    icon: DrawableResource,
-    iconTint: Color,
+    icon: DrawableResource?,
+    iconTint: Color?,
     iconSize: Dp? = null,
     iconModifier: Modifier = Modifier,
     itemModifier: Modifier = Modifier,
-    contentDescription: String,
+    contentDescription: String?,
     backgroundColor: Color,
     isSelected: Boolean = false,
     onItemClick: () -> Unit
@@ -42,13 +42,15 @@ fun NavigationMenuContentItemCollapsed(
                 onClick = onItemClick
             )
     ) {
-        Icon(
-            modifier = iconModifier
-                .size(finalIconSize)
-                .align(Alignment.Center),
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            tint = iconTint
-        )
+        if (icon != null && iconTint != null) {
+            Icon(
+                modifier = iconModifier
+                    .size(finalIconSize)
+                    .align(Alignment.Center),
+                painter = painterResource(icon),
+                contentDescription = contentDescription,
+                tint = iconTint
+            )
+        }
     }
 }

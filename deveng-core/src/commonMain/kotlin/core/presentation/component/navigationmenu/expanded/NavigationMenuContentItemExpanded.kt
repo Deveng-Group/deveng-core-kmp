@@ -27,10 +27,10 @@ import org.jetbrains.compose.resources.painterResource
 fun NavigationMenuContentItemExpanded(
     text: String = String.EMPTY,
     textStyle: TextStyle,
-    icon: DrawableResource,
+    icon: DrawableResource?,
     iconSize: Dp? = null,
-    iconTint: Color,
-    iconDescription: String,
+    iconTint: Color?,
+    iconDescription: String?,
     isSelected: Boolean = false,
     backgroundColor: Color,
     onItemClick: () -> Unit
@@ -55,14 +55,15 @@ fun NavigationMenuContentItemExpanded(
     ) {
         Spacer(modifier = Modifier.width(navigationMenuTheme.expandedItemStartPadding))
 
-        Icon(
-            modifier = Modifier.size(finalIconSize),
-            painter = painterResource(icon),
-            contentDescription = iconDescription,
-            tint = iconTint
-        )
-
-        Spacer(modifier = Modifier.width(navigationMenuTheme.expandedItemSpacedBy))
+        if (icon != null && iconTint != null) {
+            Icon(
+                modifier = Modifier.size(finalIconSize),
+                painter = painterResource(icon),
+                contentDescription = iconDescription,
+                tint = iconTint
+            )
+            Spacer(modifier = Modifier.width(navigationMenuTheme.expandedItemSpacedBy))
+        }
 
         Text(
             text = text,
