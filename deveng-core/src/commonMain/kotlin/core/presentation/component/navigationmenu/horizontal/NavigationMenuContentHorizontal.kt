@@ -21,11 +21,11 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 fun <T> NavigationMenuContentHorizontal(
     height: Dp,
-    itemSelectedBackgroundColor: Color? = null,
-    itemUnselectedBackgroundColor: Color? = null,
+    itemSelectedBackgroundColor: Color,
+    itemUnselectedBackgroundColor: Color,
     leadingSlot: Slot? = null,
     trailingSlot: Slot? = null,
-    horizontalDividerColor: Color? = null,
+    horizontalDividerColor: Color,
     isIconVisible: Boolean = true,
     itemList: List<T>,
     isItemSelected: (T) -> Boolean,
@@ -37,14 +37,6 @@ fun <T> NavigationMenuContentHorizontal(
     onItemClick: (T) -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
-    val finalItemSelectedBackgroundColor =
-        itemSelectedBackgroundColor
-            ?: navigationMenuTheme.itemSelectedBackgroundColor
-    val finalItemUnselectedBackgroundColor =
-        itemUnselectedBackgroundColor
-            ?: navigationMenuTheme.itemUnselectedBackgroundColor
-    val finalDividerColor =
-        horizontalDividerColor ?: navigationMenuTheme.sectionSeparatorColor
 
     Row(
         modifier = Modifier
@@ -64,7 +56,7 @@ fun <T> NavigationMenuContentHorizontal(
                 modifier = Modifier
                     .height(navigationMenuTheme.verticalDividerThickness * 2),
                 thickness = navigationMenuTheme.verticalDividerThickness,
-                color = finalDividerColor
+                color = horizontalDividerColor
             )
         }
 
@@ -86,7 +78,7 @@ fun <T> NavigationMenuContentHorizontal(
                     iconTint = itemIconTint(item),
                     iconDescription = if (icon != null) itemIconDescription(item) else null,
                     isSelected = isSelected,
-                    backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
+                    backgroundColor = if (isSelected) itemSelectedBackgroundColor else itemUnselectedBackgroundColor,
                     isIconVisible = isIconVisible,
                     onItemClick = {
                         onItemClick(item)
@@ -100,7 +92,7 @@ fun <T> NavigationMenuContentHorizontal(
                 modifier = Modifier
                     .height(navigationMenuTheme.verticalDividerThickness * 2),
                 thickness = navigationMenuTheme.verticalDividerThickness,
-                color = finalDividerColor
+                color = horizontalDividerColor
             )
             trailingSlot()
         }

@@ -60,8 +60,8 @@ import org.jetbrains.compose.resources.DrawableResource
  * @param expandedTrailingSlot Composable trailing content displayed when menu is expanded in vertical mode.
  * @param collapsedLeadingSlot Composable leading content displayed when menu is collapsed.
  * @param collapsedTrailingSlot Composable trailing content displayed when menu is collapsed.
- * @param itemSelectedBackgroundColor Background color of selected menu items. If null, uses theme default.
- * @param itemUnselectedBackgroundColor Background color of unselected menu items. If null, uses theme default.
+ * @param horizontalItemSelectedBackgroundColor Background color of selected menu items in horizontal mode. If null, uses theme default.
+ * @param verticalItemSelectedBackgroundColor Background color of selected menu items in vertical mode. If null, uses theme default.
  * @param itemList List of items of type T to display as menu items.
  * @param isItemSelected Function that returns whether an item is currently selected.
  * @param itemText Composable function that returns the text to display for each menu item.
@@ -92,8 +92,9 @@ fun <T> NavigationMenu(
     expandedTrailingSlot: Slot? = null,
     collapsedLeadingSlot: Slot? = null,
     collapsedTrailingSlot: Slot? = null,
-    itemSelectedBackgroundColor: Color? = null,
     itemUnselectedBackgroundColor: Color? = null,
+    horizontalItemSelectedBackgroundColor: Color? = null,
+    verticalItemSelectedBackgroundColor: Color? = null,
     itemList: List<T>,
     isItemSelected: (T) -> Boolean,
     itemText: @Composable (T) -> String,
@@ -140,9 +141,12 @@ fun <T> NavigationMenu(
     val finalSectionSeparatorColor =
         sectionSeparatorColor
             ?: navigationMenuTheme.sectionSeparatorColor
-    val finalItemSelectedBackgroundColor =
-        itemSelectedBackgroundColor
-            ?: navigationMenuTheme.itemSelectedBackgroundColor
+    val finalHorizontalItemSelectedBackgroundColor =
+        horizontalItemSelectedBackgroundColor
+            ?: navigationMenuTheme.horizontalItemSelectedBackgroundColor
+    val finalVerticalItemSelectedBackgroundColor =
+        verticalItemSelectedBackgroundColor
+            ?: navigationMenuTheme.verticalItemSelectedBackgroundColor
     val finalItemUnselectedBackgroundColor =
         itemUnselectedBackgroundColor
             ?: navigationMenuTheme.itemUnselectedBackgroundColor
@@ -197,7 +201,7 @@ fun <T> NavigationMenu(
             NavigationMenuContentHorizontal(
                 height = finalHorizontalHeight,
                 itemList = itemList,
-                itemSelectedBackgroundColor = finalItemSelectedBackgroundColor,
+                itemSelectedBackgroundColor = finalHorizontalItemSelectedBackgroundColor,
                 itemUnselectedBackgroundColor = finalItemUnselectedBackgroundColor,
                 leadingSlot = expandedLeadingSlot,
                 trailingSlot = expandedTrailingSlot,
@@ -221,7 +225,7 @@ fun <T> NavigationMenu(
                 NavigationMenuContentExpanded(
                     width = finalExpandedWidth,
                     itemList = itemList,
-                    itemSelectedBackgroundColor = finalItemSelectedBackgroundColor,
+                    itemSelectedBackgroundColor = finalVerticalItemSelectedBackgroundColor,
                     itemUnselectedBackgroundColor = finalItemUnselectedBackgroundColor,
                     leadingSlot = expandedLeadingSlot,
                     trailingSlot = expandedTrailingSlot,
@@ -244,7 +248,7 @@ fun <T> NavigationMenu(
                 NavigationMenuContentCollapsed(
                     width = finalCollapsedWidth,
                     itemList = itemList,
-                    itemSelectedBackgroundColor = finalItemSelectedBackgroundColor,
+                    itemSelectedBackgroundColor = finalVerticalItemSelectedBackgroundColor,
                     itemUnselectedBackgroundColor = finalItemUnselectedBackgroundColor,
                     horizontalDividerColor = finalSectionSeparatorColor,
                     leadingSlot = collapsedLeadingSlot,
