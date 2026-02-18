@@ -263,7 +263,8 @@ internal fun App() {
         navigationMenu = NavigationMenuTheme(
             backgroundColor = Color(0xFF111827),
             sectionSeparatorColor = Color(0xFF1F2937),
-            itemSelectedBackgroundColor = Color(0xFF111827),
+            horizontalItemSelectedBackgroundColor = Color(0xFF111827),
+            verticalItemSelectedBackgroundColor = Color(0xFF111827),
             itemUnselectedBackgroundColor = Color(0xFF111827),
             verticalDividerColor = Color(0xFF374151)
         )

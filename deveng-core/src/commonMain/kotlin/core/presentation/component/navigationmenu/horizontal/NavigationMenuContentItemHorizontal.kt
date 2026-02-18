@@ -55,9 +55,9 @@ fun NavigationMenuContentItemHorizontal(
         if (showIcon) {
             Icon(
                 modifier = Modifier.size(finalIconSize),
-                painter = painterResource(icon!!),
+                painter = painterResource(icon),
                 contentDescription = iconDescription,
-                tint = iconTint!!
+                tint = iconTint
             )
         }
 
