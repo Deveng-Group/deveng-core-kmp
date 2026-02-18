@@ -77,7 +77,7 @@ fun <T> NavigationMenuContentCollapsed(
 
         HorizontalDivider(
             thickness = 1.dp,
-            color = finalDividerColor
+            color = horizontalDividerColor
         )
 
         if (trailingSlot != null) {
