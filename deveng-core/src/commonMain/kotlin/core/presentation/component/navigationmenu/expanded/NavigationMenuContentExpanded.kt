@@ -21,11 +21,11 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 fun <T> NavigationMenuContentExpanded(
     width: Dp,
-    itemSelectedBackgroundColor: Color? = null,
-    itemUnselectedBackgroundColor: Color? = null,
+    itemSelectedBackgroundColor: Color,
+    itemUnselectedBackgroundColor: Color,
     leadingSlot: Slot? = null,
     trailingSlot: Slot? = null,
-    horizontalDividerColor: Color? = null,
+    horizontalDividerColor: Color,
     itemList: List<T>,
     isItemSelected: (T) -> Boolean,
     itemText: @Composable (T) -> String,
@@ -36,14 +36,6 @@ fun <T> NavigationMenuContentExpanded(
     onItemClick: (T) -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
-    val finalItemSelectedBackgroundColor =
-        itemSelectedBackgroundColor
-            ?: navigationMenuTheme.itemSelectedBackgroundColor
-    val finalItemUnselectedBackgroundColor =
-        itemUnselectedBackgroundColor
-            ?: navigationMenuTheme.itemUnselectedBackgroundColor
-    val finalDividerColor =
-        horizontalDividerColor ?: navigationMenuTheme.sectionSeparatorColor
 
     Column(
         modifier = Modifier
@@ -61,7 +53,7 @@ fun <T> NavigationMenuContentExpanded(
 
             HorizontalDivider(
                 thickness = 1.dp,
-                color = finalDividerColor
+                color = horizontalDividerColor
             )
         }
 
@@ -78,7 +70,7 @@ fun <T> NavigationMenuContentExpanded(
                     iconTint = itemIconTint(item),
                     iconDescription = itemIconDescription(item),
                     isSelected = isSelected,
-                    backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
+                    backgroundColor = if (isSelected) itemSelectedBackgroundColor else itemUnselectedBackgroundColor,
                     onItemClick = {
                         onItemClick(item)
                     }
@@ -90,7 +82,7 @@ fun <T> NavigationMenuContentExpanded(
 
         HorizontalDivider(
             thickness = 1.dp,
-            color = finalDividerColor
+            color = horizontalDividerColor
         )
 
         if (trailingSlot != null) {

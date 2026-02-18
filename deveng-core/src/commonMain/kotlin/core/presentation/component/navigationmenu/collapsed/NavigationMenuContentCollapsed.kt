@@ -20,9 +20,9 @@ import org.jetbrains.compose.resources.DrawableResource
 @Composable
 fun <T> NavigationMenuContentCollapsed(
     width: Dp,
-    itemSelectedBackgroundColor: Color? = null,
-    itemUnselectedBackgroundColor: Color? = null,
-    horizontalDividerColor: Color? = null,
+    itemSelectedBackgroundColor: Color,
+    itemUnselectedBackgroundColor: Color,
+    horizontalDividerColor: Color,
     leadingSlot: Slot? = null,
     trailingSlot: Slot? = null,
     itemList: List<T>,
@@ -33,14 +33,6 @@ fun <T> NavigationMenuContentCollapsed(
     onItemClick: (T) -> Unit
 ) {
     val navigationMenuTheme = LocalComponentTheme.current.navigationMenu
-    val finalItemSelectedBackgroundColor =
-        itemSelectedBackgroundColor
-            ?: navigationMenuTheme.itemSelectedBackgroundColor
-    val finalItemUnselectedBackgroundColor =
-        itemUnselectedBackgroundColor
-            ?: navigationMenuTheme.itemUnselectedBackgroundColor
-    val finalDividerColor =
-        horizontalDividerColor ?: navigationMenuTheme.sectionSeparatorColor
 
     Column(
         modifier = Modifier
@@ -58,7 +50,7 @@ fun <T> NavigationMenuContentCollapsed(
 
             HorizontalDivider(
                 thickness = 1.dp,
-                color = finalDividerColor
+                color = horizontalDividerColor
             )
         }
 
@@ -72,7 +64,7 @@ fun <T> NavigationMenuContentCollapsed(
                     icon = itemIcon(item),
                     iconTint = itemIconTint(item),
                     contentDescription = itemIconDescription(item),
-                    backgroundColor = if (isSelected) finalItemSelectedBackgroundColor else finalItemUnselectedBackgroundColor,
+                    backgroundColor = if (isSelected) itemSelectedBackgroundColor else itemUnselectedBackgroundColor,
                     isSelected = isSelected,
                     onItemClick = {
                         onItemClick(item)
