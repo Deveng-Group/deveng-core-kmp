@@ -10,8 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import com.sekompos.huhuvadmin.data.utils.BitmapUtils
-import com.sekompos.huhuvadmin.data.utils.ComposeFileProvider
+import core.domain.camera.BitmapUtils
+import core.domain.camera.ComposeFileProvider
 
 @Composable
 actual fun rememberCameraManager(onResult: (SharedImage?) -> Unit): CameraManager {

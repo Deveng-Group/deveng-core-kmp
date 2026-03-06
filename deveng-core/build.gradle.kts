@@ -65,13 +65,33 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.russhwolf.settings)
-
+            implementation(libs.atomicfu)
+            implementation(libs.kermit)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.coil3)
+            implementation(libs.coil3.compose)
+            implementation(libs.coil3.ktor)
         }
 
         androidMain.dependencies {
             implementation(compose.uiTooling)
             implementation(libs.androidx.activityCompose)
             implementation(libs.figma.code.connect.lib)
+            implementation(libs.androidx.camera.core)
+            implementation(libs.androidx.camera.camera2)
+            implementation(libs.androidx.camera.view)
+            implementation(libs.androidx.camera.lifecycle)
+            implementation(libs.androidx.camera.extensions)
+            implementation(libs.androidx.camera.video)
+            implementation(libs.androidx.startup.runtime)
+            implementation(libs.kotlinx.coroutines.android)
+        }
+
+        val desktopMain by getting {
+            dependencies {
+                implementation(libs.javacv.platform)
+                implementation(libs.kotlinx.coroutines.swing)
+            }
         }
     }
 }

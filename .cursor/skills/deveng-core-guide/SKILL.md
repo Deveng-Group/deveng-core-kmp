@@ -1,0 +1,82 @@
+# Deveng-Core Library Guide (Vibecoding)
+
+Version: 1.0.0  
+Owner: deveng-core-kmp  
+Risk: Low
+
+## Purpose
+
+This skill ensures that when building or vibecoding an app that depends on **deveng-core-kmp**, the agent uses the library’s existing APIs instead of reimplementing or duplicating functionality. The agent should know what the core provides and choose the right API for each situation.
+
+## Non-Goals
+
+- Does not document parameters or teach “how to call” each API in detail.
+- Does not define a strict I/O contract for the agent’s reply; the output is correct app code that uses core.
+- Does not replace reading the codebase when in doubt; it directs *what to prefer* and *when*.
+
+## Scope
+
+### In-scope
+
+- Before implementing a feature, check the **reference** for a matching situation and use the listed core API.
+- When the user asks for dial, clipboard, maps, URL open, share, location, or platform info → use **MultiPlatformUtils**.
+- When the app needs to save captured photo bytes or add location EXIF → use **PhotoSaveUtils**.
+- When the app needs camera capture, preview, or recording → use **CameraController** / **CameraKScreen** / **rememberCameraKState** and related compose/domain APIs.
+- When the app needs permission request/check or app settings → use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera-domain **Permissions** where applicable.
+- When the app needs paginated lists (load-more, pull-to-retry, empty/error UI) → use **PaginatedFlowLoader** + **PaginatedListView** and core pagination models.
+- When the app needs shared UI (buttons, headers, dialogs, text fields, date pickers, lists, navigation, etc.) → use the core **presentation** composables and theme listed in the reference.
+- When the app needs date/time formatting or selection rules → use core **datetime** and **CustomSelectableDates**.
+- When the app needs string/email validation, modifier helpers, or logging → use core **util** extensions and **CustomLogger**.
+
+### Out-of-scope
+
+- Inventing new core APIs or changing the library’s public contracts.
+- Explaining every parameter of every function in the skill text.
+- Using this skill for projects that do not depend on deveng-core-kmp (then the skill does not apply).
+
+### Stop conditions
+
+- **Prefer core:** If a feature clearly maps to a reference situation, use the core API; do not reimplement.
+- **Assume:** If the reference lists an area (e.g. “dial / clipboard / share”) and the app needs that behavior, assume core’s API is intended unless the user explicitly asks for a different implementation.
+- **Refuse:** Do not generate code that duplicates core behavior (e.g. custom “save photo to file” or “open URL” logic when PhotoSaveUtils / MultiPlatformUtils exist).
+
+## Procedure
+
+1. **Validate context:** Confirm the project depends on deveng-core-kmp (e.g. `deveng-core` in dependencies).
+2. **Match situation:** For the requested feature, check the reference: “What exists and when to use it.”
+3. **Plan:** Prefer the core module/API listed for that situation; only add app-specific wiring or UI that is not in core.
+4. **Execute:** Write code that calls core APIs (MultiPlatformUtils, PhotoSaveUtils, camera, permissions, pagination, presentation components, utils) instead of reimplementing their behavior.
+5. **Verify:** Ensure no duplicate logic exists for dial, clipboard, maps, URL open, share, location, platform config, photo save/EXIF, camera lifecycle, permissions, or pagination.
+
+## Rules
+
+### MUST
+
+- Use **MultiPlatformUtils** for: dial, copy to clipboard, open maps with location, open URL, share text, get current location, get platform config. Do not implement these with platform-specific or custom code in the app.
+- Use **PhotoSaveUtils** for saving photo bytes to a path and for adding location EXIF to image bytes (e.g. after camera capture). Do not reimplement file write or EXIF handling.
+- Use core **camera** APIs (CameraController, builder, rememberCameraKState, CameraKScreen, DefaultCameraPreview, etc.) for capture, preview, and recording. Do not introduce a separate camera stack unless the user explicitly requests it.
+- Use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera **Permissions** for permission checks and requests; do not reimplement permission flows.
+- Use **PaginatedFlowLoader** and **PaginatedListView** (and **PageResult** / **PaginatedListState**) for paginated lists with load-more and retry; do not reimplement pagination state or list UI that core already provides.
+- Use core **presentation** components and **theme** (e.g. CustomButton, CustomHeader, CustomDialog, CustomTextField, CustomDatePicker, PaginatedListView, AppTheme, typography) when the UI need matches what they provide.
+
+### SHOULD
+
+- When adding a new screen or flow, quickly scan the reference for “situation → use this” and align with it.
+- Prefer core **util** (String extensions, Modifier extensions, datetime formatting, CustomLogger) over custom helpers for the same purpose.
+
+### MUST NOT
+
+- Implement “dial number,” “copy to clipboard,” “open map,” “open URL,” or “share text” without using MultiPlatformUtils.
+- Implement “save image bytes to file” or “add GPS EXIF to image” without using PhotoSaveUtils.
+- Implement camera capture/preview/recording with a different stack when core camera APIs are available.
+- Implement permission request/check/settings navigation without using PermissionsController or core Permissions.
+- Implement infinite-scroll paginated lists with custom state and list UI when PaginatedFlowLoader + PaginatedListView fit.
+- Duplicate core presentation components (e.g. custom “theme” or “generic button” that mirrors AppTheme/CustomButton) without reason.
+
+## Reference
+
+See **reference.md** in this skill folder for: what exists in the library and which API to use in which situation. Use it to decide “use this from core” before writing app code.
+
+## Changelog
+
+- 1.0.0: Initial skill; scope, procedure, rules, and reference pointer.

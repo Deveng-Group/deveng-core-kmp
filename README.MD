@@ -39,6 +39,7 @@ Replace `VERSION` with the [latest release](https://central.sonatype.com/artifac
 - [UI Components & Theming](#ui-components--theming)
 - [Utilities](#utilities)
 - [Data & Domain](#data--domain)
+- [Camera](#camera)
 - [Permissions](#permissions)
 - [Pagination](#pagination)
 - [Sample App](#sample-app)
@@ -72,7 +73,7 @@ The `deveng-core` module is organized as follows:
 |------|-------------|
 | **UI & theming** | `ComponentTheme`, `AppTheme`, typography; buttons, dialogs, text fields, date/range pickers, OTP, navigation menus, option lists, chips, search, progress, scrollbars, JSON viewer, etc. |
 | **Data** | `DeviceInfoStorage` (e.g. device identifier); `PagedListResponse`, `BasePaginatedResponse` for paginated API responses. |
-| **Domain** | `PagedList` for pagination; `SharedImage`, `CameraManager`, `rememberCameraManager` for camera/photo capture (Android, iOS; stubs on Desktop/Web). |
+| **Domain** | `PagedList` for pagination; camera (see [Camera](#camera)) — `rememberCameraKState`, `DefaultCameraPreview`, `CameraPreviewView`, `ImageCaptureResult.Success(byteArray, bitmap)`; image save & EXIF via `core.util.image.PhotoSaveUtils`. |
 | **Utilities** | `Platform`, `PlatformConfig`, `MultiPlatformUtils` (dial, clipboard, open URL, maps, share, location); date/time formatting; `ImageSizeProcessor` and `ImageProcessingProfile`; `StringFormatter`, `CustomLogger`, `CustomDispatchers`. |
 | **Permissions** | `Permission` enum, `PermissionsController`, `PermissionState`; Android and iOS implementations. |
 | **Pagination (UI)** | `PaginatedFlowLoader`, `PaginatedListView`, page state. |
@@ -312,18 +313,170 @@ val pagedList = response.mapItems { dto -> MyItem(dto.id, dto.name) }
 // pagedList.items, pagedList.hasNextPage, pagedList.totalPageCount, etc.
 ```
 
-**Camera** — Capture or pick image (Android/iOS):
+**Camera** — See [Camera](#camera) for photo capture and video recording with the core module.
+
+---
+
+## Camera
+
+The core module provides a full camera implementation for **Android**, **iOS**, and **Desktop** (Compose-first API). Capture returns in-memory bytes and an optional bitmap; the **app** is responsible for saving the photo (including adding location EXIF and notifying the Gallery on Android). On **WASM/JS** the camera is unsupported (no-op / error state).
+
+### Quick implementation guide
+
+**Step 1 — Camera UI and capture**
+
+Use `rememberCameraKState` and `DefaultCameraPreview` for a ready-to-use camera screen (flash, switch camera, zoom, tap-to-focus, capture button, thumbnail). Capture does **not** write to disk; you receive `ImageCaptureResult.Success(byteArray, bitmap)`.
 
 ```kotlin
-val cameraManager = rememberCameraManager(onResult = { sharedImage ->
-    sharedImage?.let { image ->
-        val bytes = image.toByteArray()
-        val name = image.fileName
-        // upload or use bytes
+import core.domain.camera.compose.rememberCameraKState
+import core.domain.camera.compose.DefaultCameraPreview
+import core.domain.camera.state.CameraConfiguration
+import core.domain.camera.state.CameraKState
+import core.domain.camera.enums.CameraLens
+import core.domain.camera.enums.FlashMode
+import core.domain.camera.enums.AspectRatio
+import core.domain.camera.result.ImageCaptureResult
+import core.util.image.PhotoSaveUtils
+import core.util.image.SavePhotoResult
+
+@Composable
+fun CameraScreen() {
+    val config = remember {
+        CameraConfiguration(
+            cameraLens = CameraLens.BACK,
+            flashMode = FlashMode.OFF,
+            aspectRatio = AspectRatio.RATIO_16_9,
+        )
     }
-})
-// Later: cameraManager.launch()
+
+    val cameraState by rememberCameraKState(config = config, setupPlugins = { })
+
+    when (val state = cameraState) {
+        is CameraKState.Initializing -> CircularProgressIndicator()
+        is CameraKState.Ready -> {
+            DefaultCameraPreview(
+                controller = state.controller,
+                onImageCaptured = { result ->
+                    when (result) {
+                        is ImageCaptureResult.Success -> {
+                            // Step 2: add location EXIF (optional), then save — see below
+                            saveCapturedPhoto(result.byteArray, result.bitmap)
+                        }
+                        is ImageCaptureResult.Error ->
+                            println("Error: ${result.exception.message}")
+                        else -> { }
+                    }
+                },
+                onGalleryClick = { /* open gallery */ },
+                onLastPhotoClick = { bitmap -> /* open viewer */ },
+                initialThumbnailBitmap = null,
+            )
+        }
+        is CameraKState.Error -> Text("Camera error: ${state.message}")
+    }
+}
 ```
+
+**Step 2 — Save photo and optional location EXIF**
+
+Use **`PhotoSaveUtils`** (`core.util.image`) to add GPS EXIF and write the file. On Android, call **`PhotoSaveUtils.setApplicationContext(applicationContext)`** once (e.g. in `Activity.onCreate`) so saved photos are notified to MediaStore and appear in the system Gallery.
+
+```kotlin
+// In Activity.onCreate (Android only):
+PhotoSaveUtils.setApplicationContext(applicationContext)
+
+// When you have capture bytes and optional location:
+fun saveCapturedPhoto(byteArray: ByteArray, thumbnail: ImageBitmap?) {
+    val path = getNewPhotoSavePath()  // your app provides the path, e.g. Pictures/MyApp/IMG_xxx.jpg
+
+    val (lat, lon) = getCurrentLocation() ?: (null to null)
+    val bytesToSave = if (lat != null && lon != null) {
+        PhotoSaveUtils.addLocationExif(byteArray, lat, lon)
+    } else {
+        byteArray
+    }
+
+    when (val saveResult = PhotoSaveUtils.savePhoto(bytesToSave, path)) {
+        is SavePhotoResult.Success -> println("Saved: ${saveResult.path}")
+        is SavePhotoResult.Error -> println("Save failed: ${saveResult.exception.message}")
+    }
+}
+```
+
+**Step 3 — Provide the save path**
+
+Your app decides where to save (e.g. app-specific directory or public Pictures). Example for a path under Pictures:
+
+```kotlin
+// Example: platform-specific function that returns a new file path
+expect fun getNewPhotoSavePath(): String
+// Android actual: e.g. Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES) + "/MyApp/IMG_${timestamp}.jpg"
+```
+
+### Image saving and EXIF (PhotoSaveUtils)
+
+| API | Description |
+|-----|-------------|
+| **`PhotoSaveUtils.setApplicationContext(context: Any?)`** | Call once on Android with application context so saved photos are scanned and appear in the system Gallery. No-op on other platforms. |
+| **`PhotoSaveUtils.savePhoto(imageBytes, targetPath): SavePhotoResult`** | Writes JPEG/PNG bytes to `targetPath`, creates parent directories. Returns `SavePhotoResult.Success(path)` or `SavePhotoResult.Error(exception)`. |
+| **`PhotoSaveUtils.addLocationExif(imageBytes, latitude, longitude): ByteArray`** | Returns a new byte array with GPS EXIF tags set (decimal degrees). Preserves existing EXIF (e.g. orientation). Implemented on Android; other platforms return bytes unchanged. |
+
+Flow: **capture** → **addLocationExif** (if you have location) → **savePhoto** → optionally use thumbnail from `ImageCaptureResult.Success.bitmap` for UI.
+
+### Thumbnail and gallery icon
+
+- **Thumbnail** (bottom-left): Shows the last captured photo or an optional **`initialThumbnailBitmap`**. Tapping it calls **`onLastPhotoClick(bitmap)`** with the displayed bitmap.
+- **Gallery icon**: Shown only when there is no thumbnail (no initial bitmap and no capture yet).
+
+### Custom UI with CameraPreviewView
+
+For a custom layout, use `CameraPreviewView` and call the controller:
+
+```kotlin
+when (val state = cameraState) {
+    is CameraKState.Ready -> {
+        val controller = state.controller
+        CameraPreviewView(controller = controller, modifier = Modifier.fillMaxSize())
+
+        Button(
+            onClick = {
+                scope.launch {
+                    when (val result = controller.takePictureToFile()) {
+                        is ImageCaptureResult.Success ->
+                            saveCapturedPhoto(result.byteArray, result.bitmap)
+                        is ImageCaptureResult.Error ->
+                            println("Error: ${result.exception.message}")
+                        else -> { }
+                    }
+                }
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Text("Capture")
+        }
+    }
+    // ...
+}
+```
+
+### Capture result
+
+- **`takePictureToFile()`** — Returns **`ImageCaptureResult.Success(byteArray, bitmap)`**. Does not write to disk; the app saves using `PhotoSaveUtils.savePhoto`.
+- **`ImageCaptureResult.Success`** — `byteArray`: JPEG/PNG bytes; `bitmap`: optional decoded bitmap for thumbnails. Use `PhotoSaveUtils.addLocationExif` and `PhotoSaveUtils.savePhoto` to persist.
+
+### Platform setup
+
+| Platform | Setup |
+|----------|--------|
+| **Android** | Camera and storage permissions in core's manifest. Call `PhotoSaveUtils.setApplicationContext(applicationContext)` so saved photos appear in Gallery. |
+| **iOS** | Add usage descriptions in `Info.plist`: `NSCameraUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSMicrophoneUsageDescription` (for video). |
+| **Desktop** | No extra setup. |
+| **WASM** | Camera not supported; `rememberCameraKState` returns an error state. |
+
+### Packages
+
+Camera: **`core.domain.camera.*`** (compose, state, controller, result, enums, permissions, video).  
+Image save & EXIF: **`core.util.image`** (`PhotoSaveUtils`, `SavePhotoResult`).
 
 ---
 

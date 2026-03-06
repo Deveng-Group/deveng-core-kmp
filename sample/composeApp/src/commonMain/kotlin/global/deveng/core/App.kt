@@ -2,6 +2,7 @@ package global.deveng.core
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,16 +16,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -41,8 +50,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.painterResource
 import core.presentation.component.ChipItem
 import core.presentation.component.CustomButton
+import core.presentation.component.alertdialog.CustomAlertDialog
 import core.presentation.component.CustomDropDownMenu
 import core.presentation.component.CustomHeader
 import core.presentation.component.CustomIconButton
@@ -104,6 +115,29 @@ import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_dark_mode
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
 import deveng_core_kmp.sample.composeapp.generated.resources.theme
+import core.domain.camera.compose.CameraPreviewView
+import core.domain.camera.compose.DefaultCameraPreview
+import core.domain.camera.compose.rememberCameraKState
+import core.domain.camera.enums.AspectRatio
+import core.domain.camera.enums.CameraLens
+import core.domain.camera.enums.FlashMode
+import core.domain.camera.enums.ImageFormat
+import core.domain.camera.enums.QualityPrioritization
+import core.domain.camera.result.ImageCaptureResult
+import core.domain.camera.state.CameraConfiguration
+import core.domain.camera.state.CameraKState
+import core.domain.camera.state.CameraKStateHolder
+import core.domain.camera.state.CameraKEvent
+import core.domain.camera.permissions.Permissions
+import core.domain.camera.permissions.providePermissions
+import core.util.image.PhotoSaveUtils
+import core.util.image.SavePhotoResult
+import core.util.video.SaveVideoResult
+import core.domain.camera.video.VideoCaptureResult
+import core.util.video.VideoSaveUtils
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import org.jetbrains.compose.resources.painterResource
@@ -113,7 +147,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Preview
 @Composable
 internal fun App() {
-    // Step 1: Create custom ComponentTheme
     val customTheme = ComponentTheme(
         // Custom font family (using system font as example)
         typography = TypographyTheme(
@@ -272,12 +305,187 @@ internal fun App() {
 
     // Step 2: Apply theme using library's AppTheme
     AppTheme(componentTheme = customTheme) {
-        ThemingDemo()
+        var showCameraScreen by remember { mutableStateOf(false) }
+        if (showCameraScreen) {
+            CameraScreen(onBack = { showCameraScreen = false })
+        } else {
+            ThemingDemo(onOpenCamera = { showCameraScreen = true })
+        }
     }
 }
 
 @Composable
-private fun ThemingDemo() {
+private fun CameraScreen(onBack: () -> Unit) {
+    val permissions: Permissions = providePermissions()
+    var hasCameraPermission by remember { mutableStateOf(permissions.hasCameraPermission()) }
+    var permissionDenied by remember { mutableStateOf(false) }
+
+    // Request camera permission first (per CameraK README / Sample)
+    if (!hasCameraPermission && !permissionDenied) {
+        permissions.RequestCameraPermission(
+            onGranted = { hasCameraPermission = true },
+            onDenied = { permissionDenied = true },
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+    ) {
+        when {
+            permissionDenied -> {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Camera permission is required to use the camera.",
+                        color = Color.White,
+                        style = CoreRegularTextStyle().copy(fontSize = 16.sp),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(onClick = onBack) {
+                        Text("Back")
+                    }
+                }
+            }
+            !hasCameraPermission -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                        Text(
+                            text = "Requesting camera permission...",
+                            color = Color.White,
+                            style = CoreRegularTextStyle().copy(fontSize = 16.sp),
+                        )
+                    }
+                }
+            }
+            else -> CameraContent(onBack = onBack)
+        }
+    }
+}
+
+@Composable
+private fun CameraContent(onBack: () -> Unit) {
+    var aspectRatio by remember { mutableStateOf(AspectRatio.RATIO_16_9) }
+    var flashMode by remember { mutableStateOf(FlashMode.OFF) }
+    var imageFormat by remember { mutableStateOf(ImageFormat.JPEG) }
+    var qualityPrioritization by remember { mutableStateOf(QualityPrioritization.BALANCED) }
+
+    val config = remember(aspectRatio, flashMode, imageFormat, qualityPrioritization) {
+        CameraConfiguration(
+            cameraLens = CameraLens.BACK,
+            flashMode = flashMode,
+            aspectRatio = aspectRatio,
+            imageFormat = imageFormat,
+            qualityPrioritization = qualityPrioritization,
+        )
+    }
+
+    var cameraStateHolder by remember { mutableStateOf<CameraKStateHolder?>(null) }
+    val cameraState by rememberCameraKState(
+        config = config,
+        setupPlugins = {},
+        onHolder = { cameraStateHolder = it },
+    )
+
+    LaunchedEffect(cameraStateHolder) {
+        val holder = cameraStateHolder ?: return@LaunchedEffect
+        holder.events
+            .filterIsInstance<CameraKEvent.RecordingStopped>()
+            .collect { event ->
+                when (val r = event.result) {
+                    is VideoCaptureResult.Success -> {
+                        when (val saveResult = VideoSaveUtils.saveVideoToPhotos(r.filePath)) {
+                            is SaveVideoResult.Success ->
+                                println("Video saved to gallery: ${saveResult.path} (${r.durationMs}ms)")
+                            is SaveVideoResult.Error ->
+                                println("Video save to gallery failed: ${saveResult.exception.message}")
+                        }
+                    }
+                    is VideoCaptureResult.Error ->
+                        println("Video error: ${r.exception.message}")
+                }
+            }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = cameraState) {
+            is CameraKState.Initializing -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                        Text(
+                            text = "Initializing camera...",
+                            color = Color.White,
+                            style = CoreRegularTextStyle().copy(fontSize = 16.sp),
+                        )
+                    }
+                }
+            }
+            is CameraKState.Ready -> {
+                DefaultCameraPreview(
+                    controller = state.controller,
+                    onImageCaptured = { result ->
+                        when (result) {
+                            is ImageCaptureResult.Success -> {
+                                val path = getNewPhotoSavePath()
+                                val dummyLat = 41.0082
+                                val dummyLon = 28.9784
+                                val bytesToSave = PhotoSaveUtils.addLocationExif(result.byteArray, dummyLat, dummyLon)
+                                when (val saveResult = PhotoSaveUtils.savePhoto(bytesToSave, path)) {
+                                    is SavePhotoResult.Success -> { /* saved */ }
+                                    is SavePhotoResult.Error -> { /* handle error */ }
+                                }
+                            }
+                            is ImageCaptureResult.Error ->
+                                println("Error: ${result.exception.message}")
+                        }
+                    },
+                    onGalleryClick = { /* TODO: open gallery */ },
+                    onLastPhotoClick = { bitmap -> /* TODO: open viewer with bitmap */ },
+                    stateHolder = cameraStateHolder,
+                )
+            }
+            is CameraKState.Error -> {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = state.message,
+                        color = Color.White,
+                        style = CoreRegularTextStyle().copy(fontSize = 16.sp),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(onClick = onBack) {
+                        Text("Back")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var showDialog by remember { mutableStateOf(false) }
     var showDefaultDialog by remember { mutableStateOf(false) }
     var showOptionDialog by remember { mutableStateOf(false) }
@@ -552,6 +760,12 @@ private fun ThemingDemo() {
                         )
 
                         SectionTitle("RatingRowComponent Examples")
+
+                        CustomButton(
+                            text = "Open Camera",
+                            containerColor = Color(0xFF4CAF50),
+                            onClick = onOpenCamera
+                        )
 
                         RatingRow(
                             maxRating = 5,
