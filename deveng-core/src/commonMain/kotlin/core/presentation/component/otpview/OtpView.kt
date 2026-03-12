@@ -35,14 +35,17 @@ fun OtpView(
     isError: Boolean = false,
     onDigitChanged: (String) -> Unit,
     otpSize: OtpSize = OtpSize.SIX,
-    textStyle: TextStyle? = null
+    textStyle: TextStyle? = null,
+    requestFocusOnFirstDisplay: Boolean = true
 ) {
     val componentTheme = LocalComponentTheme.current
     val otpViewTheme = componentTheme.otpView
 
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
+        if (requestFocusOnFirstDisplay) {
+            focusRequester.requestFocus()
+        }
     }
 
     val focusManager = LocalFocusManager.current
