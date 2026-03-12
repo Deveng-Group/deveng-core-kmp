@@ -58,6 +58,7 @@ import core.domain.camera.state.CameraUIState
 import core.domain.camera.video.VideoConfiguration
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
+import core.domain.camera.enums.CameraLens
 import core.domain.camera.enums.FlashMode
 import core.domain.camera.result.ImageCaptureResult
 import core.domain.camera.ui.CameraIcons
@@ -249,20 +250,22 @@ fun DefaultCameraPreview(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CustomIconButton(
-                icon = CameraIcons.flash,
-                iconDescription = "Flash",
-                iconTint = when (currentFlashMode) {
-                    FlashMode.ON, FlashMode.AUTO -> Color.White
-                    FlashMode.OFF -> Color.White.copy(alpha = 0.5f)
-                },
-                backgroundColor = Color.Transparent,
-                shadowElevation = 0.dp,
-                onClick = {
-                    controller.toggleFlashMode()
-                    currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-                },
-            )
+            if (controller.getCameraLens() != CameraLens.FRONT) {
+                CustomIconButton(
+                    icon = CameraIcons.flash,
+                    iconDescription = "Flash",
+                    iconTint = when (currentFlashMode) {
+                        FlashMode.ON, FlashMode.AUTO -> Color.White
+                        FlashMode.OFF -> Color.White.copy(alpha = 0.5f)
+                    },
+                    backgroundColor = Color.Transparent,
+                    shadowElevation = 0.dp,
+                    onClick = {
+                        controller.toggleFlashMode()
+                        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+                    },
+                )
+            }
             CustomIconButton(
                 icon = CameraIcons.switchCamera,
                 iconDescription = "Switch camera",
