@@ -2,7 +2,6 @@ package global.deveng.core
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,24 +10,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,8 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -50,10 +45,23 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.painterResource
+import core.domain.camera.compose.DefaultCameraPreview
+import core.domain.camera.compose.rememberCameraKState
+import core.domain.camera.enums.AspectRatio
+import core.domain.camera.enums.CameraLens
+import core.domain.camera.enums.FlashMode
+import core.domain.camera.enums.ImageFormat
+import core.domain.camera.enums.QualityPrioritization
+import core.domain.camera.permissions.Permissions
+import core.domain.camera.permissions.providePermissions
+import core.domain.camera.result.ImageCaptureResult
+import core.domain.camera.state.CameraConfiguration
+import core.domain.camera.state.CameraKEvent
+import core.domain.camera.state.CameraKState
+import core.domain.camera.state.CameraKStateHolder
+import core.domain.camera.video.VideoCaptureResult
 import core.presentation.component.ChipItem
 import core.presentation.component.CustomButton
-import core.presentation.component.alertdialog.CustomAlertDialog
 import core.presentation.component.CustomDropDownMenu
 import core.presentation.component.CustomHeader
 import core.presentation.component.CustomIconButton
@@ -67,6 +75,8 @@ import core.presentation.component.datepicker.CustomDateRangePicker
 import core.presentation.component.json.JsonViewer
 import core.presentation.component.labeledslot.Label
 import core.presentation.component.labeledslot.LabeledSlot
+import core.presentation.component.lazyswipecards.SwipeCards
+import core.presentation.component.lazyswipecards.rememberSwipeCardsState
 import core.presentation.component.navigationmenu.MenuMode
 import core.presentation.component.navigationmenu.NavigationMenu
 import core.presentation.component.navigationmenu.NavigationMenuItem
@@ -105,39 +115,25 @@ import core.presentation.theme.ScrollbarWithLazyListStateTheme
 import core.presentation.theme.ScrollbarWithScrollStateTheme
 import core.presentation.theme.SearchFieldTheme
 import core.presentation.theme.SurfaceTheme
+import core.presentation.theme.SwipeCardsTheme
 import core.presentation.theme.TypographyTheme
 import core.util.datetime.CustomSelectableDates
 import core.util.datetime.TargetDates
 import core.util.datetime.formatDateRange
 import core.util.datetime.slashDateFormat
-import deveng_core_kmp.sample.composeapp.generated.resources.Res
-import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
-import deveng_core_kmp.sample.composeapp.generated.resources.ic_dark_mode
-import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
-import deveng_core_kmp.sample.composeapp.generated.resources.theme
-import core.domain.camera.compose.CameraPreviewView
-import core.domain.camera.compose.DefaultCameraPreview
-import core.domain.camera.compose.rememberCameraKState
-import core.domain.camera.enums.AspectRatio
-import core.domain.camera.enums.CameraLens
-import core.domain.camera.enums.FlashMode
-import core.domain.camera.enums.ImageFormat
-import core.domain.camera.enums.QualityPrioritization
-import core.domain.camera.result.ImageCaptureResult
-import core.domain.camera.state.CameraConfiguration
-import core.domain.camera.state.CameraKState
-import core.domain.camera.state.CameraKStateHolder
-import core.domain.camera.state.CameraKEvent
-import core.domain.camera.permissions.Permissions
-import core.domain.camera.permissions.providePermissions
 import core.util.image.PhotoSaveUtils
 import core.util.image.SavePhotoResult
 import core.util.video.SaveVideoResult
-import core.domain.camera.video.VideoCaptureResult
 import core.util.video.VideoSaveUtils
-import kotlinx.coroutines.flow.collect
+import deveng_core_kmp.sample.composeapp.generated.resources.Res
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_left
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_right
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_dark_mode
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_undo
+import deveng_core_kmp.sample.composeapp.generated.resources.theme
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import org.jetbrains.compose.resources.painterResource
@@ -189,6 +185,12 @@ internal fun App() {
             backgroundColor = Color(0xFFFDECEA),
             iconTint = Color(0xFFD32F2F),
             shadowElevation = 4.dp
+        ),
+        swipeCards = SwipeCardsTheme(
+            buttonBackgroundColor = Color.White,
+            buttonIconTint = Color(0xFF1A1C1C),
+            buttonSize = 48.dp,
+            buttonShadowElevation = 2.dp
         ),
         labeledSwitch = LabeledSwitchTheme(
             labelTextStyle = CoreMediumTextStyle().copy(
@@ -355,6 +357,7 @@ private fun CameraScreen(onBack: () -> Unit) {
                     }
                 }
             }
+
             !hasCameraPermission -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(
@@ -370,6 +373,7 @@ private fun CameraScreen(onBack: () -> Unit) {
                     }
                 }
             }
+
             else -> CameraContent(onBack = onBack)
         }
     }
@@ -409,10 +413,12 @@ private fun CameraContent(onBack: () -> Unit) {
                         when (val saveResult = VideoSaveUtils.saveVideoToPhotos(r.filePath)) {
                             is SaveVideoResult.Success ->
                                 println("Video saved to gallery: ${saveResult.path} (${r.durationMs}ms)")
+
                             is SaveVideoResult.Error ->
                                 println("Video save to gallery failed: ${saveResult.exception.message}")
                         }
                     }
+
                     is VideoCaptureResult.Error ->
                         println("Video error: ${r.exception.message}")
                 }
@@ -436,6 +442,7 @@ private fun CameraContent(onBack: () -> Unit) {
                     }
                 }
             }
+
             is CameraKState.Ready -> {
                 DefaultCameraPreview(
                     controller = state.controller,
@@ -445,12 +452,21 @@ private fun CameraContent(onBack: () -> Unit) {
                                 val path = getNewPhotoSavePath()
                                 val dummyLat = 41.0082
                                 val dummyLon = 28.9784
-                                val bytesToSave = PhotoSaveUtils.addLocationExif(result.byteArray, dummyLat, dummyLon)
-                                when (val saveResult = PhotoSaveUtils.savePhoto(bytesToSave, path)) {
-                                    is SavePhotoResult.Success -> { /* saved */ }
-                                    is SavePhotoResult.Error -> { /* handle error */ }
+                                val bytesToSave = PhotoSaveUtils.addLocationExif(
+                                    result.byteArray,
+                                    dummyLat,
+                                    dummyLon
+                                )
+                                when (val saveResult =
+                                    PhotoSaveUtils.savePhoto(bytesToSave, path)) {
+                                    is SavePhotoResult.Success -> { /* saved */
+                                    }
+
+                                    is SavePhotoResult.Error -> { /* handle error */
+                                    }
                                 }
                             }
+
                             is ImageCaptureResult.Error ->
                                 println("Error: ${result.exception.message}")
                         }
@@ -460,6 +476,7 @@ private fun CameraContent(onBack: () -> Unit) {
                     stateHolder = cameraStateHolder,
                 )
             }
+
             is CameraKState.Error -> {
                 Column(
                     Modifier
@@ -1653,13 +1670,15 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                         OtpView(
                             otpDigits = otpDigits,
                             onDigitChanged = { otpDigits = it },
-                            otpSize = OtpSize.SIX
+                            otpSize = OtpSize.SIX,
+                            requestFocusOnFirstDisplay = false
                         )
 
                         OtpView(
                             otpDigits = otpDigits4,
                             onDigitChanged = { otpDigits4 = it },
-                            otpSize = OtpSize.FOUR
+                            otpSize = OtpSize.FOUR,
+                            requestFocusOnFirstDisplay = false
                         )
 
                         OtpView(
@@ -1670,7 +1689,8 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                                 isOtpError =
                                     otpDigitsError.length == 6 && otpDigitsError != "123456"
                             },
-                            otpSize = OtpSize.SIX
+                            otpSize = OtpSize.SIX,
+                            requestFocusOnFirstDisplay = false
                         )
 
                         CustomButton(
@@ -1701,6 +1721,54 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             indicatorHeight = 10.dp,
                             indicatorSpacing = 5.dp
                         )
+
+                        SectionTitle("SwipeCards Examples")
+
+                        val swipeState = rememberSwipeCardsState()
+                        val cardColors = listOf(
+                            Color(0xFFE53935),
+                            Color(0xFF43A047),
+                            Color(0xFF1E88E5),
+                            Color(0xFF00ACC1),
+                            Color(0xFF8E24AA)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(9f / 16f)
+                        ) {
+                            SwipeCards(
+                                modifier = Modifier.fillMaxSize(),
+                                state = swipeState,
+                                visibleItemCount = 3,
+                                showSwipeButtons = true,
+                                negativeButtonIcon = Res.drawable.ic_arrow_left,
+                                positiveButtonIcon = Res.drawable.ic_arrow_right,
+                                revertButtonIcon = Res.drawable.ic_undo,
+                                onSwipeLeft = { key -> println("SwipeCards: swiped left key=$key") },
+                                onSwipeRight = { key -> println("SwipeCards: swiped right key=$key") },
+                                onRevert = { key -> println("SwipeCards: reverted key=$key") },
+                                content = {
+                                    items(cardColors, key = { it.value }) { color ->
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(color),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "Swipe ← or →",
+                                                style = CoreMediumTextStyle().copy(
+                                                    fontSize = 18.sp,
+                                                    color = Color.White
+                                                )
+                                            )
+                                        }
+                                    }
+                                    onSwiped { _, _ -> }
+                                }
+                            )
+                        }
 
                         OptionItem(
                             text = "i read and i approve",

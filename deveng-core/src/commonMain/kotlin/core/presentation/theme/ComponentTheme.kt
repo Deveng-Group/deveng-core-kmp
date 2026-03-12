@@ -80,6 +80,16 @@ data class IconButtonTheme(
 )
 
 /**
+ * Theme for SwipeCards overlay buttons (negative, revert, positive).
+ */
+data class SwipeCardsTheme(
+    val buttonBackgroundColor: Color = Color.White,
+    val buttonIconTint: Color = CoreCustomBlackColor,
+    val buttonSize: Dp = 48.dp,
+    val buttonShadowElevation: Dp = 2.dp
+)
+
+/**
  * Theme for LabeledSwitch component
  */
 data class LabeledSwitchTheme(
@@ -557,7 +567,8 @@ data class ComponentTheme(
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
     val chipItem: ChipItemTheme = ChipItemTheme(),
     val ratingRow: RatingRowTheme = RatingRowTheme(),
-    val otpView: OtpViewTheme = OtpViewTheme()
+    val otpView: OtpViewTheme = OtpViewTheme(),
+    val swipeCards: SwipeCardsTheme = SwipeCardsTheme()
 )
 
 /**
