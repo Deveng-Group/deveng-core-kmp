@@ -53,9 +53,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import core.domain.camera.controller.CameraController
+import core.domain.camera.state.CameraKEvent
 import core.domain.camera.state.CameraKStateHolder
 import core.domain.camera.state.CameraUIState
+import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
+import kotlinx.coroutines.flow.collect
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 import core.domain.camera.enums.CameraLens
@@ -87,6 +90,8 @@ private fun formatRecordingDuration(ms: Long): String {
  * @param initialThumbnailBitmap Optional bitmap to show as thumbnail when opening the camera (e.g. last photo). Replaced by captured photo when user takes a picture.
  * @param thumbnailTopEndContent Slot for content placed at the top-end of the thumbnail (e.g. a count badge). Design is fully controlled by the caller.
  * @param stateHolder Optional [CameraKStateHolder] from [rememberCameraKState] (via onHolder). When set, shows Photo/Video tab selection and the center button acts as capture in Photo mode or start/stop in Video mode.
+ * @param onRecordingStopped Optional callback when a video recording stops (success or error). Use it to load a first-frame thumbnail and pass it as [lastRecordedVideoThumbnail].
+ * @param lastRecordedVideoThumbnail Optional bitmap to show as thumbnail for the last recorded video (e.g. first frame). Shown when the last capture was video; replaced when user takes a photo.
  * @param modifier Modifier for the root layout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +104,8 @@ fun DefaultCameraPreview(
     initialThumbnailBitmap: ImageBitmap? = null,
     thumbnailTopEndContent: @Composable () -> Unit = {},
     stateHolder: CameraKStateHolder? = null,
+    onRecordingStopped: ((VideoCaptureResult) -> Unit)? = null,
+    lastRecordedVideoThumbnail: ImageBitmap? = null,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -117,6 +124,18 @@ fun DefaultCameraPreview(
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
+
+    LaunchedEffect(stateHolder) {
+        stateHolder?.events?.collect { event ->
+            when (event) {
+                is CameraKEvent.RecordingStopped -> {
+                    lastCapturedBitmap = null
+                    onRecordingStopped?.invoke(event.result)
+                }
+                else -> { }
+            }
+        }
+    }
 
     LaunchedEffect(focusTapOffset) {
         if (focusTapOffset != null) {
@@ -308,7 +327,7 @@ fun DefaultCameraPreview(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    val thumbnailBitmap = lastCapturedBitmap ?: initialThumbnailBitmap
+                    val thumbnailBitmap = lastCapturedBitmap ?: lastRecordedVideoThumbnail ?: initialThumbnailBitmap
                     thumbnailBitmap?.let { bitmap ->
                         val thumbShape = RoundedCornerShape(8.dp)
                         Box(
