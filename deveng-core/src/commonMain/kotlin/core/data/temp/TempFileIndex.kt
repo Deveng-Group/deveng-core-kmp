@@ -1,8 +1,7 @@
 package core.data.temp
 
 import core.domain.temp.TempFileItem
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
+import core.util.IoDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -22,14 +21,14 @@ internal class TempFileIndex(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun read(): List<IndexEntry> = withContext(Dispatchers.IO) {
+    suspend fun read(): List<IndexEntry> = withContext(IoDispatcher) {
         val bytes = fileOps.readFile(indexPath) ?: return@withContext emptyList()
         runCatching {
             json.decodeFromString<IndexFile>(bytes.decodeToString()).items
         }.getOrElse { emptyList() }
     }
 
-    suspend fun write(entries: List<IndexEntry>) = withContext(Dispatchers.IO) {
+    suspend fun write(entries: List<IndexEntry>) = withContext(IoDispatcher) {
         fileOps.ensureDir(basePath)
         fileOps.writeFile(indexPath, json.encodeToString(IndexFile(entries)).encodeToByteArray())
     }
