@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
+import kotlin.time.Clock
 
 class TempFileRepositoryImpl(
     private val dirProvider: TempStorageDirProvider,
@@ -16,7 +17,7 @@ class TempFileRepositoryImpl(
 
     override suspend fun saveBytes(byteArray: ByteArray, fileExtension: String): TempFileItem = withContext(Dispatchers.IO) {
         val ext = fileExtension.trimStart('.')
-        val id = "file_${System.currentTimeMillis()}_${Random.nextInt(0, Int.MAX_VALUE)}"
+        val id = "file_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(0, Int.MAX_VALUE)}"
         val fileName = "$id.$ext"
         val basePath = dirProvider.getPath()
         fileOps.ensureDir(basePath)
