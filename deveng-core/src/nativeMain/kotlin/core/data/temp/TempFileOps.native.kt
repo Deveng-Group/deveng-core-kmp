@@ -2,9 +2,11 @@ package core.data.temp
 
 import core.domain.camera.utils.toByteArray
 import core.domain.camera.utils.toNSData
+import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSData
 import platform.Foundation.NSFileManager
 
+@OptIn(ExperimentalForeignApi::class)
 actual class TempFileOps actual constructor() {
 
     private val fileManager = NSFileManager.defaultManager
