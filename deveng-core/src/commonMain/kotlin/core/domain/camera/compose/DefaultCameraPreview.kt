@@ -85,6 +85,7 @@ private fun formatRecordingDuration(ms: Long): String {
  * @param onGalleryClick Optional callback when the gallery button is tapped (e.g. open gallery).
  * @param onLastPhotoClick Optional callback when the thumbnail is tapped; receives the [ImageBitmap] (initial or last captured).
  * @param initialThumbnailBitmap Optional bitmap to show as thumbnail when opening the camera (e.g. last photo). Replaced by captured photo when user takes a picture.
+ * @param thumbnailTopEndContent Slot for content placed at the top-end of the thumbnail (e.g. a count badge). Design is fully controlled by the caller.
  * @param stateHolder Optional [CameraKStateHolder] from [rememberCameraKState] (via onHolder). When set, shows Photo/Video tab selection and the center button acts as capture in Photo mode or start/stop in Video mode.
  * @param modifier Modifier for the root layout.
  */
@@ -96,6 +97,7 @@ fun DefaultCameraPreview(
     onGalleryClick: (() -> Unit)? = null,
     onLastPhotoClick: ((ImageBitmap) -> Unit)? = null,
     initialThumbnailBitmap: ImageBitmap? = null,
+    thumbnailTopEndContent: @Composable () -> Unit = {},
     stateHolder: CameraKStateHolder? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -327,6 +329,14 @@ fun DefaultCameraPreview(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize(),
                             )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                thumbnailTopEndContent()
+                            }
                         }
                         Spacer(modifier = Modifier.size(8.dp))
                     }

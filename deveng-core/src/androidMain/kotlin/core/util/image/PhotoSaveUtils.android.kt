@@ -1,8 +1,12 @@
 package core.util.image
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.media.ExifInterface
 import android.media.MediaScannerConnection
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 actual object PhotoSaveUtils {
@@ -12,6 +16,48 @@ actual object PhotoSaveUtils {
 
     actual fun setApplicationContext(context: Any?) {
         appContext = (context as? Context)?.applicationContext
+    }
+
+    actual fun imageBytesWithNormalOrientation(imageBytes: ByteArray): ByteArray = try {
+        val tempFile = File.createTempFile("exif_orient", ".jpg")
+        try {
+            tempFile.writeBytes(imageBytes)
+            val exif = ExifInterface(tempFile.absolutePath)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+            if (orientation == ExifInterface.ORIENTATION_NORMAL ||
+                orientation == ExifInterface.ORIENTATION_UNDEFINED
+            ) {
+                return imageBytes
+            }
+            val rotationAngle = when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+            if (rotationAngle == 0f) return imageBytes
+            var bitmap = BitmapFactory.decodeFile(tempFile.absolutePath, null) ?: return imageBytes
+            try {
+                val matrix = Matrix().apply { postRotate(rotationAngle) }
+                val rotated = Bitmap.createBitmap(
+                    bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
+                )
+                bitmap.recycle()
+                bitmap = rotated
+                val out = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                out.toByteArray()
+            } finally {
+                if (!bitmap.isRecycled) bitmap.recycle()
+            }
+        } finally {
+            tempFile.delete()
+        }
+    } catch (e: Exception) {
+        imageBytes
     }
 
     actual fun savePhoto(imageBytes: ByteArray, targetPath: String): SavePhotoResult = try {

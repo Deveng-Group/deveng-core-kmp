@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -425,6 +428,24 @@ private fun CameraContent(onBack: () -> Unit) {
             }
     }
 
+    @Composable
+    fun ThumbnailCountBadge(count: Int) {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .background(Color.Black, CircleShape)
+                .padding(2.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = count.coerceAtLeast(1).toString(),
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         when (val state = cameraState) {
             is CameraKState.Initializing -> {
@@ -446,6 +467,9 @@ private fun CameraContent(onBack: () -> Unit) {
             is CameraKState.Ready -> {
                 DefaultCameraPreview(
                     controller = state.controller,
+                    thumbnailTopEndContent = {
+                        ThumbnailCountBadge(count = 22)
+                    },
                     onImageCaptured = { result ->
                         when (result) {
                             is ImageCaptureResult.Success -> {

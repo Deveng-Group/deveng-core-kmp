@@ -52,6 +52,35 @@ capture, use `PhotoSaveUtils` (and optionally `addLocationExif` then `savePhoto`
 **Do not:** Implement a separate camera capture/preview/recording stack when these APIs are
 available.
 
+### Generic temp file storage (repository pattern)
+
+| Situation                                                       | Use                                                                 |
+|-----------------------------------------------------------------|---------------------------------------------------------------------|
+| Persist any temp files (e.g. photos, documents) before upload   | `TempFileRepository` (saveBytes(byteArray, fileExtension), loadAll, getCount, loadBytes, delete) in **core.domain.temp** |
+| Model for a stored item                                         | `TempFileItem` (id, fileName) in **core.domain.temp**               |
+| Provide temp directory path (one per use case, e.g. camera vs docs) | Register `TempStorageDirProvider` in DI; core provides `AndroidTempStorageDirProvider(context, subdir)`, `DesktopTempStorageDirProvider.forApp(appName, subdir)` (e.g. ".brindle/camera_temp"), `IosTempStorageDirProvider(subdir)` in **core.data.temp** — no app-specific provider class needed |
+| File I/O (platform)                                             | `TempFileOps` (expect/actual in **core.data.temp**); app registers single instance in DI |
+
+Implementation: **core.data.temp** — `TempFileRepositoryImpl(dirProvider, fileOps)`; app binds `TempStorageDirProvider` (e.g. camera path: `"camera_temp"` or `".brindle/camera_temp"`) and `TempFileOps()`.
+
+**Camera use case:** Use the same API with a camera-specific path. Optional backward-compat: `CameraTempPhotoRepository` (typealias), `TempPhotoItem` (typealias), and extension `TempFileRepository.savePhoto(byteArray)` in **core.domain.camera.temp** (deprecated; prefer `TempFileRepository.saveBytes(byteArray, "jpg")`).
+
+**Whole implementation (app wiring):**
+
+- **Core (deveng-core):**
+  - **commonMain:** `core.domain.temp` — `TempFileItem`, `TempFileRepository`; `core.data.temp` — `TempStorageDirProvider` (interface), `TempFileOps` (expect), `TempFileIndex`, `TempFileRepositoryImpl`. Optional: `core.domain.camera.temp` / `core.data.camera.temp` — deprecated type aliases + `savePhoto` extension.
+  - **androidMain:** `AndroidTempStorageDirProvider(context, subdir)`, `TempFileOps` actual.
+  - **desktopMain:** `DesktopTempStorageDirProvider(subdir)` and `DesktopTempStorageDirProvider.forApp(appName, subdir)`, `TempFileOps` actual.
+  - **nativeMain:** `IosTempStorageDirProvider(subdir)`, `TempFileOps` actual.
+  - **wasmJsMain:** `TempFileOps` actual (throws; temp storage not supported).
+
+- **App (e.g. brindle) — one use case (e.g. camera):**
+  - **commonMain DI:** `single { TempFileOps() }`, `singleOf(::TempFileRepositoryImpl).bind<TempFileRepository>()`. (Repository needs `TempStorageDirProvider` + `TempFileOps` from platform.)
+  - **Android:** `single<TempStorageDirProvider> { AndroidTempStorageDirProvider(get(), "camera_temp") }`.
+  - **Desktop:** `single<TempStorageDirProvider> { DesktopTempStorageDirProvider.forApp("brindle", "camera_temp") }` — no custom provider class.
+  - **iOS:** `single<TempStorageDirProvider> { IosTempStorageDirProvider("camera_temp") }`.
+  - **ViewModel:** Inject `TempFileRepository` (or deprecated `CameraTempPhotoRepository`); use `saveBytes(bytes, "jpg")` or `savePhoto(bytes)`; state uses `TempFileItem` (or `TempPhotoItem`).
+
 ---
 
 ## Permissions
@@ -133,9 +162,10 @@ Use these instead of reimplementing equivalent generic components.
 
 ## Data / config
 
-| Situation                                | Use                                           |
-|------------------------------------------|-----------------------------------------------|
-| Store/read device-related key-value info | `DeviceInfoStorage` / `DeviceInfoStorageImpl` |
+| Situation                                | Use                                                                 |
+|------------------------------------------|---------------------------------------------------------------------|
+| Store/read device-related key-value info | `DeviceInfoStorage` / `DeviceInfoStorageImpl`                       |
+| Temp file storage (camera stack, documents, etc.) | `TempFileRepository`, `TempFileItem` in **core.domain.temp**; DI: `TempStorageDirProvider`, `TempFileOps` from **core.data.temp** (see [Generic temp file storage](#generic-temp-file-storage-repository-pattern)) |
 
 ---
 

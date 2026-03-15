@@ -6,6 +6,8 @@ actual object PhotoSaveUtils {
 
     actual fun setApplicationContext(context: Any?) {}
 
+    actual fun imageBytesWithNormalOrientation(imageBytes: ByteArray): ByteArray = imageBytes
+
     actual fun savePhoto(imageBytes: ByteArray, targetPath: String): SavePhotoResult = try {
         val file = File(targetPath)
         file.parentFile?.mkdirs()

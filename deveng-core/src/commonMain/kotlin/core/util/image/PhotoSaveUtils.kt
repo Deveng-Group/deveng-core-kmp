@@ -32,6 +32,14 @@ expect object PhotoSaveUtils {
     fun savePhoto(imageBytes: ByteArray, targetPath: String): SavePhotoResult
 
     /**
+     * Returns image bytes with orientation normalized: EXIF orientation is applied to pixels
+     * and the result has orientation = normal. Use before saving so the saved file displays
+     * correctly in all viewers (e.g. when camera returns EXIF 6 = 90° but pixels are not rotated).
+     * On unsupported platforms or on error, returns [imageBytes] unchanged.
+     */
+    fun imageBytesWithNormalOrientation(imageBytes: ByteArray): ByteArray
+
+    /**
      * Returns a copy of [imageBytes] with GPS location EXIF tags set.
      * Preserves existing EXIF (e.g. orientation). Best used with JPEG bytes.
      *

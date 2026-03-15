@@ -1,6 +1,6 @@
 # Deveng-Core Library Guide (Vibecoding)
 
-Version: 1.0.0  
+Version: 1.0.1  
 Owner: deveng-core-kmp  
 Risk: Low
 
@@ -22,6 +22,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 - When the user asks for dial, clipboard, maps, URL open, share, location, or platform info → use **MultiPlatformUtils**.
 - When the app needs to save captured photo bytes or add location EXIF → use **PhotoSaveUtils**.
 - When the app needs camera capture, preview, or recording → use **CameraController** / **CameraKScreen** / **rememberCameraKState** and related compose/domain APIs.
+- When the app needs to stack or persist camera photos in temp storage (e.g. before upload, swipe-to-delete flow) → use core **CameraTempPhotoRepository** and **TempPhotoItem**; register **CameraTempDirProvider** in DI (or use default implementations from core).
 - When the app needs permission request/check or app settings → use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera-domain **Permissions** where applicable.
 - When the app needs paginated lists (load-more, pull-to-retry, empty/error UI) → use **PaginatedFlowLoader** + **PaginatedListView** and core pagination models.
 - When the app needs shared UI (buttons, headers, dialogs, text fields, date pickers, lists, navigation, etc.) → use the core **presentation** composables and theme listed in the reference.
@@ -55,6 +56,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 - Use **MultiPlatformUtils** for: dial, copy to clipboard, open maps with location, open URL, share text, get current location, get platform config. Do not implement these with platform-specific or custom code in the app.
 - Use **PhotoSaveUtils** for saving photo bytes to a path and for adding location EXIF to image bytes (e.g. after camera capture). Do not reimplement file write or EXIF handling.
 - Use core **camera** APIs (CameraController, builder, rememberCameraKState, CameraKScreen, DefaultCameraPreview, etc.) for capture, preview, and recording. Do not introduce a separate camera stack unless the user explicitly requests it.
+- Use core **CameraTempPhotoRepository** (and **TempPhotoItem**, **CameraTempDirProvider** / **CameraTempFileOps**) for persisting captured photos in temp storage; do not reimplement temp photo storage in the app.
 - Use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera **Permissions** for permission checks and requests; do not reimplement permission flows.
 - Use **PaginatedFlowLoader** and **PaginatedListView** (and **PageResult** / **PaginatedListState**) for paginated lists with load-more and retry; do not reimplement pagination state or list UI that core already provides.
 - Use core **presentation** components and **theme** (e.g. CustomButton, CustomHeader, CustomDialog, CustomTextField, CustomDatePicker, PaginatedListView, AppTheme, typography) when the UI need matches what they provide.
@@ -69,6 +71,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 - Implement “dial number,” “copy to clipboard,” “open map,” “open URL,” or “share text” without using MultiPlatformUtils.
 - Implement “save image bytes to file” or “add GPS EXIF to image” without using PhotoSaveUtils.
 - Implement camera capture/preview/recording with a different stack when core camera APIs are available.
+- Implement temp photo stacking/storage (e.g. for pre-upload or swipe flows) without using core CameraTempPhotoRepository and related types.
 - Implement permission request/check/settings navigation without using PermissionsController or core Permissions.
 - Implement infinite-scroll paginated lists with custom state and list UI when PaginatedFlowLoader + PaginatedListView fit.
 - Duplicate core presentation components (e.g. custom “theme” or “generic button” that mirrors AppTheme/CustomButton) without reason.
@@ -77,6 +80,11 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 
 See **reference.md** in this skill folder for: what exists in the library and which API to use in which situation. Use it to decide “use this from core” before writing app code.
 
+## Architecture note (core library)
+
+Core uses a **domain + data** split for camera temp storage: repository interface in **core.domain.camera.temp** (`CameraTempPhotoRepository`, `TempPhotoItem`), implementation and file/dir abstractions in **core.data.camera.temp** (`CameraTempPhotoRepositoryImpl`, `CameraTempDirProvider`, `CameraTempFileOps`). Apps depend on the interface and register platform-specific `CameraTempDirProvider` in DI.
+
 ## Changelog
 
+- 1.0.1: Camera temp storage (CameraTempPhotoRepository, TempPhotoItem); architecture note for domain/data split.
 - 1.0.0: Initial skill; scope, procedure, rules, and reference pointer.

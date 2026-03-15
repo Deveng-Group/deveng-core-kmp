@@ -7,7 +7,7 @@ Kotlin Multiplatform core library: shared UI, utilities, data, and permissions f
 Deveng Core KMP is a KMP library that provides:
 
 - **UI & theming** — Compose components (buttons, dialogs, pickers, navigation, OTP, option lists, etc.) with a customizable theme and typography system.
-- **Data & domain** — Key-value storage (e.g. device identifier), pagination models and loaders, camera/capture (`SharedImage`, `CameraManager`) with expect/actual per platform.
+- **Data & domain** — Key-value storage (e.g. device identifier); **generic temp file storage** (repository interface + impl, `TempFileItem`, `TempStorageDirProvider`, `TempFileOps` in `core.domain.temp` / `core.data.temp`); pagination models and loaders; camera/capture (`SharedImage`, `CameraManager`) with expect/actual per platform.
 - **Utilities** — Platform detection and config, date/time formatting, image resize/compress, string formatting, logging, dispatchers, clipboard, dial, maps, share, location.
 - **Permissions** — Unified permission API (camera, gallery, location, Bluetooth, contacts, notifications, motion) with Android and iOS implementations.
 
@@ -72,7 +72,7 @@ The `deveng-core` module is organized as follows:
 | Area | Description |
 |------|-------------|
 | **UI & theming** | `ComponentTheme`, `AppTheme`, typography; buttons, dialogs, text fields, date/range pickers, OTP, navigation menus, option lists, chips, search, progress, scrollbars, JSON viewer, etc. |
-| **Data** | `DeviceInfoStorage` (e.g. device identifier); `PagedListResponse`, `BasePaginatedResponse` for paginated API responses. |
+| **Data** | `DeviceInfoStorage` (e.g. device identifier); **generic temp file storage** — `TempFileRepository`, `TempFileRepositoryImpl`, `TempStorageDirProvider`, `TempFileOps`, `TempFileItem` (domain in `core.domain.temp`, impl in `core.data.temp`); use one `TempStorageDirProvider` per use case (e.g. camera path); `PagedListResponse`, `BasePaginatedResponse` for paginated API responses. |
 | **Domain** | `PagedList` for pagination; camera (see [Camera](#camera)) — `rememberCameraKState`, `DefaultCameraPreview`, `CameraPreviewView`, `ImageCaptureResult.Success(byteArray, bitmap)`; image save & EXIF via `core.util.image.PhotoSaveUtils`. |
 | **Utilities** | `Platform`, `PlatformConfig`, `MultiPlatformUtils` (dial, clipboard, open URL, maps, share, location); date/time formatting; `ImageSizeProcessor` and `ImageProcessingProfile`; `StringFormatter`, `CustomLogger`, `CustomDispatchers`. |
 | **Permissions** | `Permission` enum, `PermissionsController`, `PermissionState`; Android and iOS implementations. |
@@ -402,6 +402,10 @@ fun saveCapturedPhoto(byteArray: ByteArray, thumbnail: ImageBitmap?) {
     }
 }
 ```
+
+**Camera temp storage (stack / pre-upload)**
+
+To persist captured photos in temp storage (e.g. for a stack-and-swipe flow before upload), use **`CameraTempPhotoRepository`** (`core.domain.camera.temp`) and **`TempPhotoItem`**. Register **`CameraTempDirProvider`** and **`CameraTempFileOps`** in your DI (Koin); core provides default implementations per platform (`AndroidCameraTempDirProvider`, `DesktopCameraTempDirProvider`, `IosCameraTempDirProvider`). Use **`PhotoSaveUtils.imageBytesWithNormalOrientation(byteArray)`** before saving so orientation is correct. The repository interface lives in **core.domain.camera.temp**; the implementation and file/dir abstractions in **core.data.camera.temp** (domain + data split).
 
 **Step 3 — Provide the save path**
 
