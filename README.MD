@@ -197,6 +197,7 @@ CustomButton(text = "Button", textStyle = SemiBoldTextStyle().copy(fontSize = 18
 - **Lists & selection:** `OptionItemList`, `OptionItemLazyListDialog`, `OptionItemMultiSelectLazyListDialog`, `CustomDropDownMenu`
 - **Navigation:** `NavigationMenu` (horizontal, expanded, collapsed)
 - **Feedback:** `RatingRow`, `ProgressIndicatorBars`, `JsonViewer`
+- **Swipe stack:** `SwipeCards`, `SwipeCardsState`, `rememberSwipeCardsState`, `SwipeCardsScope`; optional left/right/revert icon buttons; use `pendingRevertKey` when the list updates so the revert button stays visible (see [SwipeCards](#swipecards))
 - **Scrolling:** `PaginatedListView`, `ScrollbarWithScrollState`, `ScrollbarWithLazyListState`
 
 ### Complete UI Example
@@ -235,6 +236,10 @@ fun MyApp() {
     }
 }
 ```
+
+### SwipeCards
+
+Tinder-style swipeable card stack: `SwipeCards`, `SwipeCardsState`, `rememberSwipeCardsState`, `SwipeCardsScope` (`items` / `itemsIndexed`). Use `showSwipeButtons` with `negativeButtonIcon`, `positiveButtonIcon`, `revertButtonIcon` for overlay buttons. Revert is normally driven by internal state (`state.canRevert`, `popLastSwipe`, `animateBackSwipe`). When the **list content changes** (e.g. you remove an item after committing a previous swipe), the internal revert state is lost and the built-in revert button would disappear. Pass **`pendingRevertKey`** with the pending item's key (same id you use in `items`/`itemsIndexed`) so the revert button stays visible and a click calls `onRevert(pendingRevertKey)`.
 
 ### Best Practices (UI)
 
