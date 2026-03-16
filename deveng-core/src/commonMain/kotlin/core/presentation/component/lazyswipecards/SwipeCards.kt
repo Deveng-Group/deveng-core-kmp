@@ -73,6 +73,12 @@ fun SwipeCards(
     onSwipeRight: ((Any?) -> Unit)? = null,
     /** Called with the reverted card's key (id) after undo. */
     onRevert: ((Any?) -> Unit)? = null,
+    /**
+     * When non-null, the revert button is shown and clicking it invokes [onRevert] with this key.
+     * Use when the list has changed (e.g. after committing a previous pending item) and internal
+     * revert state was lost, so the parent can still drive revert visibility.
+     */
+    pendingRevertKey: Any? = null,
     content: SwipeCardsScope.() -> Unit,
 ) {
     state.updateRatio(swipeThreshold = swipeThreshold)
@@ -173,7 +179,7 @@ fun SwipeCards(
                     }
                 }
                 if (revertButtonIcon != null) {
-                    if (state.canRevert) {
+                    if (state.canRevert || pendingRevertKey != null) {
                         CustomIconButton(
                             buttonSize = swipeCardsTheme.buttonSize,
                             backgroundColor = swipeCardsTheme.buttonBackgroundColor,
@@ -182,10 +188,14 @@ fun SwipeCards(
                             icon = revertButtonIcon,
                             iconDescription = revertButtonContentDescription,
                             onClick = {
-                                val last = state.popLastSwipe() ?: return@CustomIconButton
-                                scope.launch {
-                                    state.animateBackSwipe(last.second)
-                                    onRevert?.invoke(last.first)
+                                if (pendingRevertKey != null) {
+                                    onRevert?.invoke(pendingRevertKey)
+                                } else {
+                                    val last = state.popLastSwipe() ?: return@CustomIconButton
+                                    scope.launch {
+                                        state.animateBackSwipe(last.second)
+                                        onRevert?.invoke(last.first)
+                                    }
                                 }
                             }
                         )
