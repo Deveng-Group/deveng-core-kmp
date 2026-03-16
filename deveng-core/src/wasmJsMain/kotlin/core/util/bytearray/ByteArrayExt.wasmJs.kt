@@ -8,3 +8,5 @@ actual fun ByteArray.toImageBitmap(): ImageBitmap {
     val skiaImage = Image.makeFromEncoded(this)
     return skiaImage.toComposeImageBitmap()
 }
+
+actual fun ImageBitmap.toByteArray(): ByteArray? = null
