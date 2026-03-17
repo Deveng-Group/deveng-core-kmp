@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.IntSize
@@ -179,16 +180,30 @@ internal fun SwipeCardsState.bind(
     }
 }
 
+/**
+ * @param initialSelectedItemIndex Used when the state is first created (e.g. when [rememberKey] changes).
+ * @param rememberKey When non-null, the state is kept with [remember] keyed by this value (as string)
+ *        so the same state instance is preserved across recompositions and the library's internal
+ *        updates (e.g. selectedItemIndex after swipe) are kept. Use the same key as the parent
+ *        key(swipeCardsKey) so that setting pending does not recreate state. When null, uses
+ *        [rememberSaveable] keyed by [initialSelectedItemIndex] for process-death restore.
+ */
 @Composable
 fun rememberSwipeCardsState(
     initialSelectedItemIndex: Int = 0,
+    rememberKey: Any? = null,
 ): SwipeCardsState {
-    return rememberSaveable(
-        saver = SwipeCardsState.Saver,
-        key = initialSelectedItemIndex.toString()
-    ) {
-        SwipeCardsState(
-            initialSelectedItemIndex = initialSelectedItemIndex,
-        )
+    return if (rememberKey != null) {
+        val keyString = rememberKey.toString()
+        remember(keyString) {
+            SwipeCardsState(initialSelectedItemIndex = initialSelectedItemIndex)
+        }
+    } else {
+        rememberSaveable(
+            saver = SwipeCardsState.Saver,
+            key = initialSelectedItemIndex.toString(),
+        ) {
+            SwipeCardsState(initialSelectedItemIndex = initialSelectedItemIndex)
+        }
     }
 }

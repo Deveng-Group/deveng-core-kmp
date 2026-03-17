@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import core.presentation.component.CustomIconButton
 import core.presentation.theme.LocalComponentTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import kotlin.math.absoluteValue
@@ -79,6 +80,8 @@ fun SwipeCards(
      * revert state was lost, so the parent can still drive revert visibility.
      */
     pendingRevertKey: Any? = null,
+    /** When this changes, content is re-applied so item composables (e.g. isCurrentItem) use latest state. Pass e.g. pendingRevertKey. */
+    contentSeedKey: Any? = null,
     content: SwipeCardsScope.() -> Unit,
 ) {
     state.updateRatio(swipeThreshold = swipeThreshold)
@@ -86,6 +89,7 @@ fun SwipeCards(
         content = content,
         state = state,
         isEndless = isEndless,
+        contentSeedKey = contentSeedKey,
         onAllItemsConsumed = onAllItemsConsumed,
         onSwipeLeft = onSwipeLeft,
         onSwipeRight = onSwipeRight,
@@ -189,7 +193,12 @@ fun SwipeCards(
                             iconDescription = revertButtonContentDescription,
                             onClick = {
                                 if (pendingRevertKey != null) {
-                                    onRevert?.invoke(pendingRevertKey)
+                                    revertPendingSwipe(
+                                        state = state,
+                                        scope = scope,
+                                        pendingRevertKey = pendingRevertKey,
+                                        onRevert = onRevert,
+                                    )
                                 } else {
                                     val last = state.popLastSwipe() ?: return@CustomIconButton
                                     scope.launch {
@@ -205,6 +214,29 @@ fun SwipeCards(
                 }
             }
         }
+    }
+}
+
+/**
+ * Handles revert when the host provides [pendingRevertKey] (pending left-swipe not yet committed).
+ * If the library has the swipe in history, animates it back; otherwise snaps offset and selected index
+ * to 0 so the reverted card becomes the current card, then notifies host via [onRevert].
+ */
+private fun revertPendingSwipe(
+    state: SwipeCardsState,
+    scope: CoroutineScope,
+    pendingRevertKey: Any?,
+    onRevert: ((Any?) -> Unit)?,
+) {
+    val last = state.popLastSwipe()
+    scope.launch {
+        if (last != null) {
+            state.animateBackSwipe(last.second)
+        } else {
+            state.offsetXAnimatable.snapTo(0f)
+            state.snapTo(0)
+        }
+        onRevert?.invoke(pendingRevertKey)
     }
 }
 

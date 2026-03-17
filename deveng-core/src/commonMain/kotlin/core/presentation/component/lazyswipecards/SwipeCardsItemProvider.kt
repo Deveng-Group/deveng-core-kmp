@@ -17,6 +17,7 @@ internal fun rememberSwipeCardsItemProvider(
     content: SwipeCardsScope.() -> Unit,
     isEndless: Boolean,
     state: SwipeCardsState,
+    contentSeedKey: Any? = null,
     onAllItemsConsumed: (() -> Unit)? = null,
     onSwipeLeft: ((Any?) -> Unit)? = null,
     onSwipeRight: ((Any?) -> Unit)? = null,
@@ -26,7 +27,7 @@ internal fun rememberSwipeCardsItemProvider(
     val latestOnSwipeLeft = rememberUpdatedState(onSwipeLeft)
     val latestOnSwipeRight = rememberUpdatedState(onSwipeRight)
 
-    return remember(isEndless, state) {
+    return remember(isEndless, state, contentSeedKey) {
         val listScope = SwipeCardsScopeImpl()
             .apply(latestContent.value)
         val itemProviderState = derivedStateOf {
