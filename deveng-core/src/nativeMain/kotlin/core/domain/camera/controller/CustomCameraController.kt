@@ -18,6 +18,7 @@ import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
+import platform.CoreGraphics.CGPointMake
 import kotlin.collections.emptyList
 import kotlin.concurrent.Volatile
 
@@ -459,35 +460,70 @@ class CustomCameraController(
 
     /**
      * Sets the focus point for tap-to-focus (normalized 0..1).
-     * No-op if device does not support focus point of interest.
+     * Uses AVCaptureDevice focusPointOfInterest and exposurePointOfInterest; one-shot focus/exposure at the tap point.
      */
+    @OptIn(ExperimentalForeignApi::class)
     fun setFocusPoint(normalizedX: Float, normalizedY: Float) {
-        // TODO: implement with AVCaptureDevice setFocusPointOfInterest when needed
+        println("[CameraFocus] CustomCameraController.setFocusPoint($normalizedX, $normalizedY)")
+        val camera = currentCamera ?: run {
+            println("[CameraFocus] CustomCameraController.setFocusPoint SKIP: currentCamera=null")
+            return
+        }
+        val x = normalizedX.coerceIn(0f, 1f).toDouble()
+        val y = normalizedY.coerceIn(0f, 1f).toDouble()
+        val point = CGPointMake(x, y)
+        try {
+            camera.lockForConfiguration(null)
+            if (camera.isFocusPointOfInterestSupported() && camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
+                camera.focusPointOfInterest = point
+                camera.focusMode = AVCaptureFocusModeAutoFocus
+                NSLog("CameraK Debug: setFocusPoint focus point=($x, $y)")
+            } else {
+                NSLog("CameraK Debug: setFocusPoint focus not supported (pointOfInterest=${camera.isFocusPointOfInterestSupported()} autoFocus=${camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus)})")
+            }
+            if (camera.isExposurePointOfInterestSupported() && camera.isExposureModeSupported(AVCaptureExposureModeAutoExpose)) {
+                camera.exposurePointOfInterest = point
+                camera.exposureMode = AVCaptureExposureModeAutoExpose
+                NSLog("CameraK Debug: setFocusPoint exposure point=($x, $y)")
+            }
+            camera.unlockForConfiguration()
+        } catch (e: Exception) {
+            NSLog("CameraK Error: setFocusPoint exception: ${e.message}")
+            try { camera.unlockForConfiguration() } catch (_: Exception) { }
+        }
     }
 
+    /** Clamped exposure range so minimum doesn't go to black (align with Android UX). iOS raw range can be ±8 EV. */
+    private val exposureRangeClamp = -2 to 2
+
     /**
-     * Exposure compensation (brightness) range in EV units. Typical range is -8..8.
+     * Exposure compensation (brightness) range in EV units. Clamped to [exposureRangeClamp] so the
+     * slider doesn't allow "until black" like Android (typical ±2 EV in steps).
      * Returns (0, 0) if device does not support exposure target bias.
      */
     @OptIn(ExperimentalForeignApi::class)
     fun getExposureCompensationRange(): Pair<Int, Int> {
         val camera = currentCamera ?: return Pair(0, 0)
         if (!camera.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)) return Pair(0, 0)
-        val minBias = camera.minExposureTargetBias.toInt()
-        val maxBias = camera.maxExposureTargetBias.toInt()
+        val rawMin = camera.minExposureTargetBias.toInt()
+        val rawMax = camera.maxExposureTargetBias.toInt()
+        if (rawMin >= rawMax) return Pair(0, 0)
+        val (clampMin, clampMax) = exposureRangeClamp
+        val minBias = maxOf(rawMin, clampMin)
+        val maxBias = minOf(rawMax, clampMax)
         return if (minBias < maxBias) Pair(minBias, maxBias) else Pair(0, 0)
     }
 
     /**
-     * Sets exposure target bias (brightness) in EV units. Clamped to device range.
+     * Sets exposure target bias (brightness) in EV units. Clamped to reported range (so within clamp).
      */
     @OptIn(ExperimentalForeignApi::class)
     fun setExposureTargetBias(bias: Int) {
         val camera = currentCamera ?: return
         if (!camera.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)) return
-        val minBias = camera.minExposureTargetBias
-        val maxBias = camera.maxExposureTargetBias
-        val clamped = bias.toFloat().coerceIn(minBias, maxBias)
+        val (minBias, maxBias) = getExposureCompensationRange()
+        if (minBias == 0 && maxBias == 0) return
+        val clamped = bias.toFloat().coerceIn(minBias.toFloat(), maxBias.toFloat())
         camera.lockForConfiguration(null)
         camera.setExposureTargetBias(clamped) { }
         camera.unlockForConfiguration()

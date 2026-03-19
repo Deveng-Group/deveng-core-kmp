@@ -55,6 +55,9 @@ actual class CameraController(
     private var recordingOutputPath: String? = null
     private var recordingStartMs: Long = 0L
 
+    actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
+    actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+
     private var listener: (ByteArray) -> Unit = {
         // default no-op listener
     }

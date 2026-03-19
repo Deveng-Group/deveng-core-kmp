@@ -108,6 +108,9 @@ actual class CameraController(
     private var recordingOutputFile: File? = null
     private val recordingFinalizeChannel = Channel<VideoCaptureResult>(Channel.CONFLATED)
 
+    actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
+    actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+
     private val imageCaptureListeners = mutableListOf<(ByteArray) -> Unit>()
 
     private val memoryManager = MemoryManager

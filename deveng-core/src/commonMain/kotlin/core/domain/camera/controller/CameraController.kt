@@ -215,6 +215,20 @@ expect class CameraController {
      */
     fun cleanup()
 
+    /**
+     * Callback invoked when the user taps the camera preview.
+     * Passes normalized (0..1) X and Y coordinates of the tap.
+     * Used on iOS to forward native UIKit taps back to Compose for the focus ring.
+     * On other platforms this is unused (Compose gesture overlay works directly).
+     */
+    var onPreviewTapListener: ((normalizedX: Float, normalizedY: Float) -> Unit)?
+
+    /**
+     * Callback invoked when the user double-taps the camera preview.
+     * Used on iOS to forward native UIKit double-taps back to Compose.
+     */
+    var onPreviewDoubleTapListener: (() -> Unit)?
+
     // ═══════════════════════════════════════════════════════════════
     // Video Recording
     // ═══════════════════════════════════════════════════════════════

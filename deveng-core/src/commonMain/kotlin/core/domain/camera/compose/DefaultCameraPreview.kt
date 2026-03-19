@@ -27,6 +27,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -146,6 +147,30 @@ fun DefaultCameraPreview(
         }
     }
 
+    // iOS: native UIKit gesture recognizers handle taps because the first Compose touch
+    // is lost to UIKit interop routing. Wire callbacks to update Compose state.
+    DisposableEffect(controller) {
+        controller.onPreviewTapListener = { nx, ny ->
+            val w = overlaySizePx.width
+            val h = overlaySizePx.height
+            println("[CameraFocus] onPreviewTapListener: nx=$nx ny=$ny overlaySizePx=${w}x$h")
+            if (w > 0 && h > 0) {
+                focusTapOffset = Offset(x = nx * w, y = ny * h)
+            }
+        }
+        controller.onPreviewDoubleTapListener = {
+            if (stateHolder != null) stateHolder.toggleCameraLens()
+            else controller.toggleCameraLens()
+            currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+            maxZoomState.value = controller.getMaxZoom()
+            zoomLevelState.value = controller.getZoom()
+        }
+        onDispose {
+            controller.onPreviewTapListener = null
+            controller.onPreviewDoubleTapListener = null
+        }
+    }
+
     LaunchedEffect(recordingUiState.cameraLens, stateHolder) {
         if (stateHolder != null) {
             recordingUiState.cameraLens?.let { currentCameraLens = it }
@@ -172,10 +197,15 @@ fun DefaultCameraPreview(
             .fillMaxSize()
             .onSizeChanged { overlaySizePx = it },
     ) {
-        // Platform overlay: on Android uses View system (ScaleGestureDetector) so first pinch works immediately
+        // Preview first so overlay can be drawn on top (important on iOS: native preview must not steal first tap)
+        CameraPreviewView(
+            controller = controller,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Platform overlay: after preview + high zIndex so it receives taps on iOS (UIKit preview layer otherwise gets first touch)
         CameraZoomGestureOverlay(
             controller = controller,
-            modifier = Modifier.fillMaxSize().zIndex(1f),
+            modifier = Modifier.fillMaxSize().zIndex(3f),
             onZoomChange = { zoomLevelState.value = it },
             onDoubleTap = {
                 if (stateHolder != null) stateHolder.toggleCameraLens()
@@ -185,17 +215,17 @@ fun DefaultCameraPreview(
                 zoomLevelState.value = controller.getZoom()
             },
             onFocusPointTapped = { nx, ny ->
-                if (overlaySizePx.width > 0 && overlaySizePx.height > 0) {
-                    focusTapOffset = Offset(
-                        x = nx * overlaySizePx.width,
-                        y = ny * overlaySizePx.height,
-                    )
+                val w = overlaySizePx.width
+                val h = overlaySizePx.height
+                println("[CameraFocus] DefaultCameraPreview onFocusPointTapped: nx=$nx ny=$ny overlaySizePx=${w}x$h")
+                if (w > 0 && h > 0) {
+                    val offset = Offset(x = nx * w, y = ny * h)
+                    println("[CameraFocus] DefaultCameraPreview setting focusTapOffset=$offset")
+                    focusTapOffset = offset
+                } else {
+                    println("[CameraFocus] DefaultCameraPreview SKIP (overlaySizePx invalid)")
                 }
             },
-        )
-        CameraPreviewView(
-            controller = controller,
-            modifier = Modifier.fillMaxSize(),
         )
         // Shutter flash effect when a photo is captured
         if (showShutterFlash) {

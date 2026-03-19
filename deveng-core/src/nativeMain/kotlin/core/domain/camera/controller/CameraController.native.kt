@@ -21,7 +21,9 @@ import core.domain.camera.video.VideoQuality
 import kotlinx.atomicfu.atomic
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.autoreleasepool
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.AVFoundation.AVCaptureDeviceInput
 import platform.AVFoundation.AVCaptureFlashMode
@@ -53,9 +55,14 @@ import platform.Foundation.NSURL
 import platform.Foundation.timeIntervalSince1970
 import platform.Photos.PHAssetChangeRequest
 import platform.Photos.PHPhotoLibrary
+import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceOrientation
+import platform.UIKit.UIGestureRecognizerStateBegan
+import platform.UIKit.UIGestureRecognizerStateChanged
 import platform.UIKit.UIImagePNGRepresentation
+import platform.UIKit.UIPinchGestureRecognizer
+import platform.UIKit.UITapGestureRecognizer
 import platform.UIKit.UIViewController
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_HIGH
 import platform.darwin.dispatch_async
@@ -94,6 +101,9 @@ actual class CameraController(
     private var videoRecordingDelegate: VideoRecordingDelegate? = null
     private var videoOutputFilePath: String? = null
 
+    actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
+    actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+
     private val memoryManager = MemoryManager
     private val pendingCaptures = atomic(0)
     private val maxConcurrentCaptures = 3
@@ -103,6 +113,64 @@ actual class CameraController(
 
         memoryManager.initialize()
         setupCamera()
+        setupNativeGestureRecognizers()
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun setupNativeGestureRecognizers() {
+        val singleTap = UITapGestureRecognizer(
+            target = this,
+            action = NSSelectorFromString("handleNativeSingleTap:"),
+        )
+        singleTap.numberOfTapsRequired = 1u
+
+        val doubleTap = UITapGestureRecognizer(
+            target = this,
+            action = NSSelectorFromString("handleNativeDoubleTap:"),
+        )
+        doubleTap.numberOfTapsRequired = 2u
+
+        val pinch = UIPinchGestureRecognizer(
+            target = this,
+            action = NSSelectorFromString("handleNativePinch:"),
+        )
+
+        view.addGestureRecognizer(singleTap)
+        view.addGestureRecognizer(doubleTap)
+        view.addGestureRecognizer(pinch)
+    }
+
+    @ObjCAction
+    @OptIn(ExperimentalForeignApi::class)
+    fun handleNativeSingleTap(sender: UITapGestureRecognizer) {
+        val viewWidth = view.bounds.useContents { size.width }
+        val viewHeight = view.bounds.useContents { size.height }
+        if (viewWidth <= 0.0 || viewHeight <= 0.0) return
+        val location = sender.locationInView(view)
+        val nx = (location.useContents { x } / viewWidth).toFloat().coerceIn(0f, 1f)
+        val ny = (location.useContents { y } / viewHeight).toFloat().coerceIn(0f, 1f)
+        println("[CameraFocus] Native handleSingleTap: nx=$nx ny=$ny")
+        setFocusPoint(nx, ny)
+        onPreviewTapListener?.invoke(nx, ny)
+    }
+
+    @ObjCAction
+    fun handleNativeDoubleTap(sender: UITapGestureRecognizer) {
+        println("[CameraFocus] Native handleDoubleTap")
+        onPreviewDoubleTapListener?.invoke()
+    }
+
+    @ObjCAction
+    @OptIn(ExperimentalForeignApi::class)
+    fun handleNativePinch(sender: UIPinchGestureRecognizer) {
+        val state = sender.state
+        if (state != UIGestureRecognizerStateBegan && state != UIGestureRecognizerStateChanged) return
+        val scale = sender.scale.toFloat()
+        sender.setScale(1.0)
+        val currentZoom = getZoom()
+        val maxZoom = getMaxZoom().coerceAtLeast(1f)
+        val newZoom = (currentZoom * scale).coerceIn(1f, maxZoom)
+        setZoom(newZoom)
     }
 
     override fun viewWillAppear(animated: Boolean) {
