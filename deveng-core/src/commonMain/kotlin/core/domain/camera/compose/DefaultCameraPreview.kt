@@ -116,6 +116,8 @@ fun DefaultCameraPreview(
     val maxZoomState = remember { mutableStateOf(1f) }
     var maxZoom by maxZoomState
     var currentFlashMode by remember { mutableStateOf(FlashMode.OFF) }
+    /** Tracked in Compose so flash visibility updates when lens changes (controller alone does not trigger recomposition). */
+    var currentCameraLens by remember { mutableStateOf(controller.getCameraLens() ?: CameraLens.BACK) }
     var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
     var overlaySizePx by remember { mutableStateOf(IntSize.Zero) }
     var brightnessIndex by remember { mutableStateOf(0f) }
@@ -144,7 +146,14 @@ fun DefaultCameraPreview(
         }
     }
 
+    LaunchedEffect(recordingUiState.cameraLens, stateHolder) {
+        if (stateHolder != null) {
+            recordingUiState.cameraLens?.let { currentCameraLens = it }
+        }
+    }
+
     LaunchedEffect(controller) {
+        currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
         maxZoomState.value = controller.getMaxZoom()
         zoomLevelState.value = controller.getZoom()
@@ -169,7 +178,9 @@ fun DefaultCameraPreview(
             modifier = Modifier.fillMaxSize().zIndex(1f),
             onZoomChange = { zoomLevelState.value = it },
             onDoubleTap = {
-                controller.toggleCameraLens()
+                if (stateHolder != null) stateHolder.toggleCameraLens()
+                else controller.toggleCameraLens()
+                currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
                 maxZoomState.value = controller.getMaxZoom()
                 zoomLevelState.value = controller.getZoom()
             },
@@ -271,7 +282,7 @@ fun DefaultCameraPreview(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (controller.getCameraLens() != CameraLens.FRONT) {
+            if (currentCameraLens != CameraLens.FRONT) {
                 CustomIconButton(
                     icon = CameraIcons.flash,
                     iconDescription = "Flash",
@@ -294,7 +305,9 @@ fun DefaultCameraPreview(
                 backgroundColor = Color.Transparent,
                 shadowElevation = 0.dp,
                     onClick = {
-                        controller.toggleCameraLens()
+                        if (stateHolder != null) stateHolder.toggleCameraLens()
+                        else controller.toggleCameraLens()
+                        currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
                         maxZoomState.value = controller.getMaxZoom()
                         zoomLevelState.value = controller.getZoom()
                     },

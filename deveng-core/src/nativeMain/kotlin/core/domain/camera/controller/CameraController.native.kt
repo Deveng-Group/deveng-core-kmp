@@ -197,7 +197,7 @@ actual class CameraController(
         }
 
         customCameraController.onError = { error ->
-            platform.Foundation.NSLog("CameraK Error: $error")
+            platform.Foundation.NSLog("CameraK Error: ${error::class.simpleName} - ${error.message ?: "no message"}")
         }
     }
 
@@ -483,11 +483,17 @@ actual class CameraController(
             else -> FlashMode.ON  // OFF or AUTO -> ON
         }
         customCameraController.setFlashMode(flashMode.toAVCaptureFlashMode())
+        // iOS: flash mode only affects photo capture; turn on torch for preview when flash is ON
+        torchMode = if (flashMode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
+        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
 
     actual fun setFlashMode(mode: FlashMode) {
         flashMode = mode
         customCameraController.setFlashMode(mode.toAVCaptureFlashMode())
+        // iOS: sync torch so preview shows light when flash is ON
+        torchMode = if (mode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
+        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
 
     actual fun getFlashMode(): FlashMode? {
@@ -547,11 +553,12 @@ actual class CameraController(
             memoryManager.clearBufferPools()
         }
 
-        cameraLens = if (cameraLens == CameraLens.BACK) CameraLens.FRONT else CameraLens.BACK
         customCameraController.switchCamera()
+        // Sync with actual state (controller may have restored previous lens or succeeded on retry)
+        cameraLens = customCameraController.getCurrentLens()
     }
 
-    actual fun getCameraLens(): CameraLens? = cameraLens
+    actual fun getCameraLens(): CameraLens? = customCameraController.getCurrentLens()
 
     actual fun getImageFormat(): ImageFormat = imageFormat
 

@@ -51,6 +51,9 @@ class CustomCameraController(
     var onError: ((CameraException) -> Unit)? = null
     var onSessionReady: (() -> Unit)? = null
 
+    /** Current lens based on actual session state (for sync with wrapper). */
+    fun getCurrentLens(): CameraLens = if (isUsingFrontCamera) CameraLens.FRONT else CameraLens.BACK
+
     var flashMode: AVCaptureFlashMode = AVCaptureFlashModeOff  // iOS: only ON/OFF like Android
     var torchMode: AVCaptureTorchMode = AVCaptureTorchModeAuto
 
@@ -62,10 +65,10 @@ class CustomCameraController(
     @Volatile
     private var isConfiguring = false
 
-    sealed class CameraException : Exception() {
+    sealed class CameraException(message: String? = null) : Exception(message) {
         class DeviceNotAvailable : CameraException()
-        class ConfigurationError(message: String) : CameraException()
-        class CaptureError(message: String) : CameraException()
+        class ConfigurationError(message: String) : CameraException(message)
+        class CaptureError(message: String) : CameraException(message)
     }
 
     /**
@@ -83,6 +86,7 @@ class CustomCameraController(
      * - AVCaptureDeviceTypeBuiltInMacroCamera
      */
     fun setupSession(cameraDeviceType: CameraDeviceType = CameraDeviceType.DEFAULT) {
+        NSLog("CameraK Debug: setupSession started cameraDeviceType=$cameraDeviceType initialLens=$initialCameraLens aspectRatio=$aspectRatio targetResolution=$targetResolution")
         try {
             // Perform heavy setup off the main thread to reduce UI stalls (#73)
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH.toLong(), 0u)) {
@@ -92,8 +96,10 @@ class CustomCameraController(
                 // Start with a fast preset; prefer target resolution if provided
                 val initialPreset = targetResolution?.toPreset() ?: AVCaptureSessionPresetHigh
                 captureSession?.sessionPreset = initialPreset
+                NSLog("CameraK Debug: setupSession initialPreset=$initialPreset")
 
                 if (!setupInputs(cameraDeviceType)) {
+                    NSLog("CameraK Error: setupSession setupInputs returned false -> DeviceNotAvailable")
                     dispatch_async(dispatch_get_main_queue()) {
                         cleanupSession()
                         onError?.invoke(CameraException.DeviceNotAvailable())
@@ -101,6 +107,7 @@ class CustomCameraController(
                     return@dispatch_async
                 }
 
+                NSLog("CameraK Debug: setupSession setupInputs OK, calling setupPhotoOutput")
                 setupPhotoOutput()
                 captureSession?.commitConfiguration()
 
@@ -111,12 +118,18 @@ class CustomCameraController(
                     captureSession?.sessionPreset = finalPreset
                     captureSession?.commitConfiguration()
                     captureSession?.commitConfiguration()
+                    NSLog("CameraK Debug: setupSession complete finalPreset=$finalPreset onSessionReady")
                     onSessionReady?.invoke()
                 }
             }
         } catch (e: CameraException) {
+            NSLog("CameraK Error: setupSession caught CameraException: ${e::class.simpleName} - ${e.message}")
             cleanupSession()
             onError?.invoke(e)
+        } catch (e: Exception) {
+            NSLog("CameraK Error: setupSession caught Exception: ${e.message}")
+            cleanupSession()
+            onError?.invoke(CameraException.ConfigurationError(e.message ?: "Unknown error"))
         }
     }
 
@@ -155,13 +168,17 @@ class CustomCameraController(
 
         photoOutput?.setPreparedPhotoSettingsArray(emptyList<String>(), completionHandler = { settings, error ->
             if (error != null) {
+                NSLog("CameraK Error: setupPhotoOutput setPreparedPhotoSettingsArray error: ${error.localizedDescription}")
                 onError?.invoke(CameraException.ConfigurationError(error.localizedDescription))
             }
         })
 
-        if (captureSession?.canAddOutput(photoOutput!!) == true) {
+        val canAdd = captureSession?.canAddOutput(photoOutput!!) == true
+        NSLog("CameraK Debug: setupPhotoOutput canAddOutput(photoOutput)=$canAdd")
+        if (canAdd) {
             captureSession?.addOutput(photoOutput!!)
         } else {
+            NSLog("CameraK Error: setupPhotoOutput Cannot add photo output (canAddOutput=false)")
             throw CameraException.ConfigurationError("Cannot add photo output")
         }
     }
@@ -174,6 +191,7 @@ class CustomCameraController(
             AVCaptureDeviceTypeBuiltInTelephotoCamera,
             AVCaptureDeviceTypeBuiltInUltraWideCamera,
         )
+        NSLog("CameraK Debug: setupInputs deviceTypes=$deviceTypes")
 
         val discoverySession = AVCaptureDeviceDiscoverySession.discoverySessionWithDeviceTypes(
             deviceTypes,
@@ -184,6 +202,7 @@ class CustomCameraController(
         val devices = discoverySession.devices.ifEmpty {
             AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)?.let { listOf<Any?>(it) } ?: emptyList()
         }
+        NSLog("CameraK Debug: setupInputs discoverySession.devices.size=${devices.size}")
 
         devices.forEach { device ->
             val cam = device as AVCaptureDevice
@@ -192,6 +211,7 @@ class CustomCameraController(
                 AVCaptureDevicePositionFront -> frontCamera = cam
             }
         }
+        NSLog("CameraK Debug: setupInputs backCamera=${backCamera != null} frontCamera=${frontCamera != null}")
 
         fun findByTypeAndPosition(type: String?, position: Long?): AVCaptureDevice? = devices.firstOrNull { dev ->
             val cam = dev as AVCaptureDevice
@@ -211,21 +231,32 @@ class CustomCameraController(
                     CameraLens.FRONT -> frontCamera ?: backCamera
                     CameraLens.BACK -> backCamera ?: frontCamera
                 }
-                ?: return false
+                ?: run {
+                    NSLog("CameraK Error: setupInputs no currentCamera found (requestedType=$requestedType desiredPosition=$desiredPosition)")
+                    return false
+                }
 
         isUsingFrontCamera = (currentCamera == frontCamera)
+        NSLog("CameraK Debug: setupInputs currentCamera selected isUsingFrontCamera=$isUsingFrontCamera")
 
         return try {
             val input = AVCaptureDeviceInput.deviceInputWithDevice(currentCamera!!, null)
-                ?: return false
+            if (input == null) {
+                NSLog("CameraK Error: setupInputs deviceInputWithDevice(currentCamera) returned null")
+                return false
+            }
 
-            if (captureSession?.canAddInput(input) == true) {
+            val canAdd = captureSession?.canAddInput(input) == true
+            NSLog("CameraK Debug: setupInputs canAddInput=$canAdd")
+            if (canAdd) {
                 captureSession?.addInput(input)
                 true
             } else {
+                NSLog("CameraK Error: setupInputs canAddInput returned false")
                 false
             }
         } catch (e: Exception) {
+            NSLog("CameraK Error: setupInputs exception: ${e.message}")
             throw CameraException.ConfigurationError(e.message ?: "Unknown error")
         }
     }
@@ -362,12 +393,12 @@ class CustomCameraController(
     }
 
     fun setFlashMode(mode: AVCaptureFlashMode) {
-        // Check if device supports this flash mode before setting
         val supportedFlashModes = photoOutput?.supportedFlashModes() as? List<*>
+        NSLog("CameraK Debug: setFlashMode requested=$mode supported=$supportedFlashModes currentCamera=${currentCamera != null} hasTorch=${currentCamera?.hasTorch == true}")
         if (supportedFlashModes?.contains(mode) == true) {
             flashMode = mode
+            NSLog("CameraK Debug: setFlashMode applied=$flashMode")
         } else {
-            // Device doesn't support flash (e.g., iPad) - use OFF
             platform.Foundation.NSLog("CameraK: Flash mode not supported on this device, using OFF")
             flashMode = AVCaptureFlashModeOff
         }
@@ -376,17 +407,23 @@ class CustomCameraController(
     @OptIn(ExperimentalForeignApi::class)
     fun setTorchMode(mode: AVCaptureTorchMode) {
         torchMode = mode
-        currentCamera?.let { camera ->
-            if (camera.hasTorch) {
+        val camera = currentCamera
+        NSLog("CameraK Debug: setTorchMode requested=$mode currentCamera=${camera != null} hasTorch=${camera?.hasTorch == true}")
+        camera?.let { cam ->
+            if (cam.hasTorch) {
                 try {
-                    camera.lockForConfiguration(null)
-                    camera.torchMode = mode
-                    camera.unlockForConfiguration()
+                    cam.lockForConfiguration(null)
+                    cam.torchMode = mode
+                    cam.unlockForConfiguration()
+                    NSLog("CameraK Debug: setTorchMode applied torchMode=$mode")
                 } catch (e: Exception) {
+                    NSLog("CameraK Error: setTorchMode exception: ${e.message}")
                     onError?.invoke(CameraException.ConfigurationError("Failed to set torch mode"))
                 }
+            } else {
+                NSLog("CameraK Debug: setTorchMode skipped (no torch on this device, e.g. front camera)")
             }
-        }
+        } ?: NSLog("CameraK Debug: setTorchMode skipped (no currentCamera)")
     }
 
     /**
@@ -402,6 +439,7 @@ class CustomCameraController(
                 camera.videoZoomFactor = clampedZoom.toDouble()
                 camera.unlockForConfiguration()
             } catch (e: Exception) {
+                NSLog("CameraK Error: setZoom exception: ${e.message}")
                 onError?.invoke(CameraException.ConfigurationError("Failed to set zoom: ${e.message}"))
             }
         }
@@ -489,6 +527,7 @@ class CustomCameraController(
      */
     fun captureImage(quality: Double = 0.9) {
         if (photoOutput == null || captureSession?.isRunning() != true) {
+            NSLog("CameraK Error: captureImage not ready photoOutput=${photoOutput != null} sessionRunning=${captureSession?.isRunning() == true}")
             onError?.invoke(CameraException.ConfigurationError("Camera not ready for capture"))
             return
         }
@@ -639,65 +678,136 @@ class CustomCameraController(
     fun switchCamera() {
         guard(captureSession != null) { return@guard }
 
-        val wasRunning = captureSession?.isRunning() == true
+        val session = captureSession!!
+        val wasRunning = session.isRunning()
+        val fromLens = getCurrentLens()
+        NSLog("CameraK Debug: switchCamera from lens=$fromLens wasRunning=$wasRunning")
+
         if (wasRunning) {
-            captureSession?.stopRunning()
+            session.stopRunning()
         }
 
-        captureSession?.beginConfiguration()
+        // Remember current camera so we can restore if add fails
+        val previousCamera = currentCamera
 
-        try {
-            captureSession?.inputs?.firstOrNull()?.let { input ->
-                captureSession?.removeInput(input as AVCaptureInput)
+        fun trySwitch(): Boolean {
+            session.beginConfiguration()
+
+            session.inputs?.firstOrNull()?.let { input ->
+                session.removeInput(input as AVCaptureInput)
             }
 
             isUsingFrontCamera = !isUsingFrontCamera
             currentCamera = if (isUsingFrontCamera) frontCamera else backCamera
+            val targetLens = getCurrentLens()
+            NSLog("CameraK Debug: switchCamera targetLens=$targetLens (isUsingFrontCamera=$isUsingFrontCamera)")
 
-            val newCamera = currentCamera ?: throw CameraException.DeviceNotAvailable()
+            val newCamera = currentCamera
+            if (newCamera == null) {
+                NSLog("CameraK Error: toggleCameraLens newCamera is null (front=$frontCamera back=$backCamera)")
+                isUsingFrontCamera = !isUsingFrontCamera
+                currentCamera = previousCamera
+                return false
+            }
 
-            val newInput = AVCaptureDeviceInput.deviceInputWithDevice(
-                newCamera,
-                null,
-            ) ?: throw CameraException.ConfigurationError("Failed to create input")
+            val newInput = AVCaptureDeviceInput.deviceInputWithDevice(newCamera, null)
+            if (newInput == null) {
+                NSLog("CameraK Error: toggleCameraLens deviceInputWithDevice returned null")
+                isUsingFrontCamera = !isUsingFrontCamera
+                currentCamera = previousCamera
+                return false
+            }
 
-            if (captureSession?.canAddInput(newInput) == true) {
-                captureSession?.addInput(newInput)
+            val canAdd = session.canAddInput(newInput)
+            NSLog("CameraK Debug: toggleCameraLens canAddInput=$canAdd targetLens=$targetLens")
+            if (canAdd) {
+                session.addInput(newInput)
+                cameraPreviewLayer?.connection?.let { connection ->
+                    if (connection.isVideoMirroringSupported()) {
+                        connection.automaticallyAdjustsVideoMirroring = false
+                        connection.setVideoMirrored(isUsingFrontCamera)
+                    }
+                }
+                session.commitConfiguration()
+                NSLog("CameraK Debug: switchCamera SUCCESS now lens=${getCurrentLens()} sessionInputs=${session.inputs?.size ?: 0}")
+                return true
+            }
+
+            // canAddInput false: re-add previous input so session is not left without a camera
+            session.commitConfiguration()
+            val prevInput = previousCamera?.let { AVCaptureDeviceInput.deviceInputWithDevice(it, null) }
+            if (prevInput != null && session.canAddInput(prevInput)) {
+                session.beginConfiguration()
+                session.addInput(prevInput)
+                session.commitConfiguration()
+                isUsingFrontCamera = !isUsingFrontCamera
+                currentCamera = previousCamera
+                NSLog("CameraK Debug: switchCamera RESTORED previous lens=${getCurrentLens()}")
             } else {
-                throw CameraException.ConfigurationError("Cannot add input")
+                // Could not restore; revert state so retry will try the same target (back) again, not flip to front
+                isUsingFrontCamera = !isUsingFrontCamera
+                currentCamera = previousCamera
+                NSLog("CameraK Debug: switchCamera could not restore previous input prevInput=${prevInput != null} canAdd=${prevInput?.let { session.canAddInput(it) }} reverted state to lens=${getCurrentLens()}")
+            }
+            return false
+        }
+
+        try {
+            var success = trySwitch()
+            if (!success && previousCamera != null) {
+                // Retry once (iOS sometimes accepts the new input on second attempt)
+                NSLog("CameraK Debug: toggleCameraLens retry after canAddInput=false")
+                success = trySwitch()
             }
 
-            cameraPreviewLayer?.connection?.let { connection ->
-                if (connection.isVideoMirroringSupported()) {
-                    connection.automaticallyAdjustsVideoMirroring = false
-                    connection.setVideoMirrored(isUsingFrontCamera)
+            if (success) {
+                // Force preview layer to pick up new input (iOS can leave connection stale)
+                cameraPreviewLayer?.let { layer ->
+                    val s = layer.session
+                    layer.session = null
+                    layer.session = session
+                    NSLog("CameraK Debug: switchCamera refreshed preview layer session (was=${s != null})")
                 }
-            }
-
-            captureSession?.commitConfiguration()
-
-            processPendingConfigurations()
-
-            if (wasRunning) {
-                dispatch_async(
-                    dispatch_get_global_queue(
-                        DISPATCH_QUEUE_PRIORITY_HIGH.toLong(),
-                        0u,
-                    ),
-                ) {
-                    captureSession?.startRunning()
+                processPendingConfigurations()
+                // Re-apply torch after camera switch (back has torch, front does not)
+                setTorchMode(torchMode)
+                if (wasRunning) {
+                    dispatch_async(
+                        dispatch_get_global_queue(
+                            DISPATCH_QUEUE_PRIORITY_HIGH.toLong(),
+                            0u,
+                        ),
+                    ) {
+                        session.startRunning()
+                    }
                 }
+                NSLog("CameraK Debug: switchCamera done success=true lens=${getCurrentLens()}")
+            } else {
+                if (wasRunning) {
+                    dispatch_async(
+                        dispatch_get_global_queue(
+                            DISPATCH_QUEUE_PRIORITY_HIGH.toLong(),
+                            0u,
+                        ),
+                    ) {
+                        session.startRunning()
+                    }
+                }
+                NSLog("CameraK Error: toggleCameraLens failed after retry lens=${getCurrentLens()}")
+                onError?.invoke(CameraException.ConfigurationError("Cannot add input"))
             }
         } catch (e: CameraException) {
-            captureSession?.commitConfiguration()
+            NSLog("CameraK Error: toggleCameraLens CameraException: ${e::class.simpleName} - ${e.message}")
+            session.commitConfiguration()
             if (wasRunning) {
-                captureSession?.startRunning()
+                session.startRunning()
             }
             onError?.invoke(e)
         } catch (e: Exception) {
-            captureSession?.commitConfiguration()
+            NSLog("CameraK Error: toggleCameraLens Exception: ${e.message}")
+            session.commitConfiguration()
             if (wasRunning) {
-                captureSession?.startRunning()
+                session.startRunning()
             }
             onError?.invoke(CameraException.ConfigurationError(e.message ?: "Unknown error"))
         }
