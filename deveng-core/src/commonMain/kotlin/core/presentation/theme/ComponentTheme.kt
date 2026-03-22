@@ -245,7 +245,7 @@ data class DateRangePickerTheme(
  * Theme for CustomHeader component
  */
 data class HeaderTheme(
-    val containerPadding: PaddingValues = PaddingValues(horizontal = 13.dp, vertical = 12.dp),
+    val containerPadding: PaddingValues = PaddingValues(0.dp),
     val backgroundColor: Color = Color.Transparent,
     val leftIconTint: Color = Color.White,
     val rightIconTint: Color = Color.White,

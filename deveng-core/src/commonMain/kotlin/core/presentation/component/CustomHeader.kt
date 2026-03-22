@@ -45,6 +45,10 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * Can contain multiple icons. If rightIcon is null or not visible, this slot aligns to the far right.
  * If rightIcon is visible, this slot appears to the left of rightIcon.
  * @param centerIcon Optional drawable resource for the center icon/logo.
+ * @param centerSlot Optional composable slot for the center content (e.g. a Text logo).
+ * Takes precedence over [centerIcon] when provided.
+ * @param isCenterAtStart When true, the center content is aligned to the start (left) instead
+ * of the center. Useful for placing a logo/title at the start of the header.
  * @param leftIconDescription Content description for accessibility for the left icon.
  * @param rightIconDescription Content description for accessibility for the right icon.
  * @param centerIconDescription Content description for accessibility for the center icon.
@@ -73,6 +77,8 @@ fun CustomHeader(
     rightIcon: DrawableResource? = null,
     trailingSlot: Slot? = null,
     centerIcon: DrawableResource? = null,
+    centerSlot: Slot? = null,
+    isCenterAtStart: Boolean = false,
     leftIconDescription: String = stringResource(Res.string.shared_content_desc_icon_left),
     rightIconDescription: String = stringResource(Res.string.shared_content_desc_icon_right),
     centerIconDescription: String = stringResource(Res.string.shared_content_desc_header_center_icon),
@@ -130,16 +136,28 @@ fun CustomHeader(
             }
         }
 
-        val resolvedCenterIcon = centerIcon ?: headerTheme.icon
-        if (isCenterIconVisible && resolvedCenterIcon != null) {
-            Image(
-                modifier = Modifier
-                    .width(126.dp)
-                    .height(45.dp)
-                    .align(Alignment.Center),
-                painter = painterResource(resolvedCenterIcon),
-                contentDescription = centerIconDescription
-            )
+        val centerAlignment = if (isCenterAtStart) Alignment.CenterStart else Alignment.Center
+        if (isCenterIconVisible) {
+            when {
+                centerSlot != null -> {
+                    Box(modifier = Modifier.align(centerAlignment)) {
+                        centerSlot()
+                    }
+                }
+                else -> {
+                    val resolvedCenterIcon = centerIcon ?: headerTheme.icon
+                    if (resolvedCenterIcon != null) {
+                        Image(
+                            modifier = Modifier
+                                .width(126.dp)
+                                .height(45.dp)
+                                .align(centerAlignment),
+                            painter = painterResource(resolvedCenterIcon),
+                            contentDescription = centerIconDescription
+                        )
+                    }
+                }
+            }
         }
 
         if (isRightIconButtonVisible) {
@@ -161,6 +179,25 @@ fun CustomHeader(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+fun CustomHeaderLogoAtStartPreview() {
+    AppTheme {
+        CustomHeader(
+            leftIcon = null,
+            centerSlot = {
+                androidx.compose.material3.Text(
+                    text = "rindle",
+                    style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
+                )
+            },
+            isCenterAtStart = true,
+            rightIcon = Res.drawable.shared_ic_angle_right,
+            onRightIconClick = {}
+        )
     }
 }
 
