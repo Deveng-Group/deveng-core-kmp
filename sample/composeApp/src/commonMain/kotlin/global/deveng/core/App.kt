@@ -588,6 +588,7 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var otpDigits by remember { mutableStateOf("") }
     var otpDigits4 by remember { mutableStateOf("") }
     var otpDigitsError by remember { mutableStateOf("") }
+    var otpDigitsAlphanumeric by remember { mutableStateOf("") }
     var isOtpError by remember { mutableStateOf(false) }
 
     val navigationMenuItems = listOf(
@@ -1703,6 +1704,20 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             onDigitChanged = { otpDigits4 = it },
                             otpSize = OtpSize.FOUR,
                             requestFocusOnFirstDisplay = false
+                        )
+
+                        Text(
+                            text = "OtpView — allowLetters = true (harf+rakam, harfler büyük; geçersiz karakter reddedilir)",
+                            style = CoreRegularTextStyle().copy(fontSize = 14.sp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OtpView(
+                            otpDigits = otpDigitsAlphanumeric,
+                            onDigitChanged = { otpDigitsAlphanumeric = it },
+                            otpSize = OtpSize.SIX,
+                            requestFocusOnFirstDisplay = false,
+                            allowLetters = true
                         )
 
                         OtpView(

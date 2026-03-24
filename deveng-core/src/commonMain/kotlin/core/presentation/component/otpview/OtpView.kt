@@ -28,6 +28,12 @@ import core.presentation.theme.LocalComponentTheme
 import core.util.EMPTY
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * @param allowLetters When false (default), only digits are accepted and a numeric keyboard is shown.
+ *   When true, only letters and digits ([Char.isLetterOrDigit]) are accepted, a text keyboard is shown,
+ *   and letters are normalized to uppercase ([Char.uppercaseChar]) before [onDigitChanged].
+ *   Invalid characters are rejected the same way in both modes (callback is not invoked, field stays in sync with [otpDigits]).
+ */
 @Composable
 fun OtpView(
     modifier: Modifier = Modifier,
@@ -36,7 +42,8 @@ fun OtpView(
     onDigitChanged: (String) -> Unit,
     otpSize: OtpSize = OtpSize.SIX,
     textStyle: TextStyle? = null,
-    requestFocusOnFirstDisplay: Boolean = true
+    requestFocusOnFirstDisplay: Boolean = true,
+    allowLetters: Boolean = false
 ) {
     val componentTheme = LocalComponentTheme.current
     val otpViewTheme = componentTheme.otpView
@@ -80,15 +87,27 @@ fun OtpView(
                 .focusRequester(focusRequester)
                 .pointerInput(Unit) { detectTapGestures(onTap = {}) },
             value = otpDigits,
-            onValueChange = {
-                if (it.length <= otpSize.size && it.all { char -> char.isDigit() }) {
-                    onDigitChanged(it)
+            onValueChange = { text ->
+                val isAllowedCharacter: (Char) -> Boolean =
+                    if (allowLetters) Char::isLetterOrDigit else Char::isDigit
+                if (text.length <= otpSize.size && text.all(isAllowedCharacter)) {
+                    onDigitChanged(
+                        if (allowLetters) {
+                            text
+                                .map { character ->
+                                    if (character.isLetter()) character.uppercaseChar() else character
+                                }
+                                .joinToString(separator = "")
+                        } else {
+                            text
+                        }
+                    )
                 }
             },
             containerModifier = Modifier
                 .size(1.dp)
                 .alpha(0f),
-            keyboardType = KeyboardType.Number,
+            keyboardType = if (allowLetters) KeyboardType.Text else KeyboardType.Number,
             maxLength = otpSize.size,
             textStyle = textStyle,
             containerColor = Color.Transparent,
