@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -471,6 +472,63 @@ data class ChipItemTheme(
 )
 
 /**
+ * Theme for ChipsMenu component
+ */
+data class ChipsMenuTheme(
+    val spaceBetweenItems: Dp = 10.dp,
+    val startBrushWidth: Dp = 30.dp,
+    val endBrushWidth: Dp = 30.dp
+)
+
+/**
+ * Theme for TabRow component
+ */
+data class TabRowTheme(
+    val tabHeight: Dp = 50.dp,
+    val contentSpacing: Dp = 16.dp,
+    val selectedTabBackgroundColor: Color = CoreSecondaryColor,
+    val unselectedTabBackgroundColor: Color = CoreSecondaryColor,
+    val selectedTabTitleTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = Color.White
+    ),
+    val unselectedTabTitleTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = Color.White
+    ),
+    val selectedTabNameColor: Color = Color.White,
+    val unselectedTabNameColor: Color = Color.White,
+    val selectedTabLineColor: Color = CoreCustomBlackColor,
+    val unselectedTabLineColor: Color = CoreSecondaryColor,
+    val selectedTabLineHeight: Dp = 3.dp,
+    val unselectedTabLineHeight: Dp = 3.dp,
+    val startBrushWidth: Dp = 30.dp,
+    val endBrushWidth: Dp = 30.dp
+)
+
+/**
+ * Theme for Shutter component
+ */
+data class ShutterTheme(
+    val headerBackgroundColor: Color = CoreSecondaryColor,
+    val headerInnerPadding: Dp = 10.dp,
+    val headerContentSpacing: Dp = 3.dp,
+    val headerShadowHeight: Dp = 8.dp,
+    val headerShadowShape: Shape = RectangleShape,
+    val titleTextStyle: TextStyle = TextStyle(
+        fontSize = 16.sp,
+        color = Color.White
+    ),
+    val descriptionTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = Color.White
+    ),
+    val expandIcon: DrawableResource? = null,
+    val expandIconSize: Dp = 16.dp,
+    val expandIconColor: Color = Color.White
+)
+
+/**
  * Theme for RatingRow component
  */
 data class RatingRowTheme(
@@ -483,6 +541,18 @@ data class RatingRowTheme(
     val animationScale: Float = 1.2f,
     val animationDampingRatio: Float = Spring.DampingRatioMediumBouncy,
     val animationStiffness: Float = 9000f
+)
+
+/**
+ * Theme for CustomSlider component
+ */
+data class CustomSliderTheme(
+    val titleTextStyle: TextStyle = TextStyle(),
+    val currentValueTextStyle: TextStyle = TextStyle(),
+    val errorMessageTextStyle: TextStyle = TextStyle(),
+    val rangeLabelTextStyle: TextStyle = TextStyle(),
+    val sliderRowSpacing: Dp = 8.dp,
+    val errorMessageTopSpacing: Dp = 10.dp
 )
 
 /**
@@ -566,9 +636,13 @@ data class ComponentTheme(
     val labeledSlot: LabeledSlotTheme = LabeledSlotTheme(),
     val navigationMenu: NavigationMenuTheme = NavigationMenuTheme(),
     val chipItem: ChipItemTheme = ChipItemTheme(),
+    val chipsMenu: ChipsMenuTheme = ChipsMenuTheme(),
     val ratingRow: RatingRowTheme = RatingRowTheme(),
+    val customSlider: CustomSliderTheme = CustomSliderTheme(),
     val otpView: OtpViewTheme = OtpViewTheme(),
-    val swipeCards: SwipeCardsTheme = SwipeCardsTheme()
+    val swipeCards: SwipeCardsTheme = SwipeCardsTheme(),
+    val tabRow: TabRowTheme = TabRowTheme(),
+    val shutter: ShutterTheme = ShutterTheme()
 )
 
 /**
