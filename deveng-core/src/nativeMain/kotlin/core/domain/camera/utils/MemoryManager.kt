@@ -170,13 +170,9 @@ object MemoryManager {
     }
 
     /**
-     * Get optimal image quality based on memory conditions
+     * JPEG/process quality hint (0.0–1.0). Kept at maximum; buffer pools still clear on memory warnings.
      */
-    fun getOptimalImageQuality(): Double = when {
-        memoryPressure.value -> 0.6
-        memoryUsage.value > 0.7 -> 0.75
-        else -> 0.95
-    }
+    fun getOptimalImageQuality(): Double = 1.0
 
     /**
      * Check if memory is under pressure

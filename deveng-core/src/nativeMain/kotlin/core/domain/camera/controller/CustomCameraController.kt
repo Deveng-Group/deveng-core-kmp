@@ -4,14 +4,15 @@ import core.domain.camera.enums.AspectRatio
 import core.domain.camera.enums.CameraDeviceType
 import core.domain.camera.enums.CameraLens
 import core.domain.camera.enums.QualityPrioritization
-import core.domain.camera.utils.MemoryManager
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.useContents
 import platform.AVFoundation.*
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSLog
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceOrientation
+import platform.UIKit.UIScreen
 import platform.UIKit.UIView
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_HIGH
 import platform.darwin.NSObject
@@ -118,7 +119,8 @@ class CustomCameraController(
                     val finalPreset = targetResolution?.toPreset() ?: aspectRatio.toSessionPreset()
                     captureSession?.sessionPreset = finalPreset
                     captureSession?.commitConfiguration()
-                    captureSession?.commitConfiguration()
+                    // Prefer stabilization and full-quality capture path unless caller explicitly chose SPEED.
+                    highQualityEnabled = qualityPrioritization != QualityPrioritization.SPEED
                     NSLog("CameraK Debug: setupSession complete finalPreset=$finalPreset onSessionReady")
                     onSessionReady?.invoke()
                 }
@@ -149,7 +151,7 @@ class CustomCameraController(
         photoOutput?.setHighResolutionCaptureEnabled(false)
 
         when (qualityPrioritization) {
-            QualityPrioritization.QUALITY -> {
+            QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
                 photoOutput?.setHighResolutionCaptureEnabled(true)
                 photoOutput?.setMaxPhotoQualityPrioritization(
                     AVCapturePhotoQualityPrioritizationQuality,
@@ -163,8 +165,6 @@ class CustomCameraController(
             QualityPrioritization.SPEED -> photoOutput?.setMaxPhotoQualityPrioritization(
                 AVCapturePhotoQualityPrioritizationSpeed,
             )
-
-            QualityPrioritization.NONE -> null
         }
 
         photoOutput?.setPreparedPhotoSettingsArray(emptyList<String>(), completionHandler = { settings, error ->
@@ -251,6 +251,7 @@ class CustomCameraController(
             NSLog("CameraK Debug: setupInputs canAddInput=$canAdd")
             if (canAdd) {
                 captureSession?.addInput(input)
+                applyContinuousAutofocusAndExposure(currentCamera)
                 true
             } else {
                 NSLog("CameraK Error: setupInputs canAddInput returned false")
@@ -374,6 +375,8 @@ class CustomCameraController(
 
         val newPreviewLayer = AVCaptureVideoPreviewLayer(session = session).apply {
             videoGravity = AVLayerVideoGravityResizeAspectFill
+            // Match screen pixel density so preview is not upscaled soft on Retina.
+            contentsScale = UIScreen.mainScreen.scale
             setFrame(view.bounds)
             connection?.videoOrientation = currentVideoOrientation()
         }
@@ -459,8 +462,78 @@ class CustomCameraController(
     fun getMaxZoom(): Float = currentCamera?.activeFormat?.videoMaxZoomFactor?.toFloat() ?: 1.0f
 
     /**
-     * Sets the focus point for tap-to-focus (normalized 0..1).
-     * Uses AVCaptureDevice focusPointOfInterest and exposurePointOfInterest; one-shot focus/exposure at the tap point.
+     * Match system Camera app: continuous AF/AE on preview so the scene stays sharp without tapping.
+     * Call after each camera input is attached.
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    private fun applyContinuousAutofocusAndExposure(camera: AVCaptureDevice?) {
+        val cam = camera ?: return
+        try {
+            cam.lockForConfiguration(null)
+            if (cam.isFocusPointOfInterestSupported()) {
+                cam.focusPointOfInterest = CGPointMake(0.5, 0.5)
+            }
+            when {
+                cam.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus) -> {
+                    cam.focusMode = AVCaptureFocusModeContinuousAutoFocus
+                }
+                cam.isFocusModeSupported(AVCaptureFocusModeAutoFocus) -> {
+                    cam.focusMode = AVCaptureFocusModeAutoFocus
+                }
+            }
+            if (cam.isExposurePointOfInterestSupported()) {
+                cam.exposurePointOfInterest = CGPointMake(0.5, 0.5)
+            }
+            when {
+                cam.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure) -> {
+                    cam.exposureMode = AVCaptureExposureModeContinuousAutoExposure
+                }
+                cam.isExposureModeSupported(AVCaptureExposureModeAutoExpose) -> {
+                    cam.exposureMode = AVCaptureExposureModeAutoExpose
+                }
+            }
+            cam.unlockForConfiguration()
+            NSLog("CameraK Debug: applyContinuousAutofocusAndExposure OK")
+        } catch (e: Exception) {
+            NSLog("CameraK Error: applyContinuousAutofocusAndExposure: ${e.message}")
+            try { cam.unlockForConfiguration() } catch (_: Exception) { }
+        }
+    }
+
+    /**
+     * Map tap (normalized to preview bounds 0..1) to [AVCaptureDevice] POI.
+     * Must use [AVCaptureVideoPreviewLayer.captureDevicePointConvertedFromLayerPoint] so aspect-fill crop
+     * matches system Camera; otherwise exposure meters the wrong region and highlights stay blown out.
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    private fun devicePointOfInterestFromNormalizedTap(normalizedX: Float, normalizedY: Float): Pair<Double, Double> {
+        val layer = cameraPreviewLayer
+        if (layer != null) {
+            try {
+                layer.bounds.useContents {
+                    val w = size.width
+                    val h = size.height
+                    if (w > 0.0 && h > 0.0) {
+                        val lx = normalizedX.coerceIn(0f, 1f).toDouble() * w
+                        val ly = normalizedY.coerceIn(0f, 1f).toDouble() * h
+                        val layerPoint = CGPointMake(lx, ly)
+                        layer.captureDevicePointOfInterestForPoint(layerPoint).useContents {
+                            return Pair(x, y)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                NSLog("CameraK Error: captureDevicePointOfInterestForPoint failed: ${e.message}")
+            }
+        }
+        val x = normalizedX.coerceIn(0f, 1f).toDouble()
+        val y = normalizedY.coerceIn(0f, 1f).toDouble()
+        return Pair(x, y)
+    }
+
+    /**
+     * Tap-to-focus (normalized 0..1 in preview/view). Uses continuous AF/AE with updated POI when supported (like iOS Camera);
+     * falls back to one-shot auto focus / auto expose.
      */
     @OptIn(ExperimentalForeignApi::class)
     fun setFocusPoint(normalizedX: Float, normalizedY: Float) {
@@ -469,21 +542,40 @@ class CustomCameraController(
             println("[CameraFocus] CustomCameraController.setFocusPoint SKIP: currentCamera=null")
             return
         }
-        val x = normalizedX.coerceIn(0f, 1f).toDouble()
-        val y = normalizedY.coerceIn(0f, 1f).toDouble()
-        val point = CGPointMake(x, y)
+        val (x, y) = devicePointOfInterestFromNormalizedTap(normalizedX, normalizedY)
+        val point = CGPointMake(x.coerceIn(0.0, 1.0), y.coerceIn(0.0, 1.0))
         try {
             camera.lockForConfiguration(null)
-            if (camera.isFocusPointOfInterestSupported() && camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
+            if (camera.isFocusPointOfInterestSupported()) {
                 camera.focusPointOfInterest = point
-                camera.focusMode = AVCaptureFocusModeAutoFocus
+                when {
+                    camera.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus) -> {
+                        camera.focusMode = AVCaptureFocusModeContinuousAutoFocus
+                    }
+                    camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus) -> {
+                        camera.focusMode = AVCaptureFocusModeAutoFocus
+                    }
+                    else -> {
+                        NSLog("CameraK Debug: setFocusPoint no supported focus mode")
+                    }
+                }
                 NSLog("CameraK Debug: setFocusPoint focus point=($x, $y)")
             } else {
-                NSLog("CameraK Debug: setFocusPoint focus not supported (pointOfInterest=${camera.isFocusPointOfInterestSupported()} autoFocus=${camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus)})")
+                NSLog("CameraK Debug: setFocusPoint focus POI not supported")
             }
-            if (camera.isExposurePointOfInterestSupported() && camera.isExposureModeSupported(AVCaptureExposureModeAutoExpose)) {
+            if (camera.isExposurePointOfInterestSupported()) {
                 camera.exposurePointOfInterest = point
-                camera.exposureMode = AVCaptureExposureModeAutoExpose
+                when {
+                    camera.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure) -> {
+                        camera.exposureMode = AVCaptureExposureModeContinuousAutoExposure
+                    }
+                    camera.isExposureModeSupported(AVCaptureExposureModeAutoExpose) -> {
+                        camera.exposureMode = AVCaptureExposureModeAutoExpose
+                    }
+                    else -> {
+                        NSLog("CameraK Debug: setFocusPoint no supported exposure mode")
+                    }
+                }
                 NSLog("CameraK Debug: setFocusPoint exposure point=($x, $y)")
             }
             camera.unlockForConfiguration()
@@ -536,40 +628,14 @@ class CustomCameraController(
     fun getExposureTargetBias(): Int = currentCamera?.exposureTargetBias?.toInt() ?: 0
 
     /**
-     * Sets the session preset quality based on memory conditions
-     * This allows for dynamic adjustment of capture quality
-     */
-    private fun adjustSessionQuality() {
-        captureSession?.beginConfiguration()
-
-        val memoryUsage = MemoryManager.getMemoryUsagePercentage()
-        val underPressure = MemoryManager.isUnderMemoryPressure()
-
-        val newPreset = when {
-            underPressure -> AVCaptureSessionPresetMedium
-            memoryUsage > 70 -> AVCaptureSessionPresetHigh
-            else -> AVCaptureSessionPresetPhoto
-        }
-
-        captureSession?.sessionPreset = newPreset
-        captureSession?.commitConfiguration()
-
-        highQualityEnabled = newPreset == AVCaptureSessionPresetPhoto
-    }
-
-    /**
      * Capture an image with specified quality
-     * @param quality Image quality factor (0.0 to 1.0)
+     * @param quality Used with still-image stabilization threshold (1.0 = always prefer max processing when enabled).
      */
-    fun captureImage(quality: Double = 0.9) {
+    fun captureImage(quality: Double = 1.0) {
         if (photoOutput == null || captureSession?.isRunning() != true) {
             NSLog("CameraK Error: captureImage not ready photoOutput=${photoOutput != null} sessionRunning=${captureSession?.isRunning() == true}")
             onError?.invoke(CameraException.ConfigurationError("Camera not ready for capture"))
             return
-        }
-
-        if (MemoryManager.isUnderMemoryPressure()) {
-            adjustSessionQuality()
         }
 
         val settings = AVCapturePhotoSettings.photoSettingsWithFormat(
@@ -581,7 +647,7 @@ class CustomCameraController(
         settings.setHighResolutionPhotoEnabled(false)
 
         when (qualityPrioritization) {
-            QualityPrioritization.QUALITY -> {
+            QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
                 settings.setHighResolutionPhotoEnabled(true)
                 settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality
             }
@@ -593,8 +659,6 @@ class CustomCameraController(
             QualityPrioritization.SPEED -> {
                 settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationSpeed
             }
-
-            QualityPrioritization.NONE -> null
         }
 
         // Only set flash mode if supported by device (iPads don't have flash)
@@ -626,8 +690,7 @@ class CustomCameraController(
     }
 
     fun captureImage() {
-        val quality = MemoryManager.getOptimalImageQuality()
-        captureImage(quality)
+        captureImage(quality = 1.0)
     }
 
     /**
@@ -697,6 +760,7 @@ class CustomCameraController(
             }
 
             session.commitConfiguration()
+            applyContinuousAutofocusAndExposure(currentCamera)
         } catch (_: Exception) {
             session.commitConfiguration()
         }
@@ -807,6 +871,7 @@ class CustomCameraController(
                 processPendingConfigurations()
                 // Re-apply torch after camera switch (back has torch, front does not)
                 setTorchMode(torchMode)
+                applyContinuousAutofocusAndExposure(currentCamera)
                 if (wasRunning) {
                     dispatch_async(
                         dispatch_get_global_queue(

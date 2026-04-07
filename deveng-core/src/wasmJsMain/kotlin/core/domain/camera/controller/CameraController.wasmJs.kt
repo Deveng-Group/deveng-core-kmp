@@ -35,7 +35,7 @@ actual class CameraController {
     actual fun toggleCameraLens() {}
     actual fun getCameraLens(): CameraLens? = null
     actual fun getImageFormat(): ImageFormat = ImageFormat.JPEG
-    actual fun getQualityPrioritization(): QualityPrioritization = QualityPrioritization.BALANCED
+    actual fun getQualityPrioritization(): QualityPrioritization = QualityPrioritization.QUALITY
     actual fun getPreferredCameraDeviceType(): CameraDeviceType = CameraDeviceType.DEFAULT
     actual fun setPreferredCameraDeviceType(deviceType: CameraDeviceType) {}
     actual fun setZoom(zoomRatio: Float) {}

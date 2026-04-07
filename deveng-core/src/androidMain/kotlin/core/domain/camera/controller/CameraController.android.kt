@@ -180,7 +180,7 @@ actual class CameraController(
     }
 
     /**
-     * Create a resolution selector based on memory conditions
+     * Create a resolution selector from [targetResolution] or [aspectRatio].
      */
     private fun createResolutionSelector(): ResolutionSelector {
         memoryManager.updateMemoryStatus()
@@ -286,7 +286,8 @@ actual class CameraController(
     }
 
     /**
-     * Configure the image capture use case with settings adapted to current memory conditions
+     * Configure the image capture use case. QUALITY and NONE default to maximum still quality;
+     * only SPEED / BALANCED trade latency for responsiveness.
      */
     @OptIn(ExperimentalZeroShutterLag::class)
     private fun configureCaptureUseCase(resolutionSelector: ResolutionSelector, displayRotation: Int) {
@@ -294,16 +295,10 @@ actual class CameraController(
             .setFlashMode(flashMode.toCameraXFlashMode())
             .setCaptureMode(
                 when (qualityPriority) {
-                    QualityPrioritization.QUALITY -> ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+                    QualityPrioritization.QUALITY, QualityPrioritization.NONE ->
+                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
                     QualityPrioritization.SPEED -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
                     QualityPrioritization.BALANCED -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                    QualityPrioritization.NONE -> {
-                        if (memoryManager.isUnderMemoryPressure()) {
-                            ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                        } else {
-                            ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-                        }
-                    }
                 },
             )
             .setResolutionSelector(resolutionSelector)
@@ -383,8 +378,8 @@ actual class CameraController(
         // Update memory status before capture
         memoryManager.updateMemoryStatus()
 
-        // Perform capture with constant quality (95 for JPEG)
-        performCapture(cont, quality = 95)
+        // Maximum JPEG quality when re-encoding is required
+        performCapture(cont, quality = 100)
 
         cont.invokeOnCancellation {
             pendingCaptures.decrementAndGet()
@@ -608,7 +603,7 @@ actual class CameraController(
      * strip EXIF data or apply rotation inconsistently. We verify EXIF orientation first.
      *
      * Fast path: Direct file read when EXIF orientation is correct (NORMAL)
-     * Slow path: Process when format conversion, memory pressure, or rotation needed
+     * Slow path: Process when format conversion or rotation is needed
      */
     private fun processImageOutput(output: ImageCapture.OutputFileResults, quality: Int): ByteArray? = try {
         output.savedUri?.let { uri ->
@@ -629,21 +624,19 @@ actual class CameraController(
 
                 val needsRotation = orientation != ExifInterface.ORIENTATION_NORMAL &&
                     orientation != ExifInterface.ORIENTATION_UNDEFINED
-                val needsProcessing = imageFormat == ImageFormat.PNG ||
-                    memoryManager.isUnderMemoryPressure() ||
-                    needsRotation
+                val needsProcessing = imageFormat == ImageFormat.PNG || needsRotation
 
                 if (!needsProcessing) {
                     // Fast path: EXIF orientation is correct, read file bytes directly
                     // This avoids decode→rotate→re-encode cycle (saves 2-3 seconds and quality loss)
                     tempFile.readBytes().also { tempFile.delete() }
                 } else {
-                    // Slow path: Need format conversion, downsampling, or rotation fix
+                    // Slow path: format conversion or rotation; optional downsample only during burst
                     val options = BitmapFactory.Options().apply {
-                        if (memoryManager.isUnderMemoryPressure()) {
+                        if (pendingCaptures.value > 1) {
                             inJustDecodeBounds = true
                             BitmapFactory.decodeFile(tempFile.absolutePath, this)
-                            inSampleSize = calculateSampleSize(outWidth, outHeight)
+                            inSampleSize = calculateSampleSizeForBurst()
                             inJustDecodeBounds = false
                         }
                     }
@@ -700,31 +693,9 @@ actual class CameraController(
     }
 
     /**
-     * Calculate appropriate sample size for bitmap decoding based on memory conditions
+     * Full resolution by default; 2x downsample only when multiple captures are in flight.
      */
-    private fun calculateSampleSize(width: Int, height: Int): Int = when {
-        memoryManager.isUnderMemoryPressure() -> {
-            // Under memory pressure: downsample to ~2MP
-            var sampleSize = 1
-            val totalPixels = width * height
-            val targetPixels = 2_000_000
-
-            while ((totalPixels / (sampleSize * sampleSize)) > targetPixels) {
-                sampleSize *= 2
-            }
-            sampleSize
-        }
-
-        pendingCaptures.value > 1 -> {
-            // Multiple captures pending: downsample 2x for faster processing
-            2
-        }
-
-        else -> {
-            // Normal capture: full resolution
-            1
-        }
-    }
+    private fun calculateSampleSizeForBurst(): Int = if (pendingCaptures.value > 1) 2 else 1
 
     actual fun toggleFlashMode() {
         flashMode = when (flashMode) {

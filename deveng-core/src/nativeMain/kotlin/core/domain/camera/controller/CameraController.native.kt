@@ -58,6 +58,7 @@ import platform.Photos.PHPhotoLibrary
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIDevice
 import platform.UIKit.UIDeviceOrientation
+import platform.UIKit.UIScreen
 import platform.UIKit.UIGestureRecognizerStateBegan
 import platform.UIKit.UIGestureRecognizerStateChanged
 import platform.UIKit.UIImagePNGRepresentation
@@ -324,7 +325,10 @@ actual class CameraController(
     @OptIn(ExperimentalForeignApi::class)
     override fun viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        customCameraController.cameraPreviewLayer?.setFrame(view.bounds)
+        customCameraController.cameraPreviewLayer?.let { layer ->
+            layer.setFrame(view.bounds)
+            layer.contentsScale = UIScreen.mainScreen.scale
+        }
     }
 
     @Deprecated(

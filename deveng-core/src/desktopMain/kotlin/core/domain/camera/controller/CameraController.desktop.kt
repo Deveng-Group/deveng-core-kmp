@@ -43,7 +43,7 @@ actual class CameraController(
 ) {
     private var cameraGrabber: CameraGrabber? = null
     private val frameChannel = Channel<BufferedImage>(Channel.CONFLATED)
-    private val qualityPriority: QualityPrioritization = QualityPrioritization.NONE
+    private val qualityPriority: QualityPrioritization = QualityPrioritization.QUALITY
 
     // Video recording
     private var frameRecorder: FFmpegFrameRecorder? = null
@@ -170,7 +170,7 @@ actual class CameraController(
     /**
      * Gets the current quality prioritization setting.
      *
-     * @return The configured [QualityPrioritization] (always NONE on Desktop)
+     * @return The configured [QualityPrioritization] (defaults to QUALITY on Desktop)
      */
     actual fun getQualityPrioritization(): QualityPrioritization = qualityPriority
 

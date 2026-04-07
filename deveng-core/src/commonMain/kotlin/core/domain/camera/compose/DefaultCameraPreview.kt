@@ -202,7 +202,8 @@ fun DefaultCameraPreview(
             controller = controller,
             modifier = Modifier.fillMaxSize(),
         )
-        // Platform overlay: after preview + high zIndex so it receives taps on iOS (UIKit preview layer otherwise gets first touch)
+        // Full-screen pinch/tap for zoom & focus (Android/Desktop). Must stay *below* chrome (zIndex 4f+)
+        // or it wins hit-testing and blocks capture / flash / gallery.
         CameraZoomGestureOverlay(
             controller = controller,
             modifier = Modifier.fillMaxSize().zIndex(3f),
@@ -232,7 +233,7 @@ fun DefaultCameraPreview(
             ShutterFlashOverlay(
                 trigger = shutterEffectTrigger,
                 onFlashComplete = { showShutterFlash = false },
-                modifier = Modifier.fillMaxSize().zIndex(2.5f),
+                modifier = Modifier.fillMaxSize().zIndex(5f),
             )
         }
         // Snapchat-style focus indicator: circular reticle with pop-in, ripple, bounce, fade-out
@@ -260,7 +261,7 @@ fun DefaultCameraPreview(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .zIndex(2f)
+                            .zIndex(4f)
                             .absoluteOffset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
                             .width(100.dp)
                             .padding(horizontal = 8.dp),
@@ -308,7 +309,7 @@ fun DefaultCameraPreview(
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .zIndex(2f)
+                .zIndex(4f)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -347,7 +348,7 @@ fun DefaultCameraPreview(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .zIndex(2f)
+                .zIndex(4f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
