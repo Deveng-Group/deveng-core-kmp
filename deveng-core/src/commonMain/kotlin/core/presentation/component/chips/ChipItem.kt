@@ -1,4 +1,4 @@
-package core.presentation.component
+package core.presentation.component.chips
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import core.presentation.component.RoundedSurface
 import core.presentation.theme.AppTheme
 import core.presentation.theme.LocalComponentTheme
 import core.util.debouncedCombinedClickable

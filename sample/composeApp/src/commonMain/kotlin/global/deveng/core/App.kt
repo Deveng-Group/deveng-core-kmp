@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,8 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -63,16 +64,19 @@ import core.domain.camera.state.CameraKEvent
 import core.domain.camera.state.CameraKState
 import core.domain.camera.state.CameraKStateHolder
 import core.domain.camera.video.VideoCaptureResult
-import core.presentation.component.ChipItem
 import core.presentation.component.CustomButton
 import core.presentation.component.CustomDropDownMenu
 import core.presentation.component.CustomHeader
 import core.presentation.component.CustomIconButton
+import core.presentation.component.CustomSlider
 import core.presentation.component.LabeledSwitch
 import core.presentation.component.PickerField
 import core.presentation.component.RoundedSurface
 import core.presentation.component.SearchField
+import core.presentation.component.Shutter
 import core.presentation.component.alertdialog.CustomAlertDialog
+import core.presentation.component.chips.ChipItem
+import core.presentation.component.chips.ChipsMenu
 import core.presentation.component.datepicker.CustomDatePicker
 import core.presentation.component.datepicker.CustomDateRangePicker
 import core.presentation.component.json.JsonViewer
@@ -93,6 +97,8 @@ import core.presentation.component.progressindicatorbars.IndicatorType
 import core.presentation.component.progressindicatorbars.ProgressIndicatorBars
 import core.presentation.component.ratingrow.RatingRow
 import core.presentation.component.scrollbar.scrollbarWithLazyListState
+import core.presentation.component.tabrow.LayoutStyle
+import core.presentation.component.tabrow.TabRow
 import core.presentation.component.textfield.CustomTextField
 import core.presentation.component.textfield.DateTimeVisualTransformation
 import core.presentation.theme.AlertDialogTheme
@@ -813,6 +819,129 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             maxRating = 5,
                             iconSize = 45.dp,
                             onRatingChanged = {}
+                        )
+
+                        SectionTitle("Shutter Examples")
+
+                        var isShutterExpanded by remember { mutableStateOf(false) }
+
+                        Shutter(
+                            title = "Title",
+                            description = "Description",
+                            isShutterExpanded = isShutterExpanded,
+                            onClickShutter = {isShutterExpanded = !isShutterExpanded},
+                            content = {
+                                Column(
+                                    modifier = Modifier
+                                        .height(200.dp)
+                                        .fillMaxWidth()
+                                        .background(color = Color.Gray),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    var volume by remember { mutableStateOf(45f) }
+
+                                    CustomSlider(
+                                        title = "Volume",
+                                        value = volume,
+                                        minValue = 0f,
+                                        maxValue = 100f,
+                                        steps = 0,
+                                        isEnabled = true,
+                                        isRangeLabelsVisible = false,
+                                        valueFormatter = { "${it.toInt()} %" },
+                                        leadingSlot = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.ic_arrow_left),
+                                                contentDescription = "Close Volume",
+                                                tint = Color.Green
+                                            )
+                                        },
+                                        trailingSlot = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.ic_arrow_right),
+                                                contentDescription = "Open Volume",
+                                                tint = Color.Green
+                                            )
+                                        },
+                                        onValueChange = { volume = it },
+                                        onValueChangeFinished = {}
+                                    )
+
+                                    var loanAmount by remember { mutableStateOf(15000f) }
+                                    val isError = loanAmount > 40000f
+
+                                    CustomSlider(
+                                        title = "Total Amount",
+                                        value = loanAmount,
+                                        minValue = 5000f,
+                                        maxValue = 50000f,
+                                        steps = 8,
+                                        isEnabled = true,
+                                        isRangeLabelsVisible = true,
+                                        errorMessage = if (isError) "This amount is too high." else null,
+                                        sliderColors = if (isError) SliderDefaults.colors(thumbColor = Color.Red, activeTrackColor = Color.Red)
+                                        else SliderDefaults.colors(),
+                                        onValueChange = { loanAmount = it },
+                                        onValueChangeFinished = {}
+                                    )
+                                }
+                            }
+                        )
+
+                        SectionTitle("TabRow Examples")
+
+                        var selectedScrollableTab by remember { mutableStateOf("Tab 1") }
+                        var selectedFixedTab by remember { mutableStateOf("Tab 1") }
+
+                        TabRow(
+                            tabs = listOf(
+                                "Tab 1",
+                                "Tab 2",
+                                "Tab 3",
+                                "Tab 4",
+                                "Tab 5",
+                                "Tab 6",
+                                "Tab 7",
+                                "Tab 7789"
+                            ),
+                            selectedTab = selectedScrollableTab,
+                            tabTitle = { it },
+                            onClickTabItem = { selectedScrollableTab = it },
+                            layoutStyle = LayoutStyle.SCROLLABLE,
+                            content = {
+                                Text(text = it)
+                            }
+                        )
+
+                        TabRow(
+                            tabs = listOf("Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Tab 6"),
+                            selectedTab = selectedFixedTab,
+                            tabTitle = { it },
+                            onClickTabItem = { selectedFixedTab = it },
+                            layoutStyle = LayoutStyle.FIXED,
+                            content = {
+                                Text(text = it)
+                            }
+                        )
+
+                        SectionTitle("ChipsMenu Examples")
+
+                        var selectedChipItem by remember { mutableStateOf<String?>(null) }
+
+                        ChipsMenu(
+                            optionList = listOf(
+                                "Item 1",
+                                "Item 2",
+                                "Item 3",
+                                "Item 4",
+                                "Item 5",
+                                "Item 6"
+                            ),
+                            selectedOption = selectedChipItem,
+                            optionText = { it },
+                            onOptionClick = { clickedItem ->
+                                selectedChipItem = clickedItem
+                            }
                         )
 
                         SectionTitle("CustomButton Examples")
