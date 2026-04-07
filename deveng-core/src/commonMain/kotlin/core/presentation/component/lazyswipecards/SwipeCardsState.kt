@@ -163,12 +163,14 @@ internal fun SwipeCardsState.bind(
     }
 
     val selectedIndex = selectedItemIndex
-    val visible = if (isEndless) {
-        visibleItemCount
-    } else {
-        min(visibleItemCount, itemProvider.itemCount - 1 - selectedIndex)
-    }
-    for (localIndex in visible downTo 0) {
+    val maxStackCards = (
+        if (isEndless) {
+            min(visibleItemCount, itemProvider.itemCount)
+        } else {
+            min(visibleItemCount, itemProvider.itemCount - selectedIndex)
+        }
+    ).coerceAtLeast(0)
+    for (localIndex in maxStackCards - 1 downTo 0) {
         cardComposable.invoke(localIndex) {
             val itemIndex = if (isEndless) {
                 (selectedIndex + localIndex) % itemProvider.itemCount

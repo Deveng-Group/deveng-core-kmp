@@ -198,7 +198,7 @@ internal fun App() {
         swipeCards = SwipeCardsTheme(
             buttonBackgroundColor = Color.White,
             buttonIconTint = Color(0xFF1A1C1C),
-            buttonSize = 48.dp,
+            buttonSize = 40.dp,
             buttonShadowElevation = 2.dp
         ),
         labeledSwitch = LabeledSwitchTheme(

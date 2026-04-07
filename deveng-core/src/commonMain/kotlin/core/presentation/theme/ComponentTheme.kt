@@ -86,7 +86,7 @@ data class IconButtonTheme(
 data class SwipeCardsTheme(
     val buttonBackgroundColor: Color = Color.White,
     val buttonIconTint: Color = CoreCustomBlackColor,
-    val buttonSize: Dp = 48.dp,
+    val buttonSize: Dp = 40.dp,
     val buttonShadowElevation: Dp = 2.dp
 )
 
