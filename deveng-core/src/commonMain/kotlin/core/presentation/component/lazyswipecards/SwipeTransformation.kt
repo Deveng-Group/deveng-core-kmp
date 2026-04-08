@@ -23,7 +23,7 @@ internal fun Modifier.swipe(
     onDragOffsetApplied: () -> Unit,
     /**
      * When false, rear cards do not read [SwipeCardsState.offsetX] in [graphicsLayer] (static stack while dragging).
-     * Saves multiple full-screen layer invalidations per frame on heavy stacks (photos/video).
+     * [SwipeCards] defaults this to false for performance on heavy stacks; set true for parallax.
      */
     stackTracksDragRatio: Boolean,
 ): Modifier {

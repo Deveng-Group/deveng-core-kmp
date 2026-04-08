@@ -64,10 +64,10 @@ fun SwipeCards(
     translateSize: Dp = 24.dp,
     rotateDegree: Float = 14f,
     /**
-     * When false, cards behind the front one keep a fixed stack transform (they do not track drag ratio each frame).
-     * Use with heavy full-screen content; you lose parallax “under-finger” scaling on rear cards while dragging.
+     * When false (default), rear cards keep a fixed stack transform (they do not read drag offset each frame).
+     * Better for heavy full-screen content. Set true for classic parallax under the finger while dragging.
      */
-    stackTracksDragRatio: Boolean = true,
+    stackTracksDragRatio: Boolean = false,
     /** Composed stack depth; use a small value (e.g. 4) for heavy card content (video/decoders). */
     visibleItemCount: Int = 4,
     contentPadding: PaddingValues = defaultContentPadding(
