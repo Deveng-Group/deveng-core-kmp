@@ -1,6 +1,7 @@
 package global.deveng.core
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -139,7 +140,10 @@ import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_left
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_right
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_dark_mode
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_light_mode
+import deveng_core_kmp.sample.composeapp.generated.resources.ic_photo_library
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
+import deveng_core_kmp.sample.composeapp.generated.resources.swipe_test_photo
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_undo
 import deveng_core_kmp.sample.composeapp.generated.resources.theme
 import kotlinx.coroutines.flow.filterIsInstance
@@ -1893,12 +1897,17 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                         SectionTitle("SwipeCards Examples")
 
                         val swipeState = rememberSwipeCardsState()
-                        val cardColors = listOf(
-                            Color(0xFFE53935),
-                            Color(0xFF43A047),
-                            Color(0xFF1E88E5),
-                            Color(0xFF00ACC1),
-                            Color(0xFF8E24AA)
+                        val cardImages = listOf(
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
+                            Res.drawable.swipe_test_photo,
                         )
                         Box(
                             modifier = Modifier
@@ -1917,19 +1926,17 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                                 onSwipeRight = { key -> println("SwipeCards: swiped right key=$key") },
                                 onRevert = { key -> println("SwipeCards: reverted key=$key") },
                                 content = {
-                                    items(cardColors, key = { it.value }) { color ->
+                                    itemsIndexed(cardImages, key = { idx, _ -> idx }) { _, image ->
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .background(color),
+                                                .background(Color(0xFF101418)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = "Swipe ← or →",
-                                                style = CoreMediumTextStyle().copy(
-                                                    fontSize = 18.sp,
-                                                    color = Color.White
-                                                )
+                                            Image(
+                                                painter = painterResource(image),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(180.dp),
                                             )
                                         }
                                     }

@@ -32,12 +32,19 @@ class SwipeCardsState(
     private val _width = mutableIntStateOf(1)
     val viewportWidth: Int get() = _width.value
 
+    private val _height = mutableIntStateOf(1)
+    /** Outer SwipeCards content area height (from [onSizeChanged]); used for back-card stack math without per-card [composed]. */
+    val viewportHeight: Int get() = _height.value
+
     internal var bound: Float = 0f
         get() = max(viewportWidth.toFloat(), field)
         set(value) {
             field = value
             updateBounds()
         }
+
+    /** Extra horizontal bound for swipe decay; updated from top card [onSizeChanged] (not in [composed]). */
+    internal var swipeEdgePaddingPx: Float = 0f
 
     var ratio: Float = 0f
         private set
@@ -128,11 +135,20 @@ class SwipeCardsState(
         )
     }
 
-    /** Updates [ratio], [peekNextCardForPlayback], and drives onSwiping; call from [SwipeCards] snapshot flow only. */
+    /**
+     * Updates [ratio], [peekNextCardForPlayback], and drives onSwiping; call from [SwipeCards] snapshot flow only.
+     * [peekNextCardForPlayback] uses hysteresis so a ratio wobbling around 0.5 does not flip every frame.
+     * That avoids full-stack recomposes and host work (e.g. video play/pause thrashing) during drag.
+     */
     internal fun syncRatioForCallbacks(ratio: Float) {
         this.ratio = ratio
-        val peek = ratio > 0.5f
-        if (peek != peekNextCardForPlaybackState.value) {
+        val prev = peekNextCardForPlaybackState.value
+        val peek = when {
+            ratio >= PeekOnRatio -> true
+            ratio <= PeekOffRatio -> false
+            else -> prev
+        }
+        if (peek != prev) {
             peekNextCardForPlaybackState.value = peek
         }
     }
@@ -143,6 +159,7 @@ class SwipeCardsState(
 
     internal fun onSizeChanged(newSize: IntSize) {
         _width.value = max(1, newSize.width)
+        _height.value = max(1, newSize.height)
     }
 
     private fun updateBounds() {
@@ -153,6 +170,8 @@ class SwipeCardsState(
     }
 
     companion object {
+        private const val PeekOnRatio = 0.52f
+        private const val PeekOffRatio = 0.48f
 
         val Saver: Saver<SwipeCardsState, *> = Saver(
             save = { it.selectedItemIndex },
