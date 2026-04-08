@@ -1908,7 +1908,7 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             SwipeCards(
                                 modifier = Modifier.fillMaxSize(),
                                 state = swipeState,
-                                visibleItemCount = 3,
+                                visibleItemCount = 4,
                                 showSwipeButtons = true,
                                 negativeButtonIcon = Res.drawable.ic_arrow_left,
                                 positiveButtonIcon = Res.drawable.ic_arrow_right,

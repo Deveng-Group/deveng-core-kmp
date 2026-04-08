@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +41,13 @@ class SwipeCardsState(
 
     var ratio: Float = 0f
         private set
+
+    /**
+     * True while [ratio] is past half toward the next card on a positive (right) drag.
+     * Only toggles when the condition crosses the threshold so UI can react without per-frame recomposition.
+     */
+    private val peekNextCardForPlaybackState = mutableStateOf(false)
+    val peekNextCardForPlayback: Boolean get() = peekNextCardForPlaybackState.value
 
     val swipingDirection: SwipeDirection
         get() = getSwipeDirection(offsetX)
@@ -120,8 +128,13 @@ class SwipeCardsState(
         )
     }
 
-    internal fun updateRatio(swipeThreshold: Float) {
-        ratio = calculateRatio(offsetX, viewportWidth, swipeThreshold)
+    /** Updates [ratio], [peekNextCardForPlayback], and drives onSwiping; call from [SwipeCards] snapshot flow only. */
+    internal fun syncRatioForCallbacks(ratio: Float) {
+        this.ratio = ratio
+        val peek = ratio > 0.5f
+        if (peek != peekNextCardForPlaybackState.value) {
+            peekNextCardForPlaybackState.value = peek
+        }
     }
 
     internal fun selectNextItem() {

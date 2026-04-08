@@ -36,14 +36,20 @@ internal fun Modifier.swipe(
             minRatioBound = minRatioBound,
             animationSpec = animationSpec,
             onSwipe = onSwipe,
-        ).graphicsLayer(
-            translationX = state.offsetX,
-            rotationZ = rotateDegree * state.ratio,
-        )
+        ).graphicsLayer {
+            val ratio = calculateRatio(
+                offsetX = state.offsetX,
+                width = state.viewportWidth,
+                swipeThreshold = swipeThreshold,
+            )
+            translationX = state.offsetX
+            rotationZ = rotateDegree * ratio
+        }
     } else {
         applyTransformation(
             cardIndex = cardIndex,
-            ratio = state.ratio,
+            state = state,
+            swipeThreshold = swipeThreshold,
             scaleFactor = scaleFactor,
             translateSize = translateSize,
             visibleItemCount = visibleItemCount,
@@ -53,28 +59,33 @@ internal fun Modifier.swipe(
 
 private fun Modifier.applyTransformation(
     cardIndex: Int,
-    ratio: Float,
+    state: SwipeCardsState,
+    swipeThreshold: Float,
     scaleFactor: ScaleFactor,
     translateSize: Dp,
     visibleItemCount: Int,
 ) = this.composed {
     var itemHeight by remember { mutableIntStateOf(0) }
-    val indexWithRatio = if (cardIndex == visibleItemCount) {
-        visibleItemCount - 1f
-    } else {
-        cardIndex - ratio.absoluteValue
-    }
-    val scaleY = 1f - indexWithRatio * scaleFactor.scaleY
-    val scaleX = 1f - indexWithRatio * scaleFactor.scaleX
-    val defY = indexWithRatio * translateSize.value *
-            LocalDensity.current.density
-    val scaleDiffInY = sign(translateSize.value) *
-            (itemHeight * (1f - scaleY)) / 2f
-
+    val density = LocalDensity.current.density
     onSizeChanged { itemHeight = it.height }
-        .graphicsLayer(
-            scaleX = scaleX,
-            scaleY = scaleY,
-            translationY = defY + scaleDiffInY,
-        )
+        .graphicsLayer {
+            val ratio = calculateRatio(
+                offsetX = state.offsetX,
+                width = state.viewportWidth,
+                swipeThreshold = swipeThreshold,
+            ).absoluteValue
+            val indexWithRatio = if (cardIndex == visibleItemCount) {
+                visibleItemCount - 1f
+            } else {
+                cardIndex - ratio
+            }
+            val scaleY = 1f - indexWithRatio * scaleFactor.scaleY
+            val scaleX = 1f - indexWithRatio * scaleFactor.scaleX
+            val defY = indexWithRatio * translateSize.value * density
+            val scaleDiffInY = sign(translateSize.value) *
+                (itemHeight * (1f - scaleY)) / 2f
+            this.scaleX = scaleX
+            this.scaleY = scaleY
+            translationY = defY + scaleDiffInY
+        }
 }

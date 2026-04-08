@@ -16,6 +16,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import core.presentation.component.CustomIconButton
 import core.presentation.theme.LocalComponentTheme
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import kotlin.math.absoluteValue
@@ -50,7 +52,8 @@ fun SwipeCards(
     ),
     translateSize: Dp = 24.dp,
     rotateDegree: Float = 14f,
-    visibleItemCount: Int = 3,
+    /** Composed stack depth; use a small value (e.g. 4) for heavy card content (video/decoders). */
+    visibleItemCount: Int = 4,
     contentPadding: PaddingValues = defaultContentPadding(
         translateSize = translateSize,
         visibleItemCount = visibleItemCount,
@@ -84,7 +87,6 @@ fun SwipeCards(
     contentSeedKey: Any? = null,
     content: SwipeCardsScope.() -> Unit,
 ) {
-    state.updateRatio(swipeThreshold = swipeThreshold)
     val itemProvider = rememberSwipeCardsItemProvider(
         content = content,
         state = state,
@@ -94,8 +96,16 @@ fun SwipeCards(
         onSwipeLeft = onSwipeLeft,
         onSwipeRight = onSwipeRight,
     )
-    LaunchedEffect(state.ratio) {
-        itemProvider.onSwiping(state.offsetX, state.ratio)
+    // Do not read offsetX/ratio in the composable body: that recomposes this entire subtree every
+    // animation frame during drag. Draw-phase reads in Modifier.graphicsLayer + snapshotFlow keep
+    // transforms smooth without recomposing VideoPlayer and other heavy card content.
+    LaunchedEffect(itemProvider, swipeThreshold) {
+        snapshotFlow { state.offsetX to state.viewportWidth }
+            .collect { (ox, w) ->
+                val r = calculateRatio(ox, w, swipeThreshold)
+                state.syncRatioForCallbacks(r)
+                itemProvider.onSwiping(ox, r)
+            }
     }
 
     val scope = rememberCoroutineScope()
