@@ -9,7 +9,7 @@ app-minor-version = "59"
 
 androidx-activityCompose = "1.12.2"
 compose-plugin = "1.10.0"
-kotlin = "2.3.0"
+kotlin = "2.3.20"
 figma-code-connect = "1.2.6"
 figma-code-connect-lib = "1.1.3"
 
