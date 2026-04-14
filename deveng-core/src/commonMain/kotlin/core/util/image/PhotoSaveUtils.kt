@@ -53,4 +53,13 @@ expect object PhotoSaveUtils {
         latitude: Double,
         longitude: Double,
     ): ByteArray
+
+    /**
+     * Reads GPS latitude/longitude from JPEG (or compatible) [imageBytes] if present.
+     * Use for upload metadata: prefer capture-time location embedded with [addLocationExif]
+     * instead of a fresh GPS fix at swipe/upload time.
+     *
+     * @return `(latitude, longitude)` in decimal degrees, or `null` if missing or unsupported.
+     */
+    fun readLocationFromExif(imageBytes: ByteArray): Pair<Double, Double>?
 }
