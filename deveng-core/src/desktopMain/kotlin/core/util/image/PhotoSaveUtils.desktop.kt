@@ -25,4 +25,6 @@ actual object PhotoSaveUtils {
         // TODO: Add EXIF GPS on Desktop if needed (e.g. via metadata library)
         return imageBytes
     }
+
+    actual fun readLocationFromExif(imageBytes: ByteArray): Pair<Double, Double>? = null
 }

@@ -140,10 +140,7 @@ import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_left
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_arrow_right
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_cyclone
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_dark_mode
-import deveng_core_kmp.sample.composeapp.generated.resources.ic_light_mode
-import deveng_core_kmp.sample.composeapp.generated.resources.ic_photo_library
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_rotate_right
-import deveng_core_kmp.sample.composeapp.generated.resources.swipe_test_photo
 import deveng_core_kmp.sample.composeapp.generated.resources.ic_undo
 import deveng_core_kmp.sample.composeapp.generated.resources.theme
 import kotlinx.coroutines.flow.filterIsInstance
@@ -833,7 +830,7 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             title = "Title",
                             description = "Description",
                             isShutterExpanded = isShutterExpanded,
-                            onClickShutter = {isShutterExpanded = !isShutterExpanded},
+                            onClickShutter = { isShutterExpanded = !isShutterExpanded },
                             content = {
                                 Column(
                                     modifier = Modifier
@@ -883,7 +880,10 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                                         isEnabled = true,
                                         isRangeLabelsVisible = true,
                                         errorMessage = if (isError) "This amount is too high." else null,
-                                        sliderColors = if (isError) SliderDefaults.colors(thumbColor = Color.Red, activeTrackColor = Color.Red)
+                                        sliderColors = if (isError) SliderDefaults.colors(
+                                            thumbColor = Color.Red,
+                                            activeTrackColor = Color.Red
+                                        )
                                         else SliderDefaults.colors(),
                                         onValueChange = { loanAmount = it },
                                         onValueChangeFinished = {}
@@ -1898,16 +1898,16 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
 
                         val swipeState = rememberSwipeCardsState()
                         val cardImages = listOf(
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
-                            Res.drawable.swipe_test_photo,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
+                            Res.drawable.ic_cyclone,
                         )
                         Box(
                             modifier = Modifier

@@ -99,6 +99,24 @@ actual object PhotoSaveUtils {
         imageBytes
     }
 
+    actual fun readLocationFromExif(imageBytes: ByteArray): Pair<Double, Double>? = try {
+        val tempFile = File.createTempFile("exif_read_gps", ".jpg")
+        try {
+            tempFile.writeBytes(imageBytes)
+            val exif = ExifInterface(tempFile.absolutePath)
+            val latLong = FloatArray(2)
+            if (exif.getLatLong(latLong)) {
+                latLong[0].toDouble() to latLong[1].toDouble()
+            } else {
+                null
+            }
+        } finally {
+            tempFile.delete()
+        }
+    } catch (_: Exception) {
+        null
+    }
+
     /**
      * Converts decimal degrees to EXIF DMS string: "degrees/1,minutes/1,seconds/1000"
      */

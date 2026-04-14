@@ -14,4 +14,6 @@ actual object PhotoSaveUtils {
         latitude: Double,
         longitude: Double,
     ): ByteArray = imageBytes
+
+    actual fun readLocationFromExif(imageBytes: ByteArray): Pair<Double, Double>? = null
 }

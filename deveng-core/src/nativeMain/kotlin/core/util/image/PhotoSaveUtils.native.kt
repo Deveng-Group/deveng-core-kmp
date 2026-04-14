@@ -70,4 +70,6 @@ actual object PhotoSaveUtils {
         // TODO: Add EXIF GPS to image bytes on iOS (e.g. via ImageIO)
         return imageBytes
     }
+
+    actual fun readLocationFromExif(imageBytes: ByteArray): Pair<Double, Double>? = null
 }
