@@ -63,11 +63,23 @@ private class SwipeCardsItemProviderImpl(
     val onAllItemsConsumed: () -> Unit,
     val onSwipeLeft: (Any?) -> Unit,
     val onSwipeRight: (Any?) -> Unit,
-) : SwipeCardsItemProvider,
-    LazyLayoutItemProvider by LazyLayoutItemProvider(
+) : SwipeCardsItemProvider {
+
+    private val lazyItems: LazyLayoutItemProvider = createLazyLayoutItemProvider(
         intervals = intervals,
         itemContent = { interval, index -> interval.item.invoke(index) },
-    ) {
+    )
+
+    override val itemCount: Int get() = lazyItems.itemCount
+
+    @Composable
+    override fun Item(index: Int, key: Any) {
+        lazyItems.Item(index, key)
+    }
+
+    override fun getKey(index: Int): Any = lazyItems.getKey(index)
+
+    override fun getContentType(index: Int): Any? = lazyItems.getContentType(index)
 
     override fun onSwiping(offset: Float, ratio: Float) {
         onSwiping?.invoke(offset, ratio, getSwipeDirection(offset))
@@ -127,7 +139,7 @@ private class DefaultDelegatingSwipeCardsItemProvider(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private fun <T : LazyLayoutIntervalContent.Interval> LazyLayoutItemProvider(
+private fun <T : LazyLayoutIntervalContent.Interval> createLazyLayoutItemProvider(
     intervals: IntervalList<T>,
     itemContent: @Composable (interval: T, index: Int) -> Unit,
 ): LazyLayoutItemProvider =

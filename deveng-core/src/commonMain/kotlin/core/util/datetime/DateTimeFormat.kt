@@ -94,7 +94,11 @@ fun getDayName(date: LocalDate, systemLanguage: String): String {
     return when (systemLanguage) {
         "tr" -> TURKISH_DAYS[dayIndex]
         else -> {
-            date.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+            val lower = date.dayOfWeek.name.lowercase()
+            when (lower.length) {
+                0 -> lower
+                else -> lower[0].uppercaseChar() + lower.substring(1)
+            }
         }
     }
 }
