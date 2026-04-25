@@ -3,17 +3,27 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+  <!-- Vertical rectangular loop: up on the left, down on the right (camera flip style) -->
   <group
       android:pivotX="12"
       android:pivotY="12"
-      android:scaleX="0.85"
-      android:scaleY="0.85">
+      android:scaleX="0.92"
+      android:scaleY="0.92">
+    <!-- Rounded loop body -->
     <path
-        android:pathData="M21,12a9,9 0 0,0 -15.55,-6.36L3,8m0,0h5m-5,0V3 M3,12a9,9 0 0,0 15.55,6.36L21,16m0,0h-5m5,0v5"
-        android:strokeWidth="1"
+        android:pathData="M7.75,17.25 L7.75,5.75 L16.25,5.75 L16.25,17.25 L7.75,17.25"
+        android:strokeWidth="2.35"
         android:strokeColor="#FFFFFF"
         android:fillColor="#00000000"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"/>
+    <!-- Up arrowhead (left / top of loop) -->
+    <path
+        android:pathData="M7.75,4.05 L5.85,6.95 L9.65,6.95 Z"
+        android:fillColor="#FFFFFF"/>
+    <!-- Down arrowhead (right / bottom of loop) -->
+    <path
+        android:pathData="M16.25,19.95 L14.35,17.05 L18.15,17.05 Z"
+        android:fillColor="#FFFFFF"/>
   </group>
 </vector>
