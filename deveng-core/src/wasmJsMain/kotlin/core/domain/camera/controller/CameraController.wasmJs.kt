@@ -51,6 +51,8 @@ actual class CameraController {
     actual fun toggleNightMode() {}
     actual fun setNightMode(enabled: Boolean) {}
     actual fun isNightModeEnabled(): Boolean = false
+    actual fun setWideSelfieMode(enabled: Boolean) {}
+    actual fun isWideSelfieEnabled(): Boolean = false
     actual fun initializeControllerPlugins() {}
     actual fun cleanup() {}
 

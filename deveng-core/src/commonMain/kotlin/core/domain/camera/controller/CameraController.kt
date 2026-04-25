@@ -221,6 +221,25 @@ expect class CameraController {
     fun isNightModeEnabled(): Boolean
 
     /**
+     * Enables or disables wide-selfie mode (vendor-specific FOV expansion on the front camera).
+     *
+     * On Samsung/compatible devices, the front camera applies aggressive lens distortion
+     * correction that crops the sensor's edge pixels. Wide-selfie mode overrides
+     * `SCALER_CROP_REGION` via Camera2Interop to use the full pre-correction active array,
+     * giving back the wider field of view used by native Camera and Snapchat.
+     *
+     * No-op on iOS, Desktop, WASM, and devices that don't expose the relevant Camera2 keys.
+     *
+     * @param enabled Whether wide-selfie mode should be enabled.
+     */
+    fun setWideSelfieMode(enabled: Boolean)
+
+    /**
+     * Returns whether wide-selfie mode is currently enabled.
+     */
+    fun isWideSelfieEnabled(): Boolean
+
+    /**
      * Initializes all registered plugins.
      */
     fun initializeControllerPlugins()

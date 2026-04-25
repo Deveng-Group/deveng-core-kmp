@@ -7,16 +7,21 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.media.ExifInterface
 import android.os.Environment
 import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.view.Display
 import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -167,9 +172,11 @@ actual class CameraController(
                 ?.rotation
                 ?: Surface.ROTATION_0
 
-            preview = Preview.Builder()
+            val previewBuilder = Preview.Builder()
                 .setResolutionSelector(resolutionSelector)
                 .setTargetRotation(displayRotation)
+            applyWideSelfieInterop(previewBuilder)
+            preview = previewBuilder
                 .build()
                 .also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
@@ -333,7 +340,7 @@ actual class CameraController(
      */
     @OptIn(ExperimentalZeroShutterLag::class)
     private fun configureCaptureUseCase(resolutionSelector: ResolutionSelector, displayRotation: Int) {
-        imageCapture = ImageCapture.Builder()
+        val builder = ImageCapture.Builder()
             .setFlashMode(flashMode.toCameraXFlashMode())
             .setCaptureMode(
                 when (qualityPriority) {
@@ -345,7 +352,19 @@ actual class CameraController(
             )
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(displayRotation)
-            .build()
+        applyWideSelfieInterop(builder)
+        imageCapture = builder.build()
+    }
+
+    /**
+     * Wide selfie is intentionally a no-op on Android for now.
+     *
+     * On tested Samsung devices, CameraX/Camera2 public APIs expose only the standard front
+     * stream (`zoomRatioRange` starts at 1.0) and no vendor/private keys are available.
+     * Keep this hook so UI state remains consistent while avoiding unstable device-specific hacks.
+     */
+    private fun <T> applyWideSelfieInterop(builder: T) where T : Any {
+        // Intentionally left blank.
     }
 
     fun updateImageAnalyzer() {
@@ -890,6 +909,14 @@ actual class CameraController(
     }
 
     actual fun isNightModeEnabled(): Boolean = nightModeEnabled
+
+    private var wideSelfieEnabled = false
+
+    actual fun setWideSelfieMode(enabled: Boolean) {
+        wideSelfieEnabled = enabled
+    }
+
+    actual fun isWideSelfieEnabled(): Boolean = wideSelfieEnabled
 
     actual fun initializeControllerPlugins() {
         plugins.forEach { it.initialize(this) }

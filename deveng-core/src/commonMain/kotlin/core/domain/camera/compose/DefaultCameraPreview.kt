@@ -126,6 +126,7 @@ fun DefaultCameraPreview(
     var isAdjustingBrightness by remember { mutableStateOf(false) }
     var lastCapturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
+    var isWideSelfie by remember { mutableStateOf(controller.isWideSelfieEnabled()) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
 
@@ -163,6 +164,10 @@ fun DefaultCameraPreview(
             if (stateHolder != null) stateHolder.toggleCameraLens()
             else controller.toggleCameraLens()
             currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+            if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
+                isWideSelfie = false
+                controller.setWideSelfieMode(false)
+            }
             maxZoomState.value = controller.getMaxZoom()
             zoomLevelState.value = controller.getZoom()
         }
@@ -213,6 +218,10 @@ fun DefaultCameraPreview(
                 if (stateHolder != null) stateHolder.toggleCameraLens()
                 else controller.toggleCameraLens()
                 currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
+                    isWideSelfie = false
+                    controller.setWideSelfieMode(false)
+                }
                 maxZoomState.value = controller.getMaxZoom()
                 zoomLevelState.value = controller.getZoom()
             },
@@ -353,6 +362,10 @@ fun DefaultCameraPreview(
                         if (stateHolder != null) stateHolder.toggleCameraLens()
                         else controller.toggleCameraLens()
                         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                        if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
+                            isWideSelfie = false
+                            controller.setWideSelfieMode(false)
+                        }
                         maxZoomState.value = controller.getMaxZoom()
                         zoomLevelState.value = controller.getZoom()
                     },
@@ -368,14 +381,25 @@ fun DefaultCameraPreview(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ZoomChips(
-                zoomLevel = zoomLevel,
-                maxZoom = maxZoom,
-                onZoomChange = { level ->
-                    controller.setZoom(level)
-                    zoomLevelState.value = controller.getZoom()
-                },
-            )
+            if (currentCameraLens == CameraLens.FRONT) {
+                FrontCameraModeChips(
+                    isWideSelfie = isWideSelfie,
+                    onSelect = { wide ->
+                        if (wide == isWideSelfie) return@FrontCameraModeChips
+                        isWideSelfie = wide
+                        controller.setWideSelfieMode(wide)
+                    },
+                )
+            } else {
+                ZoomChips(
+                    zoomLevel = zoomLevel,
+                    maxZoom = maxZoom,
+                    onZoomChange = { level ->
+                        controller.setZoom(level)
+                        zoomLevelState.value = controller.getZoom()
+                    },
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -606,6 +630,46 @@ private fun ShutterButton(
                     shape = innerShape,
                 ),
         )
+    }
+}
+
+@Composable
+private fun FrontCameraModeChips(
+    isWideSelfie: Boolean,
+    onSelect: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.5f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(1.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            listOf(false, true).forEach { wide ->
+                val active = wide == isWideSelfie
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (active) Color.White.copy(alpha = 0.25f) else Color.Transparent)
+                        .clickable { onSelect(wide) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            if (wide) CameraIcons.group else CameraIcons.person,
+                        ),
+                        contentDescription = if (wide) "Group" else "Person",
+                        tint = if (active) Color.White else Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
     }
 }
 

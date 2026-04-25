@@ -6,6 +6,8 @@ import global.deveng.deveng_core.generated.resources.shared_ic_flash
 import global.deveng.deveng_core.generated.resources.shared_ic_cameraswitch
 import global.deveng.deveng_core.generated.resources.shared_ic_sun
 import global.deveng.deveng_core.generated.resources.shared_ic_moon
+import global.deveng.deveng_core.generated.resources.shared_ic_person
+import global.deveng.deveng_core.generated.resources.shared_ic_group
 import org.jetbrains.compose.resources.DrawableResource
 
 /**
@@ -18,4 +20,6 @@ object CameraIcons {
     val switchCamera: DrawableResource get() = Res.drawable.shared_ic_cameraswitch
     val sun: DrawableResource get() = Res.drawable.shared_ic_sun
     val moon: DrawableResource get() = Res.drawable.shared_ic_moon
+    val person: DrawableResource get() = Res.drawable.shared_ic_person
+    val group: DrawableResource get() = Res.drawable.shared_ic_group
 }
