@@ -98,7 +98,6 @@ actual class CameraController(
     internal var plugins: MutableList<CameraPlugin>,
     internal var targetResolution: Pair<Int, Int>? = null,
 ) {
-
     private var cameraProvider: ProcessCameraProvider? = null
     private var extensionsManager: ExtensionsManager? = null
     private var imageCapture: ImageCapture? = null
@@ -199,7 +198,9 @@ actual class CameraController(
                 imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
             }
 
-            previewView.viewPort?.let { useCaseGroupBuilder.setViewPort(it) }
+            // Do not force a ViewPort crop rect here.
+            // On tall displays this can crop left/right aggressively; keeping use cases uncropped
+            // and letting PreviewView FIT_CENTER handle layout preserves more horizontal FoV.
 
             val useCaseGroup = useCaseGroupBuilder.build()
 
@@ -926,6 +927,7 @@ actual class CameraController(
     private var wideSelfieEnabled = false
 
     actual fun setWideSelfieMode(enabled: Boolean) {
+        if (wideSelfieEnabled == enabled) return
         wideSelfieEnabled = enabled
     }
 

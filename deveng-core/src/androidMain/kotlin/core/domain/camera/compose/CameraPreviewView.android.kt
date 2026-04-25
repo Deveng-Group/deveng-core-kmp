@@ -21,8 +21,14 @@ import core.domain.camera.controller.CameraController
 @Composable
 actual fun CameraPreviewView(controller: CameraController, modifier: Modifier) {
     val context = LocalContext.current
-    val previewView = remember { PreviewView(context) }
-
+    val previewView = remember {
+        PreviewView(context).apply {
+            // Prefer full FoV and pin preview content to bottom on tall screens.
+            // This keeps bottom camera controls visually on top of the preview.
+            scaleType = PreviewView.ScaleType.FIT_END
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
+    }
     DisposableEffect(controller, previewView) {
         controller.bindCamera(previewView) {
             // Camera is already bound and started by the state holder

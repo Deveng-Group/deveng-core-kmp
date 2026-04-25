@@ -247,7 +247,7 @@ sealed class CameraKEvent {
  *     cameraLens = CameraLens.BACK,
  *     imageFormat = ImageFormat.JPEG,
  *     qualityPrioritization = QualityPrioritization.QUALITY,
- *     aspectRatio = AspectRatio.RATIO_16_9
+ *     aspectRatio = AspectRatio.RATIO_9_16
  * )
  * val cameraState by rememberCameraKState(config)
  * ```
@@ -260,7 +260,7 @@ data class CameraConfiguration(
     val imageFormat: ImageFormat = ImageFormat.JPEG,
     val qualityPrioritization: QualityPrioritization = QualityPrioritization.QUALITY,
     val cameraDeviceType: CameraDeviceType = CameraDeviceType.DEFAULT,
-    val aspectRatio: AspectRatio = AspectRatio.RATIO_16_9,
+    val aspectRatio: AspectRatio = AspectRatio.RATIO_9_16,
     val targetResolution: Pair<Int, Int>? = null,
     val directory: Directory = Directory.PICTURES,
     val returnFilePath: Boolean = true,

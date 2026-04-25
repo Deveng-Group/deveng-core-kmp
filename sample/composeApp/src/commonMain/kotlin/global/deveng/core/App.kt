@@ -391,7 +391,7 @@ private fun CameraScreen(onBack: () -> Unit) {
 
 @Composable
 private fun CameraContent(onBack: () -> Unit) {
-    var aspectRatio by remember { mutableStateOf(AspectRatio.RATIO_16_9) }
+    var aspectRatio by remember { mutableStateOf(AspectRatio.RATIO_9_16) }
     var flashMode by remember { mutableStateOf(FlashMode.OFF) }
     var imageFormat by remember { mutableStateOf(ImageFormat.JPEG) }
     var qualityPrioritization by remember { mutableStateOf(QualityPrioritization.BALANCED) }
@@ -453,6 +453,36 @@ private fun CameraContent(onBack: () -> Unit) {
         }
     }
 
+    @Composable
+    fun FakeBottomNavigation() {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(66.dp)
+                .background(Color.Black.copy(alpha = 0.78f))
+                .padding(horizontal = 28.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            listOf("Home", "Search", "Create", "Inbox", "Profile").forEachIndexed { index, label ->
+                val active = index == 2
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(width = 56.dp, height = 36.dp),
+                ) {
+                    Text(
+                        text = label,
+                        color = if (active) Color.White else Color.White.copy(alpha = 0.55f),
+                        style = CoreRegularTextStyle().copy(
+                            fontSize = 12.sp,
+                            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         when (val state = cameraState) {
             is CameraKState.Initializing -> {
@@ -472,40 +502,52 @@ private fun CameraContent(onBack: () -> Unit) {
             }
 
             is CameraKState.Ready -> {
-                DefaultCameraPreview(
-                    controller = state.controller,
-                    thumbnailTopEndContent = {
-                        ThumbnailCountBadge(count = 22)
-                    },
-                    onImageCaptured = { result ->
-                        when (result) {
-                            is ImageCaptureResult.Success -> {
-                                val path = getNewPhotoSavePath()
-                                val dummyLat = 41.0082
-                                val dummyLon = 28.9784
-                                val bytesToSave = PhotoSaveUtils.addLocationExif(
-                                    result.byteArray,
-                                    dummyLat,
-                                    dummyLon
-                                )
-                                when (val saveResult =
-                                    PhotoSaveUtils.savePhoto(bytesToSave, path)) {
-                                    is SavePhotoResult.Success -> { /* saved */
-                                    }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    DefaultCameraPreview(
+                        controller = state.controller,
+                        modifier = Modifier.padding(bottom = 66.dp),
+                        thumbnailTopEndContent = {
+                            ThumbnailCountBadge(count = 22)
+                        },
+                        onImageCaptured = { result ->
+                            when (result) {
+                                is ImageCaptureResult.Success -> {
+                                    val path = getNewPhotoSavePath()
+                                    val dummyLat = 41.0082
+                                    val dummyLon = 28.9784
+                                    val bytesToSave = PhotoSaveUtils.addLocationExif(
+                                        result.byteArray,
+                                        dummyLat,
+                                        dummyLon
+                                    )
+                                    when (val saveResult =
+                                        PhotoSaveUtils.savePhoto(bytesToSave, path)) {
+                                        is SavePhotoResult.Success -> { /* saved */
+                                        }
 
-                                    is SavePhotoResult.Error -> { /* handle error */
+                                        is SavePhotoResult.Error -> { /* handle error */
+                                        }
                                     }
                                 }
-                            }
 
-                            is ImageCaptureResult.Error ->
-                                println("Error: ${result.exception.message}")
-                        }
-                    },
-                    onGalleryClick = { /* TODO: open gallery */ },
-                    onLastPhotoClick = { bitmap -> /* TODO: open viewer with bitmap */ },
-                    stateHolder = cameraStateHolder,
-                )
+                                is ImageCaptureResult.Error ->
+                                    println("Error: ${result.exception.message}")
+                            }
+                        },
+                        onGalleryClick = { /* TODO: open gallery */ },
+                        onLastPhotoClick = { bitmap -> /* TODO: open viewer with bitmap */ },
+                        stateHolder = cameraStateHolder,
+                    )
+
+                    // Visual-only mock bottom navigation for layout preview.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
+                    ) {
+                        FakeBottomNavigation()
+                    }
+                }
             }
 
             is CameraKState.Error -> {

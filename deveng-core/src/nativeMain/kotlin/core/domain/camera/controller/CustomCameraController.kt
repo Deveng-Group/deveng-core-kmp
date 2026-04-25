@@ -37,7 +37,7 @@ private fun CameraDeviceType.toAVCaptureDeviceType(): String? = when (this) {
 class CustomCameraController(
     val qualityPrioritization: QualityPrioritization,
     private var initialCameraLens: CameraLens = CameraLens.BACK,
-    private val aspectRatio: AspectRatio = AspectRatio.RATIO_4_3,
+    private val aspectRatio: AspectRatio = AspectRatio.RATIO_9_16,
     private val targetResolution: Pair<Int, Int>? = null,
 ) : NSObject(),
     AVCapturePhotoCaptureDelegateProtocol {

@@ -126,9 +126,16 @@ fun DefaultCameraPreview(
     var isAdjustingBrightness by remember { mutableStateOf(false) }
     var lastCapturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
-    var isWideSelfie by remember { mutableStateOf(controller.isWideSelfieEnabled()) }
+    var isWideSelfie by remember { mutableStateOf(true) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    // Android preview is bottom-aligned with FIT_END; estimate top letterbox inset so
+    // top-right controls stay on preview content instead of the black bar.
+    val previewTopInsetDp = with(density) {
+        val estimatedPreviewHeightPx = overlaySizePx.width * (16f / 9f)
+        (overlaySizePx.height - estimatedPreviewHeightPx).coerceAtLeast(0f).toDp()
+    }
 
     LaunchedEffect(stateHolder) {
         stateHolder?.events?.collect { event ->
@@ -164,9 +171,10 @@ fun DefaultCameraPreview(
             if (stateHolder != null) stateHolder.toggleCameraLens()
             else controller.toggleCameraLens()
             currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-            if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
-                isWideSelfie = false
-                controller.setWideSelfieMode(false)
+            if (currentCameraLens == CameraLens.FRONT) {
+                isWideSelfie = true
+                controller.setWideSelfieMode(true)
+                controller.setZoom(1f)
             }
             maxZoomState.value = controller.getMaxZoom()
             zoomLevelState.value = controller.getZoom()
@@ -196,6 +204,13 @@ fun DefaultCameraPreview(
             if (newMax > 0f) maxZoomState.value = newMax
             if (newZoom > 0f) zoomLevelState.value = newZoom
         }
+        if (currentCameraLens == CameraLens.FRONT) {
+            // Default front-camera mode is group.
+            isWideSelfie = true
+            controller.setWideSelfieMode(true)
+            controller.setZoom(1f)
+            zoomLevelState.value = controller.getZoom()
+        }
     }
 
     Box(
@@ -218,9 +233,10 @@ fun DefaultCameraPreview(
                 if (stateHolder != null) stateHolder.toggleCameraLens()
                 else controller.toggleCameraLens()
                 currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-                if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
-                    isWideSelfie = false
-                    controller.setWideSelfieMode(false)
+                if (currentCameraLens == CameraLens.FRONT) {
+                    isWideSelfie = true
+                    controller.setWideSelfieMode(true)
+                    controller.setZoom(1f)
                 }
                 maxZoomState.value = controller.getMaxZoom()
                 zoomLevelState.value = controller.getZoom()
@@ -320,7 +336,7 @@ fun DefaultCameraPreview(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(4f)
-                .padding(16.dp),
+                .padding(top = previewTopInsetDp + 16.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (currentCameraLens != CameraLens.FRONT) {
@@ -362,9 +378,10 @@ fun DefaultCameraPreview(
                         if (stateHolder != null) stateHolder.toggleCameraLens()
                         else controller.toggleCameraLens()
                         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-                        if (currentCameraLens != CameraLens.FRONT && isWideSelfie) {
-                            isWideSelfie = false
-                            controller.setWideSelfieMode(false)
+                        if (currentCameraLens == CameraLens.FRONT) {
+                            isWideSelfie = true
+                            controller.setWideSelfieMode(true)
+                            controller.setZoom(1f)
                         }
                         maxZoomState.value = controller.getMaxZoom()
                         zoomLevelState.value = controller.getZoom()
@@ -388,6 +405,10 @@ fun DefaultCameraPreview(
                         if (wide == isWideSelfie) return@FrontCameraModeChips
                         isWideSelfie = wide
                         controller.setWideSelfieMode(wide)
+                        val targetFrontZoom = if (wide) 1f else 1.2f
+                        val maxZoomRatio = maxZoomState.value.coerceAtLeast(1f)
+                        controller.setZoom(targetFrontZoom.coerceAtMost(maxZoomRatio))
+                        zoomLevelState.value = controller.getZoom()
                     },
                 )
             } else {

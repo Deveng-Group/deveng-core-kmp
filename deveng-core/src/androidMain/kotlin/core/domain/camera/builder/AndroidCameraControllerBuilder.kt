@@ -31,7 +31,7 @@ class AndroidCameraControllerBuilder(private val context: Context, private val l
     private var qualityPriority: QualityPrioritization = QualityPrioritization.QUALITY
     private var cameraDeviceType: CameraDeviceType = CameraDeviceType.DEFAULT
     private var returnFilePath: Boolean = false
-    private var aspectRatio: AspectRatio = AspectRatio.RATIO_4_3
+    private var aspectRatio: AspectRatio = AspectRatio.RATIO_9_16
     private var targetResolution: Pair<Int, Int>? = null
     private val plugins = mutableListOf<CameraPlugin>()
 
