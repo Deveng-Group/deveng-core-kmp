@@ -1,29 +1,25 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <!-- Vertical rectangular loop: up on the left, down on the right (camera flip style) -->
+    android:viewportWidth="100"
+    android:viewportHeight="100">
   <group
-      android:pivotX="12"
-      android:pivotY="12"
-      android:scaleX="0.92"
-      android:scaleY="0.92">
-    <!-- Rounded loop body -->
+      android:pivotX="50"
+      android:pivotY="50"
+      android:rotation="90">
     <path
-        android:pathData="M7.75,17.25 L7.75,5.75 L16.25,5.75 L16.25,17.25 L7.75,17.25"
-        android:strokeWidth="2.35"
+        android:pathData="M10,32 Q10,18 24,18 L80,18 L72,10 M80,18 L72,26"
+        android:strokeWidth="8"
         android:strokeColor="#FFFFFF"
         android:fillColor="#00000000"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"/>
-    <!-- Up arrowhead (left / top of loop) -->
+        android:strokeLineJoin="round" />
     <path
-        android:pathData="M7.75,4.05 L5.85,6.95 L9.65,6.95 Z"
-        android:fillColor="#FFFFFF"/>
-    <!-- Down arrowhead (right / bottom of loop) -->
-    <path
-        android:pathData="M16.25,19.95 L14.35,17.05 L18.15,17.05 Z"
-        android:fillColor="#FFFFFF"/>
+        android:pathData="M90,68 Q90,82 76,82 L20,82 L28,74 M20,82 L28,90"
+        android:strokeWidth="8"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
   </group>
 </vector>
