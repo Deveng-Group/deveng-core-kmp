@@ -149,10 +149,14 @@ fun DefaultCameraPreview(
         }
     }
 
-    LaunchedEffect(focusTapOffset) {
+    LaunchedEffect(focusTapOffset, isNightMode) {
         if (focusTapOffset != null) {
-            controller.setExposureCompensationIndex(0)
-            brightnessIndex = 0f
+            if (!isNightMode) {
+                controller.setExposureCompensationIndex(0)
+                brightnessIndex = 0f
+            } else {
+                brightnessIndex = controller.getExposureCompensationIndex().toFloat()
+            }
         }
     }
 
@@ -193,6 +197,7 @@ fun DefaultCameraPreview(
 
     LaunchedEffect(controller) {
         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+        isNightMode = controller.isNightModeEnabled()
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
         maxZoomState.value = controller.getMaxZoom()
         zoomLevelState.value = controller.getZoom()
@@ -336,7 +341,7 @@ fun DefaultCameraPreview(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(4f)
-                .padding(top = previewTopInsetDp + 16.dp, end = 16.dp),
+                .padding(top = previewTopInsetDp + 16.dp, end = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (currentCameraLens != CameraLens.FRONT) {
@@ -365,6 +370,7 @@ fun DefaultCameraPreview(
                     onClick = {
                         controller.toggleNightMode()
                         isNightMode = controller.isNightModeEnabled()
+                        brightnessIndex = controller.getExposureCompensationIndex().toFloat()
                     },
                 )
             }

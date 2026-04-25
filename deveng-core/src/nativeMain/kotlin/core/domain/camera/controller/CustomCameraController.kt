@@ -130,6 +130,7 @@ class CustomCameraController(
                     // Prefer stabilization and full-quality capture path unless caller explicitly chose SPEED.
                     highQualityEnabled = qualityPrioritization != QualityPrioritization.SPEED
                     NSLog("CameraK Debug: setupSession complete finalPreset=$finalPreset onSessionReady")
+                    applyNightModeDeviceHints()
                     onSessionReady?.invoke()
                 }
             }
@@ -410,18 +411,61 @@ class CustomCameraController(
         }
     }
 
+    /**
+     * Night mode: enable low-light boost when supported and nudge exposure target bias brighter
+     * (public API only; not Apple Camera “Night mode”).
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun applyNightModeDeviceHints() {
+        val cam = currentCamera ?: return
+        try {
+            cam.lockForConfiguration(null)
+            if (nightModeEnabled) {
+                if (cam.isLowLightBoostSupported()) {
+                    cam.automaticallyEnablesLowLightBoostWhenAvailable = true
+                }
+                if (cam.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure) ||
+                    cam.isExposureModeSupported(AVCaptureExposureModeAutoExpose)
+                ) {
+                    val minB = cam.minExposureTargetBias
+                    val maxB = cam.maxExposureTargetBias
+                    val boost = 0.8f
+                    val target = boost.coerceIn(minB, maxB)
+                    cam.setExposureTargetBias(target) { }
+                }
+            } else {
+                if (cam.isLowLightBoostSupported()) {
+                    cam.automaticallyEnablesLowLightBoostWhenAvailable = false
+                }
+                if (cam.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure) ||
+                    cam.isExposureModeSupported(AVCaptureExposureModeAutoExpose)
+                ) {
+                    cam.setExposureTargetBias(0f) { }
+                }
+            }
+            cam.unlockForConfiguration()
+        } catch (e: Exception) {
+            NSLog("CameraK: applyNightModeDeviceHints failed: ${e.message}")
+            try {
+                cam.unlockForConfiguration()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     @OptIn(ExperimentalForeignApi::class)
     fun setTorchMode(mode: AVCaptureTorchMode) {
         torchMode = mode
+        val effectiveMode = if (nightModeEnabled) AVCaptureTorchModeOff else mode
         val camera = currentCamera
-        NSLog("CameraK Debug: setTorchMode requested=$mode currentCamera=${camera != null} hasTorch=${camera?.hasTorch == true}")
+        NSLog("CameraK Debug: setTorchMode requested=$mode effective=$effectiveMode night=$nightModeEnabled currentCamera=${camera != null} hasTorch=${camera?.hasTorch == true}")
         camera?.let { cam ->
             if (cam.hasTorch) {
                 try {
                     cam.lockForConfiguration(null)
-                    cam.torchMode = mode
+                    cam.torchMode = effectiveMode
                     cam.unlockForConfiguration()
-                    NSLog("CameraK Debug: setTorchMode applied torchMode=$mode")
+                    NSLog("CameraK Debug: setTorchMode applied torchMode=$effectiveMode")
                 } catch (e: Exception) {
                     NSLog("CameraK Error: setTorchMode exception: ${e.message}")
                     onError?.invoke(CameraException.ConfigurationError("Failed to set torch mode"))
@@ -654,6 +698,7 @@ class CustomCameraController(
             // gates actual night-capture activation on ambient light and device capability.
             settings.setHighResolutionPhotoEnabled(true)
             settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality
+            settings.setAutoStillImageStabilizationEnabled(true)
         } else {
             when (qualityPrioritization) {
                 QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
@@ -671,19 +716,22 @@ class CustomCameraController(
             }
         }
 
-        // Only set flash mode if supported by device (iPads don't have flash)
+        // Night / fusion needs ambient frames — never fire flash for stills while night is on.
         val supportedFlashModes = photoOutput?.supportedFlashModes() as? List<*>
-        if (supportedFlashModes?.contains(this.flashMode) == true) {
+        if (nightModeEnabled) {
+            settings.flashMode = AVCaptureFlashModeOff
+        } else if (supportedFlashModes?.contains(this.flashMode) == true) {
             settings.flashMode = this.flashMode
         } else {
-            // Device doesn't support flash (e.g., iPad) - force OFF
             settings.flashMode = AVCaptureFlashModeOff
         }
 
-        if (highQualityEnabled && quality > 0.8) {
-            settings.setAutoStillImageStabilizationEnabled(true)
-        } else {
-            settings.setAutoStillImageStabilizationEnabled(false)
+        if (!nightModeEnabled) {
+            if (highQualityEnabled && quality > 0.8) {
+                settings.setAutoStillImageStabilizationEnabled(true)
+            } else {
+                settings.setAutoStillImageStabilizationEnabled(false)
+            }
         }
 
         // Set the photo output connection orientation to match current device orientation
@@ -775,6 +823,7 @@ class CustomCameraController(
 
             session.commitConfiguration()
             applyContinuousAutofocusAndExposure(currentCamera)
+            applyNightModeDeviceHints()
         } catch (_: Exception) {
             session.commitConfiguration()
         }
@@ -886,6 +935,7 @@ class CustomCameraController(
                 // Re-apply torch after camera switch (back has torch, front does not)
                 setTorchMode(torchMode)
                 applyContinuousAutofocusAndExposure(currentCamera)
+                applyNightModeDeviceHints()
                 if (wasRunning) {
                     dispatch_async(
                         dispatch_get_global_queue(

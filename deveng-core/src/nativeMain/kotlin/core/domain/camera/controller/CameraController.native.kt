@@ -555,17 +555,13 @@ actual class CameraController(
             else -> FlashMode.ON  // OFF or AUTO -> ON
         }
         customCameraController.setFlashMode(flashMode.toAVCaptureFlashMode())
-        // iOS: flash mode only affects photo capture; turn on torch for preview when flash is ON
-        torchMode = if (flashMode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
-        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
+        applyTorchForPreviewAfterFlashChange()
     }
 
     actual fun setFlashMode(mode: FlashMode) {
         flashMode = mode
         customCameraController.setFlashMode(mode.toAVCaptureFlashMode())
-        // iOS: sync torch so preview shows light when flash is ON
-        torchMode = if (mode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
-        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
+        applyTorchForPreviewAfterFlashChange()
     }
 
     actual fun getFlashMode(): FlashMode? {
@@ -586,12 +582,18 @@ actual class CameraController(
             TorchMode.ON -> TorchMode.AUTO
             TorchMode.AUTO -> TorchMode.OFF
         }
-        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
+        if (!customCameraController.nightModeEnabled) {
+            customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
+        }
     }
 
     actual fun setTorchMode(mode: TorchMode) {
         torchMode = mode
-        customCameraController.setTorchMode(mode.toAVCaptureTorchMode())
+        if (customCameraController.nightModeEnabled) {
+            customCameraController.setTorchMode(AVCaptureTorchModeOff)
+        } else {
+            customCameraController.setTorchMode(mode.toAVCaptureTorchMode())
+        }
     }
 
     actual fun getTorchMode(): TorchMode? = torchMode
@@ -666,10 +668,25 @@ actual class CameraController(
 
     actual fun toggleNightMode() {
         customCameraController.nightModeEnabled = !customCameraController.nightModeEnabled
+        customCameraController.applyNightModeDeviceHints()
+        applyTorchForPreviewAfterFlashChange()
     }
 
     actual fun setNightMode(enabled: Boolean) {
+        if (customCameraController.nightModeEnabled == enabled) return
         customCameraController.nightModeEnabled = enabled
+        customCameraController.applyNightModeDeviceHints()
+        applyTorchForPreviewAfterFlashChange()
+    }
+
+    /** Preview torch off during night so multi-frame / low-light paths see ambient exposure. */
+    private fun applyTorchForPreviewAfterFlashChange() {
+        if (customCameraController.nightModeEnabled) {
+            customCameraController.setTorchMode(AVCaptureTorchModeOff)
+            return
+        }
+        torchMode = if (flashMode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
+        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
 
     actual fun isNightModeEnabled(): Boolean = customCameraController.nightModeEnabled
