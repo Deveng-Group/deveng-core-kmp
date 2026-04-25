@@ -692,6 +692,10 @@ class CustomCameraController(
             if (connection.isVideoOrientationSupported()) {
                 connection.videoOrientation = currentVideoOrientation()
             }
+            if (connection.isVideoMirroringSupported()) {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.setVideoMirrored(false)
+            }
         }
 
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH.toLong(), 0u)) {

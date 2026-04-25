@@ -473,7 +473,11 @@ actual class CameraController(
      */
     private fun performCaptureToFile(continuation: CancellableContinuation<ImageCaptureResult>) {
         val cacheFile = java.io.File.createTempFile("capture_", ".${imageFormat.extension}", context.cacheDir)
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(cacheFile).build()
+        val isFront = cameraLens == CameraLens.FRONT
+        val metadata = ImageCapture.Metadata().apply { isReversedHorizontal = isFront }
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(cacheFile)
+            .setMetadata(metadata)
+            .build()
 
         imageCapture?.takePicture(
             outputOptions,
@@ -534,19 +538,28 @@ actual class CameraController(
             if (orientation != ExifInterface.ORIENTATION_NORMAL &&
                 orientation != ExifInterface.ORIENTATION_UNDEFINED
             ) {
-                val rotationAngle = when (orientation) {
-                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                    else -> 0f
+                val matrix = Matrix()
+                when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                    ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                    ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                    ExifInterface.ORIENTATION_TRANSPOSE -> {
+                        matrix.postRotate(90f)
+                        matrix.postScale(-1f, 1f)
+                    }
+                    ExifInterface.ORIENTATION_TRANSVERSE -> {
+                        matrix.postRotate(270f)
+                        matrix.postScale(-1f, 1f)
+                    }
                 }
-                if (rotationAngle != 0f) {
-                    val matrix = Matrix().apply { postRotate(rotationAngle) }
-                    val rotated = Bitmap.createBitmap(
+                if (!matrix.isIdentity) {
+                    val transformed = Bitmap.createBitmap(
                         bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
                     )
                     bitmap.recycle()
-                    bitmap = rotated
+                    bitmap = transformed
                 }
             }
             return bitmap.asImageBitmap()
