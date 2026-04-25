@@ -203,6 +203,24 @@ expect class CameraController {
     fun addImageCaptureListener(listener: (ByteArray) -> Unit)
 
     /**
+     * Toggles night mode on/off.
+     */
+    fun toggleNightMode()
+
+    /**
+     * Enables or disables night mode.
+     * When enabled, the camera uses settings optimized for low-light capture.
+     *
+     * @param enabled Whether night mode should be enabled.
+     */
+    fun setNightMode(enabled: Boolean)
+
+    /**
+     * Returns whether night mode is currently enabled.
+     */
+    fun isNightModeEnabled(): Boolean
+
+    /**
      * Initializes all registered plugins.
      */
     fun initializeControllerPlugins()

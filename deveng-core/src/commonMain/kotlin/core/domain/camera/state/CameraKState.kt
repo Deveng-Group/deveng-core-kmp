@@ -117,6 +117,7 @@ data class CameraUIState(
     val isRecording: Boolean = false,
     val isPaused: Boolean = false,
     val recordingDurationMs: Long = 0L,
+    val isNightModeEnabled: Boolean = false,
 )
 
 /**

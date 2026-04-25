@@ -253,6 +253,18 @@ actual class CameraController(
         this.listener = listener
     }
 
+    private var nightModeEnabled = false
+
+    actual fun toggleNightMode() {
+        nightModeEnabled = !nightModeEnabled
+    }
+
+    actual fun setNightMode(enabled: Boolean) {
+        nightModeEnabled = enabled
+    }
+
+    actual fun isNightModeEnabled(): Boolean = nightModeEnabled
+
     actual fun initializeControllerPlugins() {
         plugins.forEach {
             it.initialize(this)

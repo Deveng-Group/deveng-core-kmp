@@ -59,6 +59,14 @@ class CustomCameraController(
     var flashMode: AVCaptureFlashMode = AVCaptureFlashModeOff  // iOS: only ON/OFF like Android
     var torchMode: AVCaptureTorchMode = AVCaptureTorchModeAuto
 
+    /**
+     * When true, per-capture settings request `photoQualityPrioritization = .quality`,
+     * which lets the iOS system engage Night mode automatically on supported devices
+     * (iPhone 11+) when ambient light is low. The system, not the app, decides the
+     * exposure duration.
+     */
+    var nightModeEnabled: Boolean = false
+
     private var highQualityEnabled = false
 
     // Configuration queue for plugin outputs (Apple WWDC pattern)
@@ -150,21 +158,15 @@ class CustomCameraController(
         photoOutput = AVCapturePhotoOutput()
         photoOutput?.setHighResolutionCaptureEnabled(false)
 
-        when (qualityPrioritization) {
-            QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
-                photoOutput?.setHighResolutionCaptureEnabled(true)
-                photoOutput?.setMaxPhotoQualityPrioritization(
-                    AVCapturePhotoQualityPrioritizationQuality,
-                )
-            }
+        // Always raise the ceiling to QUALITY so per-capture settings can request night mode
+        // when the user enables it. Per-capture prioritization still respects qualityPrioritization
+        // for non-night captures, so SPEED/BALANCED users see no slowdown.
+        photoOutput?.setMaxPhotoQualityPrioritization(AVCapturePhotoQualityPrioritizationQuality)
 
-            QualityPrioritization.BALANCED -> photoOutput?.setMaxPhotoQualityPrioritization(
-                AVCapturePhotoQualityPrioritizationBalanced,
-            )
-
-            QualityPrioritization.SPEED -> photoOutput?.setMaxPhotoQualityPrioritization(
-                AVCapturePhotoQualityPrioritizationSpeed,
-            )
+        if (qualityPrioritization == QualityPrioritization.QUALITY ||
+            qualityPrioritization == QualityPrioritization.NONE
+        ) {
+            photoOutput?.setHighResolutionCaptureEnabled(true)
         }
 
         photoOutput?.setPreparedPhotoSettingsArray(emptyList<String>(), completionHandler = { settings, error ->
@@ -646,18 +648,26 @@ class CustomCameraController(
 
         settings.setHighResolutionPhotoEnabled(false)
 
-        when (qualityPrioritization) {
-            QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
-                settings.setHighResolutionPhotoEnabled(true)
-                settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality
-            }
+        if (nightModeEnabled) {
+            // Forces the capture pipeline into the high-quality branch where iOS Night mode
+            // (multi-frame fusion + extended exposure) becomes available. The system still
+            // gates actual night-capture activation on ambient light and device capability.
+            settings.setHighResolutionPhotoEnabled(true)
+            settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality
+        } else {
+            when (qualityPrioritization) {
+                QualityPrioritization.QUALITY, QualityPrioritization.NONE -> {
+                    settings.setHighResolutionPhotoEnabled(true)
+                    settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality
+                }
 
-            QualityPrioritization.BALANCED -> {
-                settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationBalanced
-            }
+                QualityPrioritization.BALANCED -> {
+                    settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationBalanced
+                }
 
-            QualityPrioritization.SPEED -> {
-                settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationSpeed
+                QualityPrioritization.SPEED -> {
+                    settings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationSpeed
+                }
             }
         }
 

@@ -48,6 +48,9 @@ actual class CameraController {
     actual fun startSession() {}
     actual fun stopSession() {}
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {}
+    actual fun toggleNightMode() {}
+    actual fun setNightMode(enabled: Boolean) {}
+    actual fun isNightModeEnabled(): Boolean = false
     actual fun initializeControllerPlugins() {}
     actual fun cleanup() {}
 

@@ -664,6 +664,16 @@ actual class CameraController(
         imageCaptureListeners.add(listener)
     }
 
+    actual fun toggleNightMode() {
+        customCameraController.nightModeEnabled = !customCameraController.nightModeEnabled
+    }
+
+    actual fun setNightMode(enabled: Boolean) {
+        customCameraController.nightModeEnabled = enabled
+    }
+
+    actual fun isNightModeEnabled(): Boolean = customCameraController.nightModeEnabled
+
     actual fun initializeControllerPlugins() {
         plugins.forEach {
             it.initialize(this)

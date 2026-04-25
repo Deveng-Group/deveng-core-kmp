@@ -28,6 +28,8 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCaseGroup
+import androidx.camera.extensions.ExtensionMode
+import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -93,6 +95,7 @@ actual class CameraController(
 ) {
 
     private var cameraProvider: ProcessCameraProvider? = null
+    private var extensionsManager: ExtensionsManager? = null
     private var imageCapture: ImageCapture? = null
     private var preview: Preview? = null
     private var camera: Camera? = null
@@ -129,54 +132,93 @@ actual class CameraController(
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                cameraProvider?.unbindAll()
-                Log.d("CameraK", "==> Unbind all existing cameras")
+                val provider = cameraProvider ?: return@addListener
 
-                val resolutionSelector = createResolutionSelector()
-
-                val displayRotation = (context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
-                    ?.getDisplay(Display.DEFAULT_DISPLAY)
-                    ?.rotation
-                    ?: Surface.ROTATION_0
-
-                preview = Preview.Builder()
-                    .setResolutionSelector(resolutionSelector)
-                    .setTargetRotation(displayRotation)
-                    .build()
-                    .also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                val cameraSelector = createCameraSelector()
-                Log.d("CameraK", "==> Camera selector created for: $cameraDeviceType")
-
-                configureCaptureUseCase(resolutionSelector, displayRotation)
-                configureVideoCaptureUseCase()
-
-                val useCaseGroupBuilder = UseCaseGroup.Builder()
-                    .addUseCase(preview!!)
-                    .addUseCase(imageCapture!!)
-
-                videoCapture?.let { useCaseGroupBuilder.addUseCase(it) }
-                imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
-
-                previewView.viewPort?.let { useCaseGroupBuilder.setViewPort(it) }
-
-                val useCaseGroup = useCaseGroupBuilder.build()
-
-                camera = cameraProvider?.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    useCaseGroup,
-                )
-                Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
-
-                onCameraReady()
+                if (extensionsManager == null) {
+                    val extFuture = ExtensionsManager.getInstanceAsync(context, provider)
+                    extFuture.addListener({
+                        extensionsManager = try {
+                            extFuture.get()
+                        } catch (e: Exception) {
+                            Log.w("CameraK", "Failed to load ExtensionsManager: ${e.message}")
+                            null
+                        }
+                        completeBinding(previewView, onCameraReady)
+                    }, ContextCompat.getMainExecutor(context))
+                } else {
+                    completeBinding(previewView, onCameraReady)
+                }
             } catch (exc: Exception) {
                 Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
                 exc.printStackTrace()
             }
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun completeBinding(previewView: PreviewView, onCameraReady: () -> Unit) {
+        try {
+            cameraProvider?.unbindAll()
+            Log.d("CameraK", "==> Unbind all existing cameras")
+
+            val resolutionSelector = createResolutionSelector()
+
+            val displayRotation = (context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
+                ?.getDisplay(Display.DEFAULT_DISPLAY)
+                ?.rotation
+                ?: Surface.ROTATION_0
+
+            preview = Preview.Builder()
+                .setResolutionSelector(resolutionSelector)
+                .setTargetRotation(displayRotation)
+                .build()
+                .also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+            val baseSelector = createCameraSelector()
+            val cameraSelector = applyNightExtensionIfEnabled(baseSelector)
+            Log.d("CameraK", "==> Camera selector created for: $cameraDeviceType (night=$nightModeEnabled)")
+
+            configureCaptureUseCase(resolutionSelector, displayRotation)
+            configureVideoCaptureUseCase()
+
+            val useCaseGroupBuilder = UseCaseGroup.Builder()
+                .addUseCase(preview!!)
+                .addUseCase(imageCapture!!)
+
+            // NIGHT extension only supports Preview + ImageCapture; skip incompatible use cases.
+            if (!nightModeEnabled) {
+                videoCapture?.let { useCaseGroupBuilder.addUseCase(it) }
+                imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
+            }
+
+            previewView.viewPort?.let { useCaseGroupBuilder.setViewPort(it) }
+
+            val useCaseGroup = useCaseGroupBuilder.build()
+
+            camera = cameraProvider?.bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector,
+                useCaseGroup,
+            )
+            Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
+
+            onCameraReady()
+        } catch (exc: Exception) {
+            Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
+            exc.printStackTrace()
+        }
+    }
+
+    private fun applyNightExtensionIfEnabled(baseSelector: CameraSelector): CameraSelector {
+        if (!nightModeEnabled) return baseSelector
+        val extMgr = extensionsManager ?: return baseSelector
+        return if (extMgr.isExtensionAvailable(baseSelector, ExtensionMode.NIGHT)) {
+            extMgr.getExtensionEnabledCameraSelector(baseSelector, ExtensionMode.NIGHT)
+        } else {
+            Log.w("CameraK", "NIGHT extension not available for current camera")
+            baseSelector
+        }
     }
 
     /**
@@ -829,6 +871,25 @@ actual class CameraController(
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {
         imageCaptureListeners.add(listener)
     }
+
+    private var nightModeEnabled = false
+
+    actual fun toggleNightMode() {
+        setNightMode(!nightModeEnabled)
+    }
+
+    /**
+     * Toggles the CameraX NIGHT extension. Rebinds the camera so the extension pipeline
+     * (multi-frame fusion, low-light denoise) actually engages on supported devices.
+     * Falls back to the base selector silently when the extension isn't available.
+     */
+    actual fun setNightMode(enabled: Boolean) {
+        if (nightModeEnabled == enabled) return
+        nightModeEnabled = enabled
+        previewView?.let { bindCamera(it) }
+    }
+
+    actual fun isNightModeEnabled(): Boolean = nightModeEnabled
 
     actual fun initializeControllerPlugins() {
         plugins.forEach { it.initialize(this) }

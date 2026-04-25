@@ -117,6 +117,7 @@ fun DefaultCameraPreview(
     val maxZoomState = remember { mutableStateOf(1f) }
     var maxZoom by maxZoomState
     var currentFlashMode by remember { mutableStateOf(FlashMode.OFF) }
+    var isNightMode by remember { mutableStateOf(false) }
     /** Tracked in Compose so flash visibility updates when lens changes (controller alone does not trigger recomposition). */
     var currentCameraLens by remember { mutableStateOf(controller.getCameraLens() ?: CameraLens.BACK) }
     var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
@@ -329,6 +330,19 @@ fun DefaultCameraPreview(
                     },
                 )
             }
+            if (captureMode == CameraCaptureMode.Photo) {
+                CustomIconButton(
+                    icon = CameraIcons.moon,
+                    iconDescription = "Night mode",
+                    iconTint = if (isNightMode) Color.White else Color.White.copy(alpha = 0.5f),
+                    backgroundColor = Color.Transparent,
+                    shadowElevation = 0.dp,
+                    onClick = {
+                        controller.toggleNightMode()
+                        isNightMode = controller.isNightModeEnabled()
+                    },
+                )
+            }
             CustomIconButton(
                 icon = CameraIcons.switchCamera,
                 iconDescription = "Switch camera",
@@ -447,7 +461,13 @@ fun DefaultCameraPreview(
                         ) {
                             ModeSwitcher(
                                 currentMode = captureMode,
-                                onModeChange = { captureMode = it },
+                                onModeChange = { newMode ->
+                                    if (newMode == CameraCaptureMode.Video && isNightMode) {
+                                        controller.setNightMode(false)
+                                        isNightMode = false
+                                    }
+                                    captureMode = newMode
+                                },
                                 enabled = !recordingUiState.isRecording,
                             )
                             Box(

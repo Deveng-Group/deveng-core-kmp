@@ -382,6 +382,16 @@ class CameraKStateHolder(
     }
 
     /**
+     * Toggles night mode on/off.
+     */
+    fun toggleNightMode() {
+        val currentController = controller ?: return
+
+        currentController.toggleNightMode()
+        _uiState.value = _uiState.value.copy(isNightModeEnabled = currentController.isNightModeEnabled())
+    }
+
+    /**
      * Toggles the camera lens (FRONT ↔ BACK).
      */
     fun toggleCameraLens() {
@@ -596,6 +606,7 @@ class CameraKStateHolder(
                 cameraDeviceType = controller.getPreferredCameraDeviceType(),
                 isCapturing = false,
                 lastError = null,
+                isNightModeEnabled = controller.isNightModeEnabled(),
             )
     }
 }
