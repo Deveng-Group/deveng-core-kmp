@@ -72,6 +72,12 @@ import kotlinx.coroutines.launch
 
 private enum class CameraCaptureMode { Photo, Video }
 
+/** AE compensation steps when moon boost is on (from baseline); larger than 2 for a visible delta on preview. */
+private const val ExposureBoostSteps = 6
+
+/** Half of [debouncedCombinedClickable] default (600ms) — top camera chrome (flash / moon) feels more responsive. */
+private const val CameraChromeClickDebounceMillis = 300L
+
 private fun formatRecordingDuration(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)
     val minutes = totalSeconds / 60
@@ -117,12 +123,13 @@ fun DefaultCameraPreview(
     val maxZoomState = remember { mutableStateOf(1f) }
     var maxZoom by maxZoomState
     var currentFlashMode by remember { mutableStateOf(FlashMode.OFF) }
-    var isNightMode by remember { mutableStateOf(false) }
     /** Tracked in Compose so flash visibility updates when lens changes (controller alone does not trigger recomposition). */
     var currentCameraLens by remember { mutableStateOf(controller.getCameraLens() ?: CameraLens.BACK) }
     var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
     var overlaySizePx by remember { mutableStateOf(IntSize.Zero) }
     var brightnessIndex by remember { mutableStateOf(0f) }
+    /** Like flash ON/OFF: drives moon tint; ON = boosted exposure from baseline, OFF = default. */
+    var isLowLightBoostOn by remember { mutableStateOf(false) }
     var isAdjustingBrightness by remember { mutableStateOf(false) }
     var lastCapturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
@@ -149,14 +156,11 @@ fun DefaultCameraPreview(
         }
     }
 
-    LaunchedEffect(focusTapOffset, isNightMode) {
+    LaunchedEffect(focusTapOffset) {
         if (focusTapOffset != null) {
-            if (!isNightMode) {
-                controller.setExposureCompensationIndex(0)
-                brightnessIndex = 0f
-            } else {
-                brightnessIndex = controller.getExposureCompensationIndex().toFloat()
-            }
+            controller.setExposureCompensationIndex(0)
+            brightnessIndex = 0f
+            isLowLightBoostOn = false
         }
     }
 
@@ -175,6 +179,7 @@ fun DefaultCameraPreview(
             if (stateHolder != null) stateHolder.toggleCameraLens()
             else controller.toggleCameraLens()
             currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+            isLowLightBoostOn = false
             if (currentCameraLens == CameraLens.FRONT) {
                 isWideSelfie = true
                 controller.setWideSelfieMode(true)
@@ -196,9 +201,10 @@ fun DefaultCameraPreview(
     }
 
     LaunchedEffect(controller) {
+        isLowLightBoostOn = false
         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-        isNightMode = controller.isNightModeEnabled()
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+        brightnessIndex = controller.getExposureCompensationIndex().toFloat()
         maxZoomState.value = controller.getMaxZoom()
         zoomLevelState.value = controller.getZoom()
         // Re-read zoom when camera may have bound (Android reports maxZoom only after bind)
@@ -238,6 +244,7 @@ fun DefaultCameraPreview(
                 if (stateHolder != null) stateHolder.toggleCameraLens()
                 else controller.toggleCameraLens()
                 currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                isLowLightBoostOn = false
                 if (currentCameraLens == CameraLens.FRONT) {
                     isWideSelfie = true
                     controller.setWideSelfieMode(true)
@@ -303,6 +310,10 @@ fun DefaultCameraPreview(
                                 isAdjustingBrightness = true
                                 brightnessIndex = new
                                 controller.setExposureCompensationIndex(new.toInt())
+                                val baseline = 0.coerceIn(min, max)
+                                if (new.toInt() == baseline) {
+                                    isLowLightBoostOn = false
+                                }
                             },
                             onValueChangeFinished = { isAdjustingBrightness = false },
                             valueRange = min.toFloat()..max.toFloat(),
@@ -354,26 +365,38 @@ fun DefaultCameraPreview(
                     },
                     backgroundColor = Color.Transparent,
                     shadowElevation = 0.dp,
+                    clickDebounceMillis = CameraChromeClickDebounceMillis,
                     onClick = {
                         controller.toggleFlashMode()
                         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
                     },
                 )
             }
-            if (captureMode == CameraCaptureMode.Photo) {
-                CustomIconButton(
-                    icon = CameraIcons.moon,
-                    iconDescription = "Night mode",
-                    iconTint = if (isNightMode) Color.White else Color.White.copy(alpha = 0.5f),
-                    backgroundColor = Color.Transparent,
-                    shadowElevation = 0.dp,
-                    onClick = {
-                        controller.toggleNightMode()
-                        isNightMode = controller.isNightModeEnabled()
-                        brightnessIndex = controller.getExposureCompensationIndex().toFloat()
-                    },
-                )
-            }
+            // AE compensation applies to preview (and typically recording) in both photo and video.
+            CustomIconButton(
+                icon = CameraIcons.moon,
+                iconDescription = "Low light boost",
+                iconTint = if (isLowLightBoostOn) Color.White else Color.White.copy(alpha = 0.5f),
+                backgroundColor = Color.Transparent,
+                shadowElevation = 0.dp,
+                clickDebounceMillis = CameraChromeClickDebounceMillis,
+                onClick = {
+                    val (min, max) = controller.getExposureCompensationRange()
+                    if (min < max) {
+                        val baseline = 0.coerceIn(min, max)
+                        if (!isLowLightBoostOn) {
+                            val target = (baseline + ExposureBoostSteps).coerceIn(min, max)
+                            controller.setExposureCompensationIndex(target)
+                            brightnessIndex = target.toFloat()
+                            isLowLightBoostOn = true
+                        } else {
+                            controller.setExposureCompensationIndex(baseline)
+                            brightnessIndex = baseline.toFloat()
+                            isLowLightBoostOn = false
+                        }
+                    }
+                },
+            )
             CustomIconButton(
                 icon = CameraIcons.switchCamera,
                 iconDescription = "Switch camera",
@@ -384,6 +407,7 @@ fun DefaultCameraPreview(
                         if (stateHolder != null) stateHolder.toggleCameraLens()
                         else controller.toggleCameraLens()
                         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                        isLowLightBoostOn = false
                         if (currentCameraLens == CameraLens.FRONT) {
                             isWideSelfie = true
                             controller.setWideSelfieMode(true)
@@ -513,10 +537,6 @@ fun DefaultCameraPreview(
                             ModeSwitcher(
                                 currentMode = captureMode,
                                 onModeChange = { newMode ->
-                                    if (newMode == CameraCaptureMode.Video && isNightMode) {
-                                        controller.setNightMode(false)
-                                        isNightMode = false
-                                    }
                                     captureMode = newMode
                                 },
                                 enabled = !recordingUiState.isRecording,

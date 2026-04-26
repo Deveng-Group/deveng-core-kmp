@@ -39,6 +39,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * @param iconDescription Content description for accessibility.
  * @param iconTint Color tint for the icon. If null, uses theme default.
  * @param shadowElevation Shadow elevation of the button. If null, uses theme default.
+ * @param clickDebounceMillis Minimum gap between accepted clicks (see [debouncedCombinedClickable]); default matches extension (600ms).
  * @param onClick Callback invoked when the button is clicked.
  */
 @Composable
@@ -53,6 +54,7 @@ fun CustomIconButton(
     iconDescription: String,
     iconTint: Color? = null,
     shadowElevation: Dp? = null,
+    clickDebounceMillis: Long = 600L,
     onClick: () -> Unit
 ) {
     val componentTheme = LocalComponentTheme.current
@@ -81,7 +83,8 @@ fun CustomIconButton(
             )
             .clip(shape = finalShape)
             .debouncedCombinedClickable(
-                shape = finalShape
+                debounceMillis = clickDebounceMillis,
+                shape = finalShape,
             ) {
                 if (isEnabled) {
                     onClick()

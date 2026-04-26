@@ -582,18 +582,12 @@ actual class CameraController(
             TorchMode.ON -> TorchMode.AUTO
             TorchMode.AUTO -> TorchMode.OFF
         }
-        if (!customCameraController.nightModeEnabled) {
-            customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
-        }
+        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
 
     actual fun setTorchMode(mode: TorchMode) {
         torchMode = mode
-        if (customCameraController.nightModeEnabled) {
-            customCameraController.setTorchMode(AVCaptureTorchModeOff)
-        } else {
-            customCameraController.setTorchMode(mode.toAVCaptureTorchMode())
-        }
+        customCameraController.setTorchMode(mode.toAVCaptureTorchMode())
     }
 
     actual fun getTorchMode(): TorchMode? = torchMode
@@ -666,30 +660,10 @@ actual class CameraController(
         imageCaptureListeners.add(listener)
     }
 
-    actual fun toggleNightMode() {
-        customCameraController.nightModeEnabled = !customCameraController.nightModeEnabled
-        customCameraController.applyNightModeDeviceHints()
-        applyTorchForPreviewAfterFlashChange()
-    }
-
-    actual fun setNightMode(enabled: Boolean) {
-        if (customCameraController.nightModeEnabled == enabled) return
-        customCameraController.nightModeEnabled = enabled
-        customCameraController.applyNightModeDeviceHints()
-        applyTorchForPreviewAfterFlashChange()
-    }
-
-    /** Preview torch off during night so multi-frame / low-light paths see ambient exposure. */
     private fun applyTorchForPreviewAfterFlashChange() {
-        if (customCameraController.nightModeEnabled) {
-            customCameraController.setTorchMode(AVCaptureTorchModeOff)
-            return
-        }
         torchMode = if (flashMode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
         customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
-
-    actual fun isNightModeEnabled(): Boolean = customCameraController.nightModeEnabled
 
     actual fun setWideSelfieMode(enabled: Boolean) {
         // iOS: no vendor-specific FOV expansion equivalent. AVFoundation already exposes

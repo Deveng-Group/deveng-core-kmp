@@ -10,18 +10,15 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.media.ExifInterface
 import android.os.Environment
 import android.util.Log
-import android.util.Range
 import android.util.Size
 import android.view.Display
 import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
-import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -33,8 +30,6 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCaseGroup
-import androidx.camera.extensions.ExtensionMode
-import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -80,9 +75,6 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** AE compensation steps toward brighter image when night mode is on (no OEM night extension). */
-private const val NIGHT_MODE_EXPOSURE_COMPENSATION_BOOST = 8
-
 /**
  * Android-specific implementation of [CameraController] using CameraX.
  */
@@ -102,7 +94,6 @@ actual class CameraController(
     internal var targetResolution: Pair<Int, Int>? = null,
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
-    private var extensionsManager: ExtensionsManager? = null
     private var imageCapture: ImageCapture? = null
     private var preview: Preview? = null
     private var camera: Camera? = null
@@ -129,9 +120,6 @@ actual class CameraController(
 
     private val imageProcessingExecutor = Executors.newFixedThreadPool(2)
 
-    /** Last bind: OEM CameraX night extension available for [createCameraSelector]. */
-    private var cameraXNightExtensionAvailable = false
-
     fun bindCamera(previewView: PreviewView, onCameraReady: () -> Unit = {}) {
         Log.d("CameraK", "==> bindCamera() called for deviceType: $cameraDeviceType")
         this.previewView = previewView
@@ -142,22 +130,8 @@ actual class CameraController(
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                val provider = cameraProvider ?: return@addListener
-
-                if (extensionsManager == null) {
-                    val extFuture = ExtensionsManager.getInstanceAsync(context, provider)
-                    extFuture.addListener({
-                        extensionsManager = try {
-                            extFuture.get()
-                        } catch (e: Exception) {
-                            Log.w("CameraK", "Failed to load ExtensionsManager: ${e.message}")
-                            null
-                        }
-                        completeBinding(previewView, onCameraReady)
-                    }, ContextCompat.getMainExecutor(context))
-                } else {
-                    completeBinding(previewView, onCameraReady)
-                }
+                cameraProvider ?: return@addListener
+                completeBinding(previewView, onCameraReady)
             } catch (exc: Exception) {
                 Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
                 exc.printStackTrace()
@@ -177,59 +151,28 @@ actual class CameraController(
                 ?.rotation
                 ?: Surface.ROTATION_0
 
-            val baseSelector = createCameraSelector()
-            val extMgr = extensionsManager
-            cameraXNightExtensionAvailable = extMgr != null &&
-                runCatching { extMgr.isExtensionAvailable(baseSelector, ExtensionMode.NIGHT) }.getOrDefault(false)
-            val nightExtensionActive = nightModeEnabled && cameraXNightExtensionAvailable
-            logNightExtensionAvailability(baseSelector, nightExtensionActive)
-            val cameraSelector = if (nightExtensionActive) {
-                extMgr!!.getExtensionEnabledCameraSelector(baseSelector, ExtensionMode.NIGHT)
-            } else {
-                if (nightModeEnabled) {
-                    Log.w(
-                        "CameraK",
-                        "NIGHT extension unavailable; applying Camera2 night hints on preview+capture (OEM-dependent).",
-                    )
-                }
-                baseSelector
-            }
-            val useCamera2NightFallback = nightModeEnabled && !nightExtensionActive
-            Log.d(
-                "CameraK",
-                "==> Camera selector: deviceType=$cameraDeviceType night=$nightModeEnabled " +
-                    "nightExtensionActive=$nightExtensionActive camera2NightFallback=$useCamera2NightFallback",
-            )
+            val cameraSelector = createCameraSelector()
+            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType")
 
             val previewBuilder = Preview.Builder()
                 .setResolutionSelector(resolutionSelector)
                 .setTargetRotation(displayRotation)
             applyWideSelfieInterop(previewBuilder)
-            if (useCamera2NightFallback) {
-                applyNightCamera2FallbackToPreview(previewBuilder)
-            }
             preview = previewBuilder
                 .build()
                 .also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-            configureCaptureUseCase(
-                resolutionSelector,
-                displayRotation,
-                useCamera2NightFallback = useCamera2NightFallback,
-            )
+            configureCaptureUseCase(resolutionSelector, displayRotation)
             configureVideoCaptureUseCase()
 
             val useCaseGroupBuilder = UseCaseGroup.Builder()
                 .addUseCase(preview!!)
                 .addUseCase(imageCapture!!)
 
-            // NIGHT extension only supports Preview + ImageCapture; skip incompatible use cases.
-            if (!nightModeEnabled) {
-                videoCapture?.let { useCaseGroupBuilder.addUseCase(it) }
-                imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
-            }
+            videoCapture?.let { useCaseGroupBuilder.addUseCase(it) }
+            imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
 
             // Do not force a ViewPort crop rect here.
             // On tall displays this can crop left/right aggressively; keeping use cases uncropped
@@ -245,7 +188,6 @@ actual class CameraController(
             Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
 
             applyImageCaptureFlashAndTorchForCurrentState()
-            applyNightModeExposureCompensation()
 
             onCameraReady()
         } catch (exc: Exception) {
@@ -361,145 +303,6 @@ actual class CameraController(
     }
 
     /**
-     * Configure the image capture use case. QUALITY and NONE default to maximum still quality;
-     * only SPEED / BALANCED trade latency for responsiveness.
-     */
-    private fun logNightExtensionAvailability(baseSelector: CameraSelector, nightExtensionActive: Boolean) {
-        val extMgr = extensionsManager
-        if (extMgr == null) {
-            Log.w("CameraK", "NIGHT diagnostics: ExtensionsManager=null (night extension cannot bind yet)")
-            return
-        }
-        val userSelectorAvail = runCatching {
-            extMgr.isExtensionAvailable(baseSelector, ExtensionMode.NIGHT)
-        }.getOrDefault(false)
-        val defaultBackAvail = runCatching {
-            extMgr.isExtensionAvailable(CameraSelector.DEFAULT_BACK_CAMERA, ExtensionMode.NIGHT)
-        }.getOrDefault(false)
-        Log.i(
-            "CameraK",
-            "NIGHT diagnostics: active=$nightExtensionActive selectorAvail=$userSelectorAvail " +
-                "defaultBackAvail=$defaultBackAvail lens=$cameraLens deviceType=$cameraDeviceType",
-        )
-    }
-
-    /**
-     * When CameraX OEM night extension is missing, request classic Camera2 "night scene" on the
-     * preview pipeline so AE/AWB can bias for low light (must pair [CaptureRequest.CONTROL_MODE]
-     * with [CaptureRequest.CONTROL_SCENE_MODE] — scene-only hints are often ignored).
-     */
-    @OptIn(ExperimentalCamera2Interop::class)
-    private fun applyNightCamera2FallbackToPreview(builder: Preview.Builder) {
-        runCatching {
-            Camera2Interop.Extender(builder)
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_MODE,
-                    CaptureRequest.CONTROL_MODE_USE_SCENE_MODE,
-                )
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_SCENE_MODE,
-                    CaptureRequest.CONTROL_SCENE_MODE_NIGHT,
-                )
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    Range.create(10, 30),
-                )
-        }.onFailure { e ->
-            Log.w("CameraK", "Preview Camera2 night fallback not applied: ${e.message}")
-        }
-    }
-
-    @OptIn(ExperimentalCamera2Interop::class)
-    private fun applyNightCamera2FallbackToImageCapture(builder: ImageCapture.Builder) {
-        runCatching {
-            Camera2Interop.Extender(builder)
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_MODE,
-                    CaptureRequest.CONTROL_MODE_USE_SCENE_MODE,
-                )
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_SCENE_MODE,
-                    CaptureRequest.CONTROL_SCENE_MODE_NIGHT,
-                )
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    Range.create(10, 30),
-                )
-        }.onFailure { e ->
-            Log.w("CameraK", "ImageCapture Camera2 night fallback not applied: ${e.message}")
-        }
-    }
-
-    /**
-     * Computational low-light / night fusion needs ambient light frames — hardware flash/torch
-     * must stay off for [ImageCapture] even if the user left flash "on" in the UI (we still
-     * remember their preference in [flashMode] for when night mode is turned off).
-     */
-    private fun effectiveImageCaptureFlashMode(): Int =
-        if (nightModeEnabled) ImageCapture.FLASH_MODE_OFF else flashMode.toCameraXFlashMode()
-
-    @OptIn(ExperimentalZeroShutterLag::class, ExperimentalCamera2Interop::class)
-    private fun configureCaptureUseCase(
-        resolutionSelector: ResolutionSelector,
-        displayRotation: Int,
-        useCamera2NightFallback: Boolean,
-    ) {
-        val builder = ImageCapture.Builder()
-            .setFlashMode(effectiveImageCaptureFlashMode())
-            .setCaptureMode(
-                // Night extension / low-light fusion needs a quality-first capture pipeline.
-                // BALANCED / ZSL paths can feel like an instant snapshot (unlike Snapchat-style night).
-                if (nightModeEnabled) {
-                    ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-                } else {
-                    when (qualityPriority) {
-                        QualityPrioritization.QUALITY, QualityPrioritization.NONE ->
-                            ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-                        QualityPrioritization.SPEED -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                        QualityPrioritization.BALANCED -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                    }
-                },
-            )
-            .setResolutionSelector(resolutionSelector)
-            .setTargetRotation(displayRotation)
-        if (useCamera2NightFallback) {
-            applyNightCamera2FallbackToImageCapture(builder)
-        }
-        applyWideSelfieInterop(builder)
-        imageCapture = builder.build()
-    }
-
-    /** Keeps [ImageCapture] flash and preview torch consistent with [nightModeEnabled] and [flashMode]. */
-    private fun applyImageCaptureFlashAndTorchForCurrentState() {
-        imageCapture?.flashMode = effectiveImageCaptureFlashMode()
-        val torchForPreview = flashMode == FlashMode.ON && !nightModeEnabled
-        camera?.cameraControl?.enableTorch(torchForPreview)
-    }
-
-    /**
-     * Night mode without OEM CameraX extension: bias preview/capture brighter via AE compensation.
-     * Steps are device-defined (~1/6 EV each on typical phones); value is clamped to hardware range.
-     */
-    private fun applyNightModeExposureCompensation() {
-        val control = camera?.cameraControl ?: return
-        val state = camera?.cameraInfo?.exposureState ?: return
-        try {
-            if (!state.isExposureCompensationSupported) return
-            val min = state.exposureCompensationRange.lower
-            val max = state.exposureCompensationRange.upper
-            if (min >= max) return
-            if (nightModeEnabled) {
-                val target = NIGHT_MODE_EXPOSURE_COMPENSATION_BOOST.coerceIn(min, max)
-                control.setExposureCompensationIndex(target)
-            } else {
-                control.setExposureCompensationIndex(0)
-            }
-        } catch (e: Exception) {
-            Log.d("CameraK", "Night exposure compensation: ${e.message}")
-        }
-    }
-
-    /**
      * Wide selfie is intentionally a no-op on Android for now.
      *
      * On tested Samsung devices, CameraX/Camera2 public APIs expose only the standard front
@@ -508,6 +311,49 @@ actual class CameraController(
      */
     private fun <T> applyWideSelfieInterop(builder: T) where T : Any {
         // Intentionally left blank.
+    }
+
+    @OptIn(ExperimentalZeroShutterLag::class)
+    private fun configureCaptureUseCase(
+        resolutionSelector: ResolutionSelector,
+        displayRotation: Int,
+    ) {
+        val builder = ImageCapture.Builder()
+            .setFlashMode(flashMode.toCameraXFlashMode())
+            .setCaptureMode(
+                when (qualityPriority) {
+                    QualityPrioritization.QUALITY, QualityPrioritization.NONE ->
+                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+                    QualityPrioritization.SPEED -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
+                    QualityPrioritization.BALANCED -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
+                },
+            )
+            .setResolutionSelector(resolutionSelector)
+            .setTargetRotation(displayRotation)
+        applyWideSelfieInterop(builder)
+        imageCapture = builder.build()
+    }
+
+    private fun applyImageCaptureFlashAndTorchForCurrentState() {
+        imageCapture?.flashMode = flashMode.toCameraXFlashMode()
+        applyPreviewTorchPolicy()
+    }
+
+    /**
+     * Preview LED torch (used when flash is "on" for framing) floods the sensor; AE compensation
+     * then barely changes perceived brightness. Turn preview torch off whenever EV index is
+     * non-zero so exposure bias is visible. User-chosen torch mode still forces the LED on.
+     */
+    private fun applyPreviewTorchPolicy(exposureCompensationIndexHint: Int? = null) {
+        val control = camera?.cameraControl ?: return
+        val ev = exposureCompensationIndexHint ?: getExposureCompensationIndex()
+        val userTorch = torchMode == TorchMode.ON || torchMode == TorchMode.AUTO
+        if (userTorch) {
+            control.enableTorch(true)
+            return
+        }
+        val flashPreviewTorch = flashMode == FlashMode.ON && ev == 0
+        control.enableTorch(flashPreviewTorch)
     }
 
     fun updateImageAnalyzer() {
@@ -935,22 +781,18 @@ actual class CameraController(
             TorchMode.ON -> TorchMode.AUTO
             TorchMode.AUTO -> TorchMode.OFF
         }
-        // CameraX doesn't support AUTO torch mode, treat it as ON
-        val enableTorch = !nightModeEnabled && (torchMode == TorchMode.ON || torchMode == TorchMode.AUTO)
         if (torchMode == TorchMode.AUTO) {
             Log.w("CameraK", "TorchMode.AUTO not natively supported, using ON")
         }
-        camera?.cameraControl?.enableTorch(enableTorch)
+        applyPreviewTorchPolicy()
     }
 
     actual fun setTorchMode(mode: TorchMode) {
         torchMode = mode
-        // CameraX doesn't support AUTO torch mode, treat it as ON
-        val enableTorch = !nightModeEnabled && (mode == TorchMode.ON || mode == TorchMode.AUTO)
         if (mode == TorchMode.AUTO) {
             Log.w("CameraK", "TorchMode.AUTO not natively supported, using ON")
         }
-        camera?.cameraControl?.enableTorch(enableTorch)
+        applyPreviewTorchPolicy()
     }
 
     actual fun setZoom(zoomRatio: Float) {
@@ -990,6 +832,7 @@ actual class CameraController(
         if (min == 0 && max == 0) return
         val clamped = index.coerceIn(min, max)
         camera?.cameraControl?.setExposureCompensationIndex(clamped)
+        applyPreviewTorchPolicy(exposureCompensationIndexHint = clamped)
     }
 
     actual fun getExposureCompensationIndex(): Int =
@@ -1035,25 +878,6 @@ actual class CameraController(
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {
         imageCaptureListeners.add(listener)
     }
-
-    private var nightModeEnabled = false
-
-    actual fun toggleNightMode() {
-        setNightMode(!nightModeEnabled)
-    }
-
-    /**
-     * Toggles the CameraX NIGHT extension. Rebinds the camera so the extension pipeline
-     * (multi-frame fusion, low-light denoise) actually engages on supported devices.
-     * Falls back to the base selector silently when the extension isn't available.
-     */
-    actual fun setNightMode(enabled: Boolean) {
-        if (nightModeEnabled == enabled) return
-        nightModeEnabled = enabled
-        previewView?.let { bindCamera(it) }
-    }
-
-    actual fun isNightModeEnabled(): Boolean = nightModeEnabled
 
     private var wideSelfieEnabled = false
 
