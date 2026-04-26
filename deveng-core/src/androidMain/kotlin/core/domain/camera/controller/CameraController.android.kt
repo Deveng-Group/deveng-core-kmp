@@ -482,7 +482,10 @@ actual class CameraController(
                             return@execute
                         }
                         val bitmap = try {
-                            decodeThumbnailBitmapWithExifRotation(path)
+                            decodeThumbnailBitmapWithExifRotation(
+                                path = path,
+                                ignoreMirrorInExif = isFront,
+                            )
                         } catch (e: Exception) {
                             Log.e("CameraK", "Failed to decode bitmap from file", e)
                             null
@@ -512,8 +515,15 @@ actual class CameraController(
     /**
      * Decodes a JPEG file to [ImageBitmap] and applies EXIF orientation so the thumbnail
      * matches the correct display orientation (e.g. EXIF 6 = 90° CW is applied to pixels).
+     *
+     * @param ignoreMirrorInExif When true, skips EXIF steps that horizontally flip pixels.
+     * Use for **front** captures where [ImageCapture.Metadata.isReversedHorizontal] was already
+     * applied on encode; re-applying EXIF mirror would double-flip the thumbnail.
      */
-    private fun decodeThumbnailBitmapWithExifRotation(path: String): ImageBitmap? {
+    private fun decodeThumbnailBitmapWithExifRotation(
+        path: String,
+        ignoreMirrorInExif: Boolean = false,
+    ): ImageBitmap? {
         var bitmap = BitmapFactory.decodeFile(path, null) ?: return null
         try {
             val orientation = ExifInterface(path).getAttributeInt(
@@ -528,15 +538,17 @@ actual class CameraController(
                     ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
                     ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
                     ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> {
+                        if (!ignoreMirrorInExif) matrix.postScale(-1f, 1f)
+                    }
                     ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
                     ExifInterface.ORIENTATION_TRANSPOSE -> {
                         matrix.postRotate(90f)
-                        matrix.postScale(-1f, 1f)
+                        if (!ignoreMirrorInExif) matrix.postScale(-1f, 1f)
                     }
                     ExifInterface.ORIENTATION_TRANSVERSE -> {
                         matrix.postRotate(270f)
-                        matrix.postScale(-1f, 1f)
+                        if (!ignoreMirrorInExif) matrix.postScale(-1f, 1f)
                     }
                 }
                 if (!matrix.isIdentity) {

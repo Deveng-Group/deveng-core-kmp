@@ -44,6 +44,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -286,6 +288,8 @@ fun DefaultCameraPreview(
     var isLowLightBoostOn by remember { mutableStateOf(false) }
     var isAdjustingBrightness by remember { mutableStateOf(false) }
     var lastCapturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    /** True if [lastCapturedBitmap] was taken with the front lens (mirrors thumbnail to match PreviewView). */
+    var lastCapturedWithFrontLens by remember { mutableStateOf(false) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
     var isWideSelfie by remember { mutableStateOf(true) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
@@ -304,6 +308,7 @@ fun DefaultCameraPreview(
             when (event) {
                 is CameraKEvent.RecordingStopped -> {
                     lastCapturedBitmap = null
+                    lastCapturedWithFrontLens = false
                     onRecordingStopped?.invoke(event.result)
                 }
                 else -> { }
@@ -660,6 +665,10 @@ fun DefaultCameraPreview(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     val thumbnailBitmap = lastCapturedBitmap ?: lastRecordedVideoThumbnail ?: initialThumbnailBitmap
+                    val mirrorThumbnailHorizontally =
+                        lastCapturedBitmap != null &&
+                            lastCapturedWithFrontLens &&
+                            thumbnailBitmap === lastCapturedBitmap
                     thumbnailBitmap?.let { bitmap ->
                         val thumbShape = RoundedCornerShape(8.dp)
                         Box(
@@ -678,7 +687,18 @@ fun DefaultCameraPreview(
                                 bitmap = bitmap,
                                 contentDescription = "Photo thumbnail",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .then(
+                                        if (mirrorThumbnailHorizontally) {
+                                            Modifier.graphicsLayer {
+                                                scaleX = -1f
+                                                transformOrigin = TransformOrigin(0.5f, 0.5f)
+                                            }
+                                        } else {
+                                            Modifier
+                                        },
+                                    ),
                             )
                             Box(
                                 modifier = Modifier
@@ -721,7 +741,13 @@ fun DefaultCameraPreview(
                                     shutterEffectTrigger++
                                 }
                                 val result = controller.takePictureToFile()
-                                lastCapturedBitmap = (result as? ImageCaptureResult.Success)?.bitmap
+                                if (result is ImageCaptureResult.Success) {
+                                    lastCapturedBitmap = result.bitmap
+                                    lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
+                                } else {
+                                    lastCapturedBitmap = null
+                                    lastCapturedWithFrontLens = false
+                                }
                                 onImageCaptured(result)
                                 if (deferShutterUntilAfterCapture) {
                                     showShutterFlash = true
