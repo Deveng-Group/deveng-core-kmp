@@ -111,6 +111,7 @@ actual class CameraController(
 
     actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
     actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+    actual var shouldSuppressTapToFocus: ((Float, Float) -> Boolean)? = null
 
     private val imageCaptureListeners = mutableListOf<(ByteArray) -> Unit>()
 
@@ -334,26 +335,21 @@ actual class CameraController(
         imageCapture = builder.build()
     }
 
+    /** Syncs still-capture flash on [imageCapture] and preview torch from [torchMode] only. */
     private fun applyImageCaptureFlashAndTorchForCurrentState() {
         imageCapture?.flashMode = flashMode.toCameraXFlashMode()
         applyPreviewTorchPolicy()
     }
 
     /**
-     * Preview LED torch (used when flash is "on" for framing) floods the sensor; AE compensation
-     * then barely changes perceived brightness. Turn preview torch off whenever EV index is
-     * non-zero so exposure bias is visible. User-chosen torch mode still forces the LED on.
+     * Controls preview LED torch only from [torchMode]. Still photo flash ([flashMode]) is applied
+     * via [ImageCapture.flashMode] and fires at capture time — never mirror flash as preview torch
+     * or it behaves like a video light instead of a burst at shutter.
      */
-    private fun applyPreviewTorchPolicy(exposureCompensationIndexHint: Int? = null) {
+    private fun applyPreviewTorchPolicy() {
         val control = camera?.cameraControl ?: return
-        val ev = exposureCompensationIndexHint ?: getExposureCompensationIndex()
         val userTorch = torchMode == TorchMode.ON || torchMode == TorchMode.AUTO
-        if (userTorch) {
-            control.enableTorch(true)
-            return
-        }
-        val flashPreviewTorch = flashMode == FlashMode.ON && ev == 0
-        control.enableTorch(flashPreviewTorch)
+        control.enableTorch(userTorch)
     }
 
     fun updateImageAnalyzer() {
@@ -832,7 +828,6 @@ actual class CameraController(
         if (min == 0 && max == 0) return
         val clamped = index.coerceIn(min, max)
         camera?.cameraControl?.setExposureCompensationIndex(clamped)
-        applyPreviewTorchPolicy(exposureCompensationIndexHint = clamped)
     }
 
     actual fun getExposureCompensationIndex(): Int =

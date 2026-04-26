@@ -1,5 +1,6 @@
 package core.domain.camera.compose
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,11 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -68,7 +73,9 @@ import core.domain.camera.result.ImageCaptureResult
 import core.domain.camera.ui.CameraIcons
 import core.presentation.component.CustomIconButton
 import core.presentation.theme.CoreRegularTextStyle
+import core.presentation.theme.LocalComponentTheme
 import kotlinx.coroutines.launch
+import kotlin.math.max
 
 private enum class CameraCaptureMode { Photo, Video }
 
@@ -77,6 +84,144 @@ private const val ExposureBoostSteps = 6
 
 /** Half of [debouncedCombinedClickable] default (600ms) — top camera chrome (flash / moon) feels more responsive. */
 private const val CameraChromeClickDebounceMillis = 300L
+
+/** Fill alpha for [TapToFocusExclusionDebugOverlay] when [showTapToFocusExclusionDebugOverlay] is true (very subtle red). */
+private const val TapToFocusExclusionDebugOverlayAlpha = 0.09f
+
+/** Tight halo around controls: only taps clearly next to chrome suppress tap-to-focus. */
+private val TapToFocusChromeClearanceDp = 12.dp
+
+private fun buildTapToFocusExclusionRects(
+    overlayW: Int,
+    overlayH: Int,
+    density: Density,
+    previewTopInsetDp: Dp,
+    cameraLens: CameraLens,
+    iconButtonDp: Dp,
+): List<Rect> {
+    if (overlayW <= 0 || overlayH <= 0) return emptyList()
+    val w = overlayW.toFloat()
+    val h = overlayH.toFloat()
+    val c = with(density) { TapToFocusChromeClearanceDp.toPx() }
+
+    val endPad = with(density) { 4.dp.toPx() }
+    val topPad = with(density) { (previewTopInsetDp + 16.dp).toPx() }
+    val btn = with(density) { iconButtonDp.toPx() }
+    val gap = with(density) { 12.dp.toPx() }
+    val iconCount = if (cameraLens == CameraLens.FRONT) 2 else 3
+    val colH = iconCount * btn + max(0, iconCount - 1) * gap
+    val colLeft = w - endPad - btn
+    val topColumn = Rect(
+        left = colLeft - c,
+        top = topPad - c,
+        right = w,
+        bottom = topPad + colH + c,
+    )
+
+    val bottomPad = with(density) { 20.dp.toPx() }
+    val chipH = with(density) { 40.dp.toPx() }
+    val spacer = with(density) { 8.dp.toPx() }
+    val mainH = with(density) { 72.dp.toPx() }
+    val yMainBottom = h - bottomPad
+    val yMainTop = yMainBottom - mainH
+    val yChipBottom = yMainTop - spacer
+    val yChipTop = yChipBottom - chipH
+    val chipHalfW = with(density) { 100.dp.toPx() }
+    val chipRow = Rect(
+        left = w / 2f - chipHalfW - c,
+        top = yChipTop - c,
+        right = w / 2f + chipHalfW + c,
+        bottom = yChipBottom + c,
+    )
+
+    val third = w / 3f
+    val gallerySpan = with(density) { 130.dp.toPx() }
+    val shutterHalf = with(density) { 38.dp.toPx() }
+    val modeW = with(density) { 125.dp.toPx() }
+    val modeLeft = third * 2f - with(density) { 4.dp.toPx() }
+
+    val mainTop = yMainTop - c
+    val mainBottom = yMainBottom + c
+    val galleryRow = Rect(
+        left = third - gallerySpan - c,
+        top = mainTop,
+        right = third + c,
+        bottom = mainBottom,
+    )
+    val shutterRow = Rect(
+        left = w / 2f - shutterHalf - c,
+        top = mainTop,
+        right = w / 2f + shutterHalf + c,
+        bottom = mainBottom,
+    )
+    val modeRow = Rect(
+        left = modeLeft - c,
+        top = mainTop,
+        right = modeLeft + modeW + c,
+        bottom = mainBottom,
+    )
+
+    return listOf(topColumn, chipRow, galleryRow, shutterRow, modeRow)
+}
+
+/**
+ * Mirrors [DefaultCameraPreview] top-trailing icon column and compact bottom control hit areas
+ * (zoom pill center, gallery cluster, shutter, Photo/Video) so the rest of the preview still focuses.
+ */
+private fun suppressTapToFocusNearDefaultCameraChrome(
+    nx: Float,
+    ny: Float,
+    overlayW: Int,
+    overlayH: Int,
+    density: Density,
+    previewTopInsetDp: Dp,
+    cameraLens: CameraLens,
+    iconButtonDp: Dp,
+): Boolean {
+    if (overlayW <= 0 || overlayH <= 0) return false
+    val p = Offset(x = nx * overlayW, y = ny * overlayH)
+    return buildTapToFocusExclusionRects(
+        overlayW = overlayW,
+        overlayH = overlayH,
+        density = density,
+        previewTopInsetDp = previewTopInsetDp,
+        cameraLens = cameraLens,
+        iconButtonDp = iconButtonDp,
+    ).any { it.contains(p) }
+}
+
+@Composable
+private fun TapToFocusExclusionDebugOverlay(
+    overlayW: Int,
+    overlayH: Int,
+    density: Density,
+    previewTopInsetDp: Dp,
+    cameraLens: CameraLens,
+    iconButtonDp: Dp,
+    fillAlpha: Float,
+    modifier: Modifier = Modifier,
+) {
+    val rects = remember(overlayW, overlayH, previewTopInsetDp, cameraLens, iconButtonDp, density) {
+        buildTapToFocusExclusionRects(
+            overlayW = overlayW,
+            overlayH = overlayH,
+            density = density,
+            previewTopInsetDp = previewTopInsetDp,
+            cameraLens = cameraLens,
+            iconButtonDp = iconButtonDp,
+        )
+    }
+    Canvas(modifier = modifier) {
+        val fill = Color.Red.copy(alpha = fillAlpha)
+        for (r in rects) {
+            drawRect(
+                color = fill,
+                topLeft = Offset(r.left, r.top),
+                size = Size(r.width, r.height),
+            )
+        }
+    }
+}
 
 private fun formatRecordingDuration(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)
@@ -99,6 +244,7 @@ private fun formatRecordingDuration(ms: Long): String {
  * @param stateHolder Optional [CameraKStateHolder] from [rememberCameraKState] (via onHolder). When set, shows Photo/Video tab selection and the center button acts as capture in Photo mode or start/stop in Video mode.
  * @param onRecordingStopped Optional callback when a video recording stops (success or error). Use it to load a first-frame thumbnail and pass it as [lastRecordedVideoThumbnail].
  * @param lastRecordedVideoThumbnail Optional bitmap to show as thumbnail for the last recorded video (e.g. first frame). Shown when the last capture was video; replaced when user takes a photo.
+ * @param showTapToFocusExclusionDebugOverlay When true, draws a very faint red overlay on regions where tap-to-focus is suppressed (for tuning/debug).
  * @param modifier Modifier for the root layout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,6 +259,7 @@ fun DefaultCameraPreview(
     stateHolder: CameraKStateHolder? = null,
     onRecordingStopped: ((VideoCaptureResult) -> Unit)? = null,
     lastRecordedVideoThumbnail: ImageBitmap? = null,
+    showTapToFocusExclusionDebugOverlay: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -143,6 +290,7 @@ fun DefaultCameraPreview(
         val estimatedPreviewHeightPx = overlaySizePx.width * (16f / 9f)
         (overlaySizePx.height - estimatedPreviewHeightPx).coerceAtLeast(0f).toDp()
     }
+    val iconButtonDp = LocalComponentTheme.current.iconButton.buttonSize
 
     LaunchedEffect(stateHolder) {
         stateHolder?.events?.collect { event ->
@@ -166,7 +314,26 @@ fun DefaultCameraPreview(
 
     // iOS: native UIKit gesture recognizers handle taps because the first Compose touch
     // is lost to UIKit interop routing. Wire callbacks to update Compose state.
-    DisposableEffect(controller) {
+    DisposableEffect(
+        controller,
+        overlaySizePx,
+        currentCameraLens,
+        iconButtonDp,
+        previewTopInsetDp,
+        density,
+    ) {
+        controller.shouldSuppressTapToFocus = { nx, ny ->
+            suppressTapToFocusNearDefaultCameraChrome(
+                nx = nx,
+                ny = ny,
+                overlayW = overlaySizePx.width,
+                overlayH = overlaySizePx.height,
+                density = density,
+                previewTopInsetDp = previewTopInsetDp,
+                cameraLens = currentCameraLens,
+                iconButtonDp = iconButtonDp,
+            )
+        }
         controller.onPreviewTapListener = { nx, ny ->
             val w = overlaySizePx.width
             val h = overlaySizePx.height
@@ -189,6 +356,7 @@ fun DefaultCameraPreview(
             zoomLevelState.value = controller.getZoom()
         }
         onDispose {
+            controller.shouldSuppressTapToFocus = null
             controller.onPreviewTapListener = null
             controller.onPreviewDoubleTapListener = null
         }
@@ -234,6 +402,21 @@ fun DefaultCameraPreview(
             controller = controller,
             modifier = Modifier.fillMaxSize(),
         )
+        if (showTapToFocusExclusionDebugOverlay &&
+            overlaySizePx.width > 0 &&
+            overlaySizePx.height > 0
+        ) {
+            TapToFocusExclusionDebugOverlay(
+                overlayW = overlaySizePx.width,
+                overlayH = overlaySizePx.height,
+                density = density,
+                previewTopInsetDp = previewTopInsetDp,
+                cameraLens = currentCameraLens,
+                iconButtonDp = iconButtonDp,
+                fillAlpha = TapToFocusExclusionDebugOverlayAlpha,
+                modifier = Modifier.fillMaxSize().zIndex(1f),
+            )
+        }
         // Full-screen pinch/tap for zoom & focus (Android/Desktop). Must stay *below* chrome (zIndex 4f+)
         // or it wins hit-testing and blocks capture / flash / gallery.
         CameraZoomGestureOverlay(
@@ -513,12 +696,21 @@ fun DefaultCameraPreview(
                         recordingDurationMs = recordingUiState.recordingDurationMs,
                         stateHolder = stateHolder,
                         onPhotoCapture = {
-                            showShutterFlash = true
-                            shutterEffectTrigger++
                             scope.launch {
+                                val mode = controller.getFlashMode() ?: FlashMode.OFF
+                                val deferShutterUntilAfterCapture =
+                                    currentCameraLens != CameraLens.FRONT && mode != FlashMode.OFF
+                                if (!deferShutterUntilAfterCapture) {
+                                    showShutterFlash = true
+                                    shutterEffectTrigger++
+                                }
                                 val result = controller.takePictureToFile()
                                 lastCapturedBitmap = (result as? ImageCaptureResult.Success)?.bitmap
                                 onImageCaptured(result)
+                                if (deferShutterUntilAfterCapture) {
+                                    showShutterFlash = true
+                                    shutterEffectTrigger++
+                                }
                             }
                         },
                         onVideoStart = { stateHolder?.startRecording(VideoConfiguration()) },

@@ -47,6 +47,9 @@ internal class CameraZoomGestureView(
                 if (w > 0f && h > 0f) {
                     val nx = (e.x / w).coerceIn(0f, 1f)
                     val ny = (e.y / h).coerceIn(0f, 1f)
+                    if (controller.shouldSuppressTapToFocus?.invoke(nx, ny) == true) {
+                        return true
+                    }
                     controller.setFocusPoint(nx, ny)
                     onFocusPointTapped(nx, ny)
                 }

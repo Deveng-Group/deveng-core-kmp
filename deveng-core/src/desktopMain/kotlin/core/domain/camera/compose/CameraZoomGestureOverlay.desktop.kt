@@ -49,6 +49,9 @@ actual fun CameraZoomGestureOverlay(
                                 if (s.width > 0 && s.height > 0) {
                                     val nx = (offset.x / s.width).coerceIn(0f, 1f)
                                     val ny = (offset.y / s.height).coerceIn(0f, 1f)
+                                    if (controller.shouldSuppressTapToFocus?.invoke(nx, ny) == true) {
+                                        return@detectTapGestures
+                                    }
                                     controller.setFocusPoint(nx, ny)
                                     onFocusPointTapped(nx, ny)
                                 }

@@ -19,6 +19,7 @@ actual class CameraController {
 
     actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
     actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+    actual var shouldSuppressTapToFocus: ((Float, Float) -> Boolean)? = null
 
     actual suspend fun takePicture(): ImageCaptureResult =
         ImageCaptureResult.Error(UnsupportedOperationException("Camera not supported on WASM"))

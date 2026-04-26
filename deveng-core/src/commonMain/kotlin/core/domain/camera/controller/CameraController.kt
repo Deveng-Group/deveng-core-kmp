@@ -248,6 +248,13 @@ expect class CameraController {
      */
     var onPreviewDoubleTapListener: (() -> Unit)?
 
+    /**
+     * When non-null, invoked with normalized tap coordinates (0..1) before tap-to-focus.
+     * Return true to skip [setFocusPoint] and the focus ring (e.g. taps near overlay chrome).
+     * Preview gesture layers on Android, Desktop, and iOS consult this when present.
+     */
+    var shouldSuppressTapToFocus: ((normalizedX: Float, normalizedY: Float) -> Boolean)?
+
     // ═══════════════════════════════════════════════════════════════
     // Video Recording
     // ═══════════════════════════════════════════════════════════════

@@ -57,6 +57,7 @@ actual class CameraController(
 
     actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
     actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+    actual var shouldSuppressTapToFocus: ((Float, Float) -> Boolean)? = null
 
     private var listener: (ByteArray) -> Unit = {
         // default no-op listener

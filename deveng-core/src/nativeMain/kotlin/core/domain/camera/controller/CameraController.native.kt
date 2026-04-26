@@ -104,6 +104,7 @@ actual class CameraController(
 
     actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
     actual var onPreviewDoubleTapListener: (() -> Unit)? = null
+    actual var shouldSuppressTapToFocus: ((Float, Float) -> Boolean)? = null
 
     private val memoryManager = MemoryManager
     private val pendingCaptures = atomic(0)
@@ -151,6 +152,7 @@ actual class CameraController(
         val nx = (location.useContents { x } / viewWidth).toFloat().coerceIn(0f, 1f)
         val ny = (location.useContents { y } / viewHeight).toFloat().coerceIn(0f, 1f)
         println("[CameraFocus] Native handleSingleTap: nx=$nx ny=$ny")
+        if (shouldSuppressTapToFocus?.invoke(nx, ny) == true) return
         setFocusPoint(nx, ny)
         onPreviewTapListener?.invoke(nx, ny)
     }
@@ -555,13 +557,11 @@ actual class CameraController(
             else -> FlashMode.ON  // OFF or AUTO -> ON
         }
         customCameraController.setFlashMode(flashMode.toAVCaptureFlashMode())
-        applyTorchForPreviewAfterFlashChange()
     }
 
     actual fun setFlashMode(mode: FlashMode) {
         flashMode = mode
         customCameraController.setFlashMode(mode.toAVCaptureFlashMode())
-        applyTorchForPreviewAfterFlashChange()
     }
 
     actual fun getFlashMode(): FlashMode? {
@@ -658,11 +658,6 @@ actual class CameraController(
 
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {
         imageCaptureListeners.add(listener)
-    }
-
-    private fun applyTorchForPreviewAfterFlashChange() {
-        torchMode = if (flashMode == FlashMode.ON) TorchMode.ON else TorchMode.OFF
-        customCameraController.setTorchMode(torchMode.toAVCaptureTorchMode())
     }
 
     actual fun setWideSelfieMode(enabled: Boolean) {
