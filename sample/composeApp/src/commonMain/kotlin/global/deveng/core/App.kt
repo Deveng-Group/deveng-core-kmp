@@ -128,6 +128,7 @@ import core.presentation.theme.SurfaceTheme
 import core.presentation.theme.SwipeCardsTheme
 import core.presentation.theme.TypographyTheme
 import core.util.datetime.CustomSelectableDates
+import core.util.multiplatform.Platform
 import core.util.datetime.TargetDates
 import core.util.datetime.formatDateRange
 import core.util.datetime.slashDateFormat
@@ -505,6 +506,7 @@ private fun CameraContent(onBack: () -> Unit) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     DefaultCameraPreview(
                         controller = state.controller,
+                        hostPlatform = Platform.ANDROID,
                         modifier = Modifier.padding(bottom = 66.dp),
                         thumbnailTopEndContent = {
                             ThumbnailCountBadge(count = 22)

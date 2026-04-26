@@ -74,6 +74,7 @@ import core.domain.camera.ui.CameraIcons
 import core.presentation.component.CustomIconButton
 import core.presentation.theme.CoreRegularTextStyle
 import core.presentation.theme.LocalComponentTheme
+import core.util.multiplatform.Platform
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
@@ -90,6 +91,10 @@ private const val TapToFocusExclusionDebugOverlayAlpha = 0.09f
 
 /** Tight halo around controls: only taps clearly next to chrome suppress tap-to-focus. */
 private val TapToFocusChromeClearanceDp = 12.dp
+
+/** True: exposure slider to the end (right in LTR) of the focus ring; false: below the ring (Android-style). */
+private fun Platform.exposureSliderToEndOfRing(): Boolean =
+    this == Platform.IOS || this == Platform.NATIVE
 
 private fun buildTapToFocusExclusionRects(
     overlayW: Int,
@@ -245,6 +250,7 @@ private fun formatRecordingDuration(ms: Long): String {
  * @param onRecordingStopped Optional callback when a video recording stops (success or error). Use it to load a first-frame thumbnail and pass it as [lastRecordedVideoThumbnail].
  * @param lastRecordedVideoThumbnail Optional bitmap to show as thumbnail for the last recorded video (e.g. first frame). Shown when the last capture was video; replaced when user takes a photo.
  * @param showTapToFocusExclusionDebugOverlay When true, draws a very faint red overlay on regions where tap-to-focus is suppressed (for tuning/debug).
+ * @param hostPlatform Host OS for tap-to-focus exposure slider placement: [Platform.IOS] or [Platform.NATIVE] places the slider to the right of the reticle; [Platform.ANDROID] keeps it below the ring (also used for [Platform.WEB] and [Platform.DESKTOP]). The app must pass the correct value; core does not detect the platform.
  * @param modifier Modifier for the root layout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -260,6 +266,7 @@ fun DefaultCameraPreview(
     onRecordingStopped: ((VideoCaptureResult) -> Unit)? = null,
     lastRecordedVideoThumbnail: ImageBitmap? = null,
     showTapToFocusExclusionDebugOverlay: Boolean = false,
+    hostPlatform: Platform = Platform.ANDROID,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -464,7 +471,7 @@ fun DefaultCameraPreview(
             modifier = Modifier.fillMaxSize().zIndex(2f),
             keepVisible = isAdjustingBrightness,
         )
-        // Brightness slider under focus circle; reset to default when user taps again (handled in onFocusPointTapped + LaunchedEffect)
+        // Brightness slider: below focus circle (Android-style) or to the end/right of the ring (iOS-style).
         focusTapOffset?.let { tap ->
             val (min, max) = controller.getExposureCompensationRange()
                 if (min != max) {
@@ -472,13 +479,22 @@ fun DefaultCameraPreview(
                 with(density) {
                     val sliderWidthPx = 100.dp.toPx()
                     val circleRadiusPx = 38.dp.toPx()
-                    // Negative gap: Slider has internal top padding / centered track, so we pull the box up
-                    // so the visible track line sits just below the circle
-                    val gapPx = (-9).dp.toPx()
-                    val leftPx = (tap.x - sliderWidthPx / 2f).coerceIn(0f, (overlaySizePx.width - sliderWidthPx).toFloat())
                     val minTop = 0f
-                    val maxTop = (overlaySizePx.height - 32f).coerceAtLeast(minTop)
-                    val topPx = (tap.y + circleRadiusPx + gapPx).coerceIn(minTop, maxTop)
+                    val sliderBlockHeightPx = 40.dp.toPx()
+                    val maxTop = (overlaySizePx.height.toFloat() - sliderBlockHeightPx).coerceAtLeast(minTop)
+                    val gapEndPx = 6.dp.toPx()
+                    val maxLeftForSlider =
+                        (overlaySizePx.width.toFloat() - sliderWidthPx).coerceAtLeast(0f)
+                    val (leftPx, topPx) = if (hostPlatform.exposureSliderToEndOfRing()) {
+                        val left = (tap.x + circleRadiusPx + gapEndPx).coerceIn(0f, maxLeftForSlider)
+                        val top = (tap.y - sliderBlockHeightPx / 2f).coerceIn(minTop, maxTop)
+                        left to top
+                    } else {
+                        val gapBelowPx = (-9).dp.toPx()
+                        val left = (tap.x - sliderWidthPx / 2f).coerceIn(0f, maxLeftForSlider)
+                        val top = (tap.y + circleRadiusPx + gapBelowPx).coerceIn(minTop, maxTop)
+                        left to top
+                    }
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
