@@ -1,10 +1,12 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <!-- Softer silhouette: rounder head + smoother shoulders -->
-  <path
-      android:pathData="M12,7.5c2.07,0 3.75,1.68 3.75,3.75S14.07,15 12,15s-3.75,-1.68 -3.75,-3.75S9.93,7.5 12,7.5zM6.25,20.25v-0.75c0,-2.9 3.35,-5.25 7.5,-5.25s7.5,2.35 7.5,5.25v0.75H6.25z"
-      android:fillColor="#FFFFFF"/>
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:pathData="M50,14 A18,18 0 1,1 49.99,14 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M12,85 Q12,58 50,58 Q88,58 88,85 Q88,95 78,95 L22,95 Q12,95 12,85 Z"
+        android:fillColor="#FFFFFF" />
 </vector>

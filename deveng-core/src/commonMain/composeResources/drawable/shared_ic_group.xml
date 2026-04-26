@@ -1,13 +1,14 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <!-- Two softer silhouettes with rounder heads -->
-  <path
-      android:pathData="M16.25,8.25c1.52,0 2.75,1.23 2.75,2.75s-1.23,2.75 -2.75,2.75 -2.75,-1.23 -2.75,-2.75 1.23,-2.75 2.75,-2.75zM11.5,15.75c0,-2.35 2.7,-4.25 6,-4.25s6,1.9 6,4.25v1.25h-12v-1.25z"
-      android:fillColor="#FFFFFF"/>
-  <path
-      android:pathData="M7.75,9.25c1.52,0 2.75,1.23 2.75,2.75s-1.23,2.75 -2.75,2.75 -2.75,-1.23 -2.75,-2.75 1.23,-2.75 2.75,-2.75zM3.5,20.25v-1.25c0,-2.1 2.45,-3.85 5.5,-4.2 -0.35,0.45 -0.55,1 -0.55,1.6v3.85H3.5z"
-      android:fillColor="#FFFFFF"/>
+    android:viewportWidth="640"
+    android:viewportHeight="640">
+    <!--
+      Font Awesome Free v7.2.0 – user-group icon.
+      https://fontawesome.com License: https://fontawesome.com/license/free
+      Copyright Fonticons, Inc.
+    -->
+    <path
+        android:pathData="M96,192C96,130.1,146.1,80,208,80C269.9,80,320,130.1,320,192C320,253.9,269.9,304,208,304C146.1,304,96,253.9,96,192zM32,528C32,430.8,110.8,352,208,352C305.2,352,384,430.8,384,528L384,534C384,557.2,365.2,576,342,576L74,576C50.8,576,32,557.2,32,534L32,528zM464,128C517,128,560,171,560,224C560,277,517,320,464,320C411,320,368,277,368,224C368,171,411,128,464,128zM464,368C543.5,368,608,432.5,608,512L608,534.4C608,557.4,589.4,576,566.4,576L421.6,576C428.2,563.5,432,549.2,432,534L432,528C432,476.5,414.6,429.1,385.5,391.3C408.1,376.6,435.1,368,464,368z"
+        android:fillColor="#FFFFFF" />
 </vector>
