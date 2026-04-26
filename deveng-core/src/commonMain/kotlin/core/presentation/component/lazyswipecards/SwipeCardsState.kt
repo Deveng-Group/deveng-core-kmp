@@ -6,6 +6,7 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,19 @@ class SwipeCardsState(
 
     var ratio: Float = 0f
         private set
+
+    private val negativeButtonHighlightState = mutableFloatStateOf(0f)
+    private val positiveButtonHighlightState = mutableFloatStateOf(0f)
+
+    /**
+     * 0..1 while the user drags or animates toward swipe left; drives button color fade-in.
+     */
+    val swipeNegativeButtonHighlight: Float get() = negativeButtonHighlightState.floatValue
+
+    /**
+     * 0..1 while the user drags or animates toward swipe right; drives button color fade-in.
+     */
+    val swipePositiveButtonHighlight: Float get() = positiveButtonHighlightState.floatValue
 
     /**
      * True while [ratio] is past half toward the next card on a positive (right) drag.
@@ -142,6 +156,9 @@ class SwipeCardsState(
      */
     internal fun syncRatioForCallbacks(ratio: Float) {
         this.ratio = ratio
+        val clamped = ratio.coerceIn(-1f, 1f)
+        negativeButtonHighlightState.floatValue = if (clamped < 0f) (-clamped).coerceIn(0f, 1f) else 0f
+        positiveButtonHighlightState.floatValue = if (clamped > 0f) clamped.coerceIn(0f, 1f) else 0f
         val prev = peekNextCardForPlaybackState.value
         val peek = when {
             ratio >= PeekOnRatio -> true
@@ -215,6 +232,8 @@ internal fun SwipeCardsState.bind(
 }
 
 /**
+ * Creates and remembers [SwipeCardsState] for use with [SwipeCards].
+ *
  * @param initialSelectedItemIndex Used when the state is first created (e.g. when [rememberKey] changes).
  * @param rememberKey When non-null, the state is kept with [remember] keyed by this value (as string)
  *        so the same state instance is preserved across recompositions and the library's internal

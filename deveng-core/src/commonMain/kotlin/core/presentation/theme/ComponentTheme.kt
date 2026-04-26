@@ -81,13 +81,16 @@ data class IconButtonTheme(
 )
 
 /**
- * Theme for SwipeCards overlay buttons (negative, revert, positive).
+ * Theme for SwipeCards overlay buttons (negative, revert, positive) and swipe-direction highlight colors.
  */
 data class SwipeCardsTheme(
     val buttonBackgroundColor: Color = Color.White,
     val buttonIconTint: Color = CoreCustomBlackColor,
     val buttonSize: Dp = 40.dp,
-    val buttonShadowElevation: Dp = 2.dp
+    val buttonShadowElevation: Dp = 2.dp,
+    val negativeSwipeHighlightColor: Color = Color(0xFFE57373),
+    val positiveSwipeHighlightColor: Color = CorePrimaryColor,
+    val swipeHighlightIconTintBlend: Float = 0.85f,
 )
 
 /**

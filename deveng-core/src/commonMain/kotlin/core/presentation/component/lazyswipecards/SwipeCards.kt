@@ -27,13 +27,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import co.touchlab.kermit.Logger
 import core.presentation.component.CustomIconButton
 import core.presentation.theme.LocalComponentTheme
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +47,44 @@ import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * A stacked card deck with horizontal swipe gestures and optional overlay action buttons.
+ * Overlay buttons and swipe-direction highlight colors use [LocalComponentTheme] (swipeCards / SwipeCardsTheme).
+ *
+ * @param modifier Modifier for the outer container.
+ * @param cardModifier Modifier applied to each card in the stack (after swipe transform).
+ * @param cardShape Clip and shape for lightweight card mode; shape for [Surface] when using elevated card.
+ * @param cardColor Background color of each card when using lightweight card mode.
+ * @param cardContentColor Preferred content color for lightweight card mode.
+ * @param cardTonalElevation Tonal elevation when using [Surface] for cards.
+ * @param cardShadowElevation Shadow elevation when using [Surface] for cards.
+ * @param cardBorder Optional border when using [Surface] for cards.
+ * @param scaleFactor Scale applied per stack index for cards behind the front card.
+ * @param translateSize Vertical offset per stack index for cards behind the front card.
+ * @param rotateDegree Maximum rotation (degrees) of the front card at full swipe ratio.
+ * @param stackTracksDragRatio When true, rear cards follow drag ratio for parallax; when false, static stack (better for heavy content).
+ * @param visibleItemCount How many cards are composed in the stack.
+ * @param contentPadding Padding around the swipe area (defaults from translate size and stack depth).
+ * @param swipeThreshold Width fraction used with drag distance to compute swipe ratio (default 0.5).
+ * @param minRatioBound Minimum absolute ratio to commit a swipe after release.
+ * @param animationSpec Spring (or other) spec for programmatic swipe and snap-back animations.
+ * @param isEndless When true, indices wrap; when false, swiping ends when the list is consumed.
+ * @param state Swipe state; use [rememberSwipeCardsState].
+ * @param showSwipeButtons When true and icons are provided, shows bottom overlay buttons for swipe/revert.
+ * @param negativeButtonIcon Drawable for swipe-left action; null hides the button.
+ * @param positiveButtonIcon Drawable for swipe-right action; null hides the button.
+ * @param revertButtonIcon Drawable for undo last left-swipe; null hides the button.
+ * @param negativeButtonContentDescription Accessibility label for the negative button.
+ * @param positiveButtonContentDescription Accessibility label for the positive button.
+ * @param revertButtonContentDescription Accessibility label for the revert button.
+ * @param onAllItemsConsumed Called once when a non-endless list has no remaining cards after a swipe.
+ * @param onSwipeLeft Called with the swiped item key after a committed left swipe; use stable keys from [SwipeCardsScope.items].
+ * @param onSwipeRight Called with the swiped item key after a committed right swipe.
+ * @param onRevert Called with the reverted item key after a successful revert animation.
+ * @param pendingRevertKey When non-null, shows revert and wires it for external pending-undo flows; see [onRevert].
+ * @param contentSeedKey When changed, forces item content to recompose (e.g. pass [pendingRevertKey]).
+ * @param content DSL to declare items and optional [SwipeCardsScope.onSwiped] handler.
+ */
 @Composable
 fun SwipeCards(
     modifier: Modifier = Modifier,
@@ -63,12 +101,7 @@ fun SwipeCards(
     ),
     translateSize: Dp = 24.dp,
     rotateDegree: Float = 14f,
-    /**
-     * When false (default), rear cards keep a fixed stack transform (they do not read drag offset each frame).
-     * Better for heavy full-screen content. Set true for classic parallax under the finger while dragging.
-     */
     stackTracksDragRatio: Boolean = false,
-    /** Composed stack depth; use a small value (e.g. 4) for heavy card content (video/decoders). */
     visibleItemCount: Int = 4,
     contentPadding: PaddingValues = defaultContentPadding(
         translateSize = translateSize,
@@ -87,19 +120,10 @@ fun SwipeCards(
     positiveButtonContentDescription: String = "Swipe right",
     revertButtonContentDescription: String = "Revert",
     onAllItemsConsumed: (() -> Unit)? = null,
-    /** Called with the swiped card's key (id). Use the key parameter in [SwipeCardsScope.items] for stable id. */
     onSwipeLeft: ((Any?) -> Unit)? = null,
-    /** Called with the swiped card's key (id). Use the key parameter in [SwipeCardsScope.items] for stable id. */
     onSwipeRight: ((Any?) -> Unit)? = null,
-    /** Called with the reverted card's key (id) after undo. */
     onRevert: ((Any?) -> Unit)? = null,
-    /**
-     * When non-null, the revert button is shown and clicking it invokes [onRevert] with this key.
-     * Use when the list has changed (e.g. after committing a previous pending item) and internal
-     * revert state was lost, so the parent can still drive revert visibility.
-     */
     pendingRevertKey: Any? = null,
-    /** When this changes, content is re-applied so item composables (e.g. isCurrentItem) use latest state. Pass e.g. pendingRevertKey. */
     contentSeedKey: Any? = null,
     content: SwipeCardsScope.() -> Unit,
 ) {
@@ -112,12 +136,6 @@ fun SwipeCards(
         onSwipeLeft = onSwipeLeft,
         onSwipeRight = onSwipeRight,
     )
-    // DEBUG: yerel composite core doğrulama — kaldırmadan önce kullanıcı onayı al.
-    LaunchedEffect(Unit) {
-        Logger.withTag("DevengCoreSwipeCards").i {
-            "LOCAL core smoke: SwipeCards composed (yerel deveng-core-kmp / composite)"
-        }
-    }
     // Peek / onSwiping: do NOT snapshotFlow on every drag frame (Animatable updates flood the main thread).
     // During finger drag, we sample only after each batched snapTo in SwipePointer. During animateTo/decay,
     // isAnimationRunning is true and a narrow snapshotFlow runs; when animation ends we sync once more.
@@ -219,6 +237,10 @@ fun SwipeCards(
         }
         if (showSwipeButtons && (negativeButtonIcon != null || revertButtonIcon != null || positiveButtonIcon != null)) {
             val allConsumed = !isEndless && state.selectedItemIndex >= itemProvider.itemCount
+            val leftHighlight = state.swipeNegativeButtonHighlight
+            val rightHighlight = state.swipePositiveButtonHighlight
+            val iconBlend =
+                swipeCardsTheme.swipeHighlightIconTintBlend.coerceIn(0f, 1f)
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -229,8 +251,16 @@ fun SwipeCards(
                     if (!allConsumed) {
                         CustomIconButton(
                             buttonSize = swipeCardsTheme.buttonSize,
-                            backgroundColor = swipeCardsTheme.buttonBackgroundColor,
-                            iconTint = swipeCardsTheme.buttonIconTint,
+                            backgroundColor = lerp(
+                                swipeCardsTheme.buttonBackgroundColor,
+                                swipeCardsTheme.negativeSwipeHighlightColor,
+                                leftHighlight,
+                            ),
+                            iconTint = lerp(
+                                swipeCardsTheme.buttonIconTint,
+                                Color.White,
+                                leftHighlight * iconBlend,
+                            ),
                             shadowElevation = swipeCardsTheme.buttonShadowElevation,
                             icon = negativeButtonIcon,
                             iconDescription = negativeButtonContentDescription,
@@ -249,8 +279,16 @@ fun SwipeCards(
                     if (!allConsumed) {
                         CustomIconButton(
                             buttonSize = swipeCardsTheme.buttonSize,
-                            backgroundColor = swipeCardsTheme.buttonBackgroundColor,
-                            iconTint = swipeCardsTheme.buttonIconTint,
+                            backgroundColor = lerp(
+                                swipeCardsTheme.buttonBackgroundColor,
+                                swipeCardsTheme.positiveSwipeHighlightColor,
+                                rightHighlight,
+                            ),
+                            iconTint = lerp(
+                                swipeCardsTheme.buttonIconTint,
+                                Color.White,
+                                rightHighlight * iconBlend,
+                            ),
                             shadowElevation = swipeCardsTheme.buttonShadowElevation,
                             icon = positiveButtonIcon,
                             iconDescription = positiveButtonContentDescription,

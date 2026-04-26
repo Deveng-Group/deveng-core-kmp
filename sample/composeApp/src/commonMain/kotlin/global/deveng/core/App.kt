@@ -640,6 +640,11 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var otpDigitsAlphanumeric by remember { mutableStateOf("") }
     var isOtpError by remember { mutableStateOf(false) }
 
+    val swipeCardsDemoImages = remember {
+        List(12) { Res.drawable.ic_cyclone }
+    }
+    val swipeCardsDemoState = rememberSwipeCardsState()
+
     val navigationMenuItems = listOf(
         NavigationMenuItem(
             screenRoute = "dashboard",
@@ -844,6 +849,44 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        SectionTitle("SwipeCards Examples")
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(9f / 16f)
+                        ) {
+                            SwipeCards(
+                                modifier = Modifier.fillMaxSize(),
+                                state = swipeCardsDemoState,
+                                visibleItemCount = 4,
+                                showSwipeButtons = true,
+                                negativeButtonIcon = Res.drawable.ic_arrow_left,
+                                positiveButtonIcon = Res.drawable.ic_arrow_right,
+                                revertButtonIcon = Res.drawable.ic_undo,
+                                onSwipeLeft = { key -> println("SwipeCards: swiped left key=$key") },
+                                onSwipeRight = { key -> println("SwipeCards: swiped right key=$key") },
+                                onRevert = { key -> println("SwipeCards: reverted key=$key") },
+                                content = {
+                                    itemsIndexed(swipeCardsDemoImages, key = { idx, _ -> idx }) { _, image ->
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color(0xFF101418)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                painter = painterResource(image),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(180.dp),
+                                            )
+                                        }
+                                    }
+                                    onSwiped { _, _ -> }
+                                }
+                            )
+                        }
+
                         Text(
                             text = "ComponentTheme Demo",
                             style = CoreBoldTextStyle().copy(fontSize = 24.sp),
@@ -1935,57 +1978,6 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             indicatorHeight = 10.dp,
                             indicatorSpacing = 5.dp
                         )
-
-                        SectionTitle("SwipeCards Examples")
-
-                        val swipeState = rememberSwipeCardsState()
-                        val cardImages = listOf(
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                            Res.drawable.ic_cyclone,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(9f / 16f)
-                        ) {
-                            SwipeCards(
-                                modifier = Modifier.fillMaxSize(),
-                                state = swipeState,
-                                visibleItemCount = 4,
-                                showSwipeButtons = true,
-                                negativeButtonIcon = Res.drawable.ic_arrow_left,
-                                positiveButtonIcon = Res.drawable.ic_arrow_right,
-                                revertButtonIcon = Res.drawable.ic_undo,
-                                onSwipeLeft = { key -> println("SwipeCards: swiped left key=$key") },
-                                onSwipeRight = { key -> println("SwipeCards: swiped right key=$key") },
-                                onRevert = { key -> println("SwipeCards: reverted key=$key") },
-                                content = {
-                                    itemsIndexed(cardImages, key = { idx, _ -> idx }) { _, image ->
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(Color(0xFF101418)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Image(
-                                                painter = painterResource(image),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(180.dp),
-                                            )
-                                        }
-                                    }
-                                    onSwiped { _, _ -> }
-                                }
-                            )
-                        }
 
                         OptionItem(
                             text = "i read and i approve",

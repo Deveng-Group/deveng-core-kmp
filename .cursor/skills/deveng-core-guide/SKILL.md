@@ -1,6 +1,6 @@
 # Deveng-Core Library Guide (Vibecoding)
 
-Version: 1.0.1  
+Version: 1.0.2  
 Owner: deveng-core-kmp  
 Risk: Low
 
@@ -26,6 +26,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 - When the app needs permission request/check or app settings → use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera-domain **Permissions** where applicable.
 - When the app needs paginated lists (load-more, pull-to-retry, empty/error UI) → use **PaginatedFlowLoader** + **PaginatedListView** and core pagination models.
 - When the app needs shared UI (buttons, headers, dialogs, text fields, date pickers, lists, navigation, etc.) → use the core **presentation** composables and theme listed in the reference.
+- When the app needs a **swipeable card stack** (e.g. approve/reject, gallery stack) → use **SwipeCards** + **rememberSwipeCardsState**; configure overlay buttons and **swipe-direction highlight colors** via **ComponentTheme** → **SwipeCardsTheme** (not ad-hoc colors on the composable).
 - When the app needs date/time formatting or selection rules → use core **datetime** and **CustomSelectableDates**.
 - When the app needs string/email validation, modifier helpers, or logging → use core **util** extensions and **CustomLogger**.
 
@@ -46,7 +47,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 1. **Validate context:** Confirm the project depends on deveng-core-kmp (e.g. `deveng-core` in dependencies).
 2. **Match situation:** For the requested feature, check the reference: “What exists and when to use it.”
 3. **Plan:** Prefer the core module/API listed for that situation; only add app-specific wiring or UI that is not in core.
-4. **Execute:** Write code that calls core APIs (MultiPlatformUtils, PhotoSaveUtils, camera, permissions, pagination, presentation components, utils) instead of reimplementing their behavior.
+4. **Execute:** Write code that calls core APIs (MultiPlatformUtils, PhotoSaveUtils, camera, permissions, pagination, presentation components, SwipeCards where applicable, utils) instead of reimplementing their behavior.
 5. **Verify:** Ensure no duplicate logic exists for dial, clipboard, maps, URL open, share, location, platform config, photo save/EXIF, camera lifecycle, permissions, or pagination.
 
 ## Rules
@@ -60,11 +61,13 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 - Use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera **Permissions** for permission checks and requests; do not reimplement permission flows.
 - Use **PaginatedFlowLoader** and **PaginatedListView** (and **PageResult** / **PaginatedListState**) for paginated lists with load-more and retry; do not reimplement pagination state or list UI that core already provides.
 - Use core **presentation** components and **theme** (e.g. CustomButton, CustomHeader, CustomDialog, CustomTextField, CustomDatePicker, PaginatedListView, AppTheme, typography) when the UI need matches what they provide.
+- For **SwipeCards** overlay actions and **left/right swipe button tint while dragging**, use **SwipeCardsTheme** inside **ComponentTheme** (`negativeSwipeHighlightColor`, `positiveSwipeHighlightColor`, `swipeHighlightIconTintBlend`, plus base `buttonBackgroundColor` / `buttonIconTint`). Do not fork that styling in the app unless the user explicitly wants a one-off.
 
 ### SHOULD
 
 - When adding a new screen or flow, quickly scan the reference for “situation → use this” and align with it.
 - Prefer core **util** (String extensions, Modifier extensions, datetime formatting, CustomLogger) over custom helpers for the same purpose.
+- When **editing deveng-core** public APIs, match existing **KDoc** style: block comment above `@Composable` with a short summary and `@param` lines for each parameter (see `SearchField`, `LabeledSwitch`, `SwipeCards`); theme `data class` types use a **one-line class-level** description (see `SwipeCardsTheme`, `IconButtonTheme`).
 
 ### MUST NOT
 
@@ -84,7 +87,10 @@ See **reference.md** in this skill folder for: what exists in the library and wh
 
 Core uses a **domain + data** split for camera temp storage: repository interface in **core.domain.camera.temp** (`CameraTempPhotoRepository`, `TempPhotoItem`), implementation and file/dir abstractions in **core.data.camera.temp** (`CameraTempPhotoRepositoryImpl`, `CameraTempDirProvider`, `CameraTempFileOps`). Apps depend on the interface and register platform-specific `CameraTempDirProvider` in DI.
 
+**Sample app:** The `sample:composeApp` **ThemingDemo** screen includes a **SwipeCards** example at the top of the main lazy column for manual testing.
+
 ## Changelog
 
+- 1.0.2: SwipeCards + SwipeCardsTheme (highlight colors); KDoc convention when editing core; sample SwipeCards location.
 - 1.0.1: Camera temp storage (CameraTempPhotoRepository, TempPhotoItem); architecture note for domain/data split.
 - 1.0.0: Initial skill; scope, procedure, rules, and reference pointer.
