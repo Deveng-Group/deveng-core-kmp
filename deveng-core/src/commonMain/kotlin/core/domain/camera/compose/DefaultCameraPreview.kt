@@ -374,6 +374,7 @@ fun DefaultCameraPreview(
             else controller.toggleCameraLens()
             currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
             currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+            currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
             isLowLightBoostOn = false
             if (currentCameraLens == CameraLens.FRONT) {
                 isWideSelfie = true
@@ -390,9 +391,10 @@ fun DefaultCameraPreview(
         }
     }
 
-    LaunchedEffect(recordingUiState.cameraLens, stateHolder) {
+    LaunchedEffect(recordingUiState.cameraLens, recordingUiState.flashMode, stateHolder) {
         if (stateHolder != null) {
             recordingUiState.cameraLens?.let { currentCameraLens = it }
+            recordingUiState.flashMode?.let { currentFlashMode = it }
         }
     }
 
@@ -482,6 +484,7 @@ fun DefaultCameraPreview(
                 else controller.toggleCameraLens()
                 currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
                 currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+                currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
                 isLowLightBoostOn = false
                 if (currentCameraLens == CameraLens.FRONT) {
                     isWideSelfie = true
@@ -736,6 +739,7 @@ fun DefaultCameraPreview(
                         else controller.toggleCameraLens()
                         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
                         currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+                        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
                         isLowLightBoostOn = false
                         if (currentCameraLens == CameraLens.FRONT) {
                             isWideSelfie = true

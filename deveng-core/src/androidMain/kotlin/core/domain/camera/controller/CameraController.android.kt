@@ -869,6 +869,9 @@ actual class CameraController(
         }
 
         cameraLens = if (cameraLens == CameraLens.BACK) CameraLens.FRONT else CameraLens.BACK
+        if (cameraLens == CameraLens.FRONT) {
+            flashMode = FlashMode.OFF
+        }
         previewView?.let { bindCamera(it) }
     }
 

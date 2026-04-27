@@ -391,6 +391,7 @@ class CameraKStateHolder(
         _uiState.value =
             _uiState.value.copy(
                 cameraLens = currentController.getCameraLens(),
+                flashMode = currentController.getFlashMode() ?: _uiState.value.flashMode,
             )
     }
 

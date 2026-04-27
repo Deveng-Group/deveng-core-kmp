@@ -624,6 +624,9 @@ actual class CameraController(
         customCameraController.switchCamera()
         // Sync with actual state (controller may have restored previous lens or succeeded on retry)
         cameraLens = customCameraController.getCurrentLens()
+        if (cameraLens == CameraLens.FRONT) {
+            setFlashMode(FlashMode.OFF)
+        }
     }
 
     actual fun getCameraLens(): CameraLens? = customCameraController.getCurrentLens()
