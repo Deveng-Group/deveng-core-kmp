@@ -534,11 +534,11 @@ fun DefaultCameraPreview(
                     min = min,
                     max = max,
                     brightnessIndexState = brightnessIndexState,
-                    onCommittedIndex = { index ->
-                        brightnessIndex = index.toFloat()
-                        controller.setExposureCompensationIndex(index)
+                    onBrightnessChange = { new ->
+                        brightnessIndex = new
+                        controller.setExposureCompensationIndex(new.toInt())
                         val baseline = 0.coerceIn(min, max)
-                        if (index == baseline) {
+                        if (new.toInt() == baseline) {
                             isLowLightBoostOn = false
                         }
                     },
@@ -1123,7 +1123,8 @@ private fun FrontCameraModeChips(
 
 /**
  * Drag on the focus ring to adjust exposure: vertical on iOS/NATIVE, horizontal on Android.
- * Uses a local logical index during the gesture so multiple steps in one frame apply correctly.
+ * Maps drag distance to [min.max] like the sun [Slider]: one full ring diameter ≈ full range
+ * (same reference length as the vertical exposure track).
  */
 @Composable
 private fun FocusRingExposureDragOverlay(
@@ -1133,7 +1134,7 @@ private fun FocusRingExposureDragOverlay(
     min: Int,
     max: Int,
     brightnessIndexState: State<Float>,
-    onCommittedIndex: (Int) -> Unit,
+    onBrightnessChange: (Float) -> Unit,
     onDragStarted: () -> Unit,
     onDragFinished: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1142,10 +1143,10 @@ private fun FocusRingExposureDragOverlay(
     val hitExpansionPx = with(density) { 12.dp.toPx() }
     val hitPx = ringRadiusPx * 2f + hitExpansionPx * 2f
     val hitSizeDp = with(density) { hitPx.toDp() }
-    val stepPx = with(density) { 22.dp.toPx() }
     val minState = rememberUpdatedState(min)
     val maxState = rememberUpdatedState(max)
     val indexState = rememberUpdatedState(brightnessIndexState.value)
+    val trackPx = (ringRadiusPx * 2f).coerceAtLeast(1f)
 
     Box(
         modifier = modifier
@@ -1156,41 +1157,31 @@ private fun FocusRingExposureDragOverlay(
                 )
             }
             .size(hitSizeDp)
-            .pointerInput(useVerticalDrag, tap, ringRadiusPx, min, max, stepPx, hitExpansionPx) {
-                var accumulated = 0f
-                var logicalIndex = indexState.value.toInt().coerceIn(minState.value, maxState.value)
+            .pointerInput(useVerticalDrag, tap, ringRadiusPx, min, max, hitExpansionPx) {
+                var current = indexState.value
                 detectDragGestures(
                     onDragStart = {
-                        logicalIndex = indexState.value.toInt().coerceIn(minState.value, maxState.value)
+                        val lo = minState.value.toFloat()
+                        val hi = maxState.value.toFloat()
+                        current = indexState.value.coerceIn(lo, hi)
                         onDragStarted()
                     },
                     onDragEnd = {
-                        accumulated = 0f
                         onDragFinished()
                     },
                     onDragCancel = {
-                        accumulated = 0f
                         onDragFinished()
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         val deltaPx = if (useVerticalDrag) -dragAmount.y else dragAmount.x
-                        accumulated += deltaPx
-                        val lo = minState.value
-                        val hi = maxState.value
-                        while (accumulated <= -stepPx) {
-                            if (logicalIndex > lo) {
-                                logicalIndex--
-                                onCommittedIndex(logicalIndex)
-                            }
-                            accumulated += stepPx
-                        }
-                        while (accumulated >= stepPx) {
-                            if (logicalIndex < hi) {
-                                logicalIndex++
-                                onCommittedIndex(logicalIndex)
-                            }
-                            accumulated -= stepPx
+                        val lo = minState.value.toFloat()
+                        val hi = maxState.value.toFloat()
+                        val span = hi - lo
+                        if (span > 0f) {
+                            val deltaValue = (deltaPx / trackPx) * span
+                            current = (current + deltaValue).coerceIn(lo, hi)
+                            onBrightnessChange(current)
                         }
                     },
                 )
