@@ -506,7 +506,8 @@ private fun CameraContent(onBack: () -> Unit) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     DefaultCameraPreview(
                         controller = state.controller,
-                        hostPlatform = Platform.ANDROID,
+                        hostPlatform = Platform.IOS,
+                        maxVideoRecordingDurationMs = 90_000L,
                         modifier = Modifier.padding(bottom = 66.dp),
                         thumbnailTopEndContent = {
                             ThumbnailCountBadge(count = 22)

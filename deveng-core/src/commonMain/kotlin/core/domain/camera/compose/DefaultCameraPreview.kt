@@ -239,6 +239,13 @@ private fun formatRecordingDuration(ms: Long): String {
     return "$minutes:$secondsStr"
 }
 
+/** When [maxDurationMs] > 0, shows `elapsed / max`; otherwise elapsed only. */
+private fun formatRecordingProgress(elapsedMs: Long, maxDurationMs: Long): String {
+    val elapsed = formatRecordingDuration(elapsedMs)
+    if (maxDurationMs <= 0L) return elapsed
+    return "$elapsed / ${formatRecordingDuration(maxDurationMs)}"
+}
+
 /**
  * Default camera preview with built-in controls: flash, switch camera, zoom chips,
  * gallery button, and capture button. Use this when you want a ready-to-use camera UI.
@@ -250,6 +257,7 @@ private fun formatRecordingDuration(ms: Long): String {
  * @param initialThumbnailBitmap Optional bitmap to show as thumbnail when opening the camera (e.g. last photo). Replaced by captured photo when user takes a picture.
  * @param thumbnailTopEndContent Slot for content placed at the top-end of the thumbnail (e.g. a count badge). Design is fully controlled by the caller.
  * @param stateHolder Optional [CameraKStateHolder] from [rememberCameraKState] (via onHolder). When set, shows Photo/Video tab selection and the center button acts as capture in Photo mode or start/stop in Video mode.
+ * @param maxVideoRecordingDurationMs Maximum video length in milliseconds when recording via [stateHolder]. `0` means unlimited (see [VideoConfiguration.maxDurationMs]). When greater than zero, the recording timer shows `elapsed / max` (e.g. `0:45 / 1:30`).
  * @param onRecordingStopped Optional callback when a video recording stops (success or error). Use it to load a first-frame thumbnail and pass it as [lastRecordedVideoThumbnail].
  * @param lastRecordedVideoThumbnail Optional bitmap to show as thumbnail for the last recorded video (e.g. first frame). Shown when the last capture was video; replaced when user takes a photo.
  * @param showTapToFocusExclusionDebugOverlay When true, draws a very faint red overlay on regions where tap-to-focus is suppressed (for tuning/debug).
@@ -266,6 +274,7 @@ fun DefaultCameraPreview(
     initialThumbnailBitmap: ImageBitmap? = null,
     thumbnailTopEndContent: @Composable () -> Unit = {},
     stateHolder: CameraKStateHolder? = null,
+    maxVideoRecordingDurationMs: Long = 0L,
     onRecordingStopped: ((VideoCaptureResult) -> Unit)? = null,
     lastRecordedVideoThumbnail: ImageBitmap? = null,
     showTapToFocusExclusionDebugOverlay: Boolean = false,
@@ -408,6 +417,31 @@ fun DefaultCameraPreview(
         }
     }
 
+    val capturePhotoDuringPreview: () -> Unit = {
+        scope.launch {
+            val mode = controller.getFlashMode() ?: FlashMode.OFF
+            val deferShutterUntilAfterCapture =
+                currentCameraLens != CameraLens.FRONT && mode != FlashMode.OFF
+            if (!deferShutterUntilAfterCapture) {
+                showShutterFlash = true
+                shutterEffectTrigger++
+            }
+            val result = controller.takePictureToFile()
+            if (result is ImageCaptureResult.Success) {
+                lastCapturedBitmap = result.bitmap
+                lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
+            } else {
+                lastCapturedBitmap = null
+                lastCapturedWithFrontLens = false
+            }
+            onImageCaptured(result)
+            if (deferShutterUntilAfterCapture) {
+                showShutterFlash = true
+                shutterEffectTrigger++
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -481,39 +515,22 @@ fun DefaultCameraPreview(
             modifier = Modifier.fillMaxSize().zIndex(2f),
             keepVisible = isAdjustingBrightness,
         )
-        // Brightness slider: below focus circle (Android-style) or to the end/right of the ring (iOS-style).
+        // Brightness slider: below focus circle (Android-style) or vertical to the right of the ring (iOS-style).
         focusTapOffset?.let { tap ->
             val (min, max) = controller.getExposureCompensationRange()
-                if (min != max) {
+            if (min != max) {
                 val density = LocalDensity.current
                 with(density) {
-                    val sliderWidthPx = 100.dp.toPx()
                     val circleRadiusPx = 38.dp.toPx()
                     val minTop = 0f
-                    val sliderBlockHeightPx = 40.dp.toPx()
-                    val maxTop = (overlaySizePx.height.toFloat() - sliderBlockHeightPx).coerceAtLeast(minTop)
                     val gapEndPx = 6.dp.toPx()
-                    val maxLeftForSlider =
-                        (overlaySizePx.width.toFloat() - sliderWidthPx).coerceAtLeast(0f)
-                    val (leftPx, topPx) = if (hostPlatform.exposureSliderToEndOfRing()) {
-                        val left = (tap.x + circleRadiusPx + gapEndPx).coerceIn(0f, maxLeftForSlider)
-                        val top = (tap.y - sliderBlockHeightPx / 2f).coerceIn(minTop, maxTop)
-                        left to top
-                    } else {
-                        val gapBelowPx = (-9).dp.toPx()
-                        val left = (tap.x - sliderWidthPx / 2f).coerceIn(0f, maxLeftForSlider)
-                        val top = (tap.y + circleRadiusPx + gapBelowPx).coerceIn(minTop, maxTop)
-                        left to top
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .zIndex(4f)
-                            .absoluteOffset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
-                            .width(100.dp)
-                            .padding(horizontal = 8.dp),
-                    ) {
+                    val overlayW = overlaySizePx.width.toFloat()
+                    val overlayH = overlaySizePx.height.toFloat()
+
+                    @Composable
+                    fun ExposureSliderContent(modifier: Modifier = Modifier) {
                         Slider(
+                            modifier = modifier,
                             value = brightnessIndex,
                             onValueChange = { new ->
                                 isAdjustingBrightness = true
@@ -536,7 +553,18 @@ fun DefaultCameraPreview(
                                     painter = painterResource(CameraIcons.sun),
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .then(
+                                            if (hostPlatform.exposureSliderToEndOfRing()) {
+                                                Modifier.graphicsLayer {
+                                                    rotationZ = 90f
+                                                    transformOrigin = TransformOrigin.Center
+                                                }
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
                                 )
                             },
                             track = { sliderState ->
@@ -553,6 +581,58 @@ fun DefaultCameraPreview(
                                 )
                             },
                         )
+                    }
+
+                    if (hostPlatform.exposureSliderToEndOfRing()) {
+                        // Vertical slider: rotate horizontal Slider -90°; layout slab matches post-rotate bounds.
+                        val trackLengthDp = 100.dp
+                        val trackThicknessDp = 40.dp
+                        val slabW = 52.dp
+                        val slabH = trackLengthDp + 24.dp
+                        val slabWpx = slabW.toPx()
+                        val slabHpx = slabH.toPx()
+                        val maxLeft = (overlayW - slabWpx).coerceAtLeast(0f)
+                        val maxTop = (overlayH - slabHpx).coerceAtLeast(minTop)
+                        val leftPx = (tap.x + circleRadiusPx + gapEndPx).coerceIn(0f, maxLeft)
+                        val topPx = (tap.y - slabHpx / 2f).coerceIn(minTop, maxTop)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .zIndex(4f)
+                                .absoluteOffset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                                .width(slabW)
+                                .height(slabH)
+                                .padding(horizontal = 4.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ExposureSliderContent(
+                                modifier = Modifier
+                                    .width(trackLengthDp)
+                                    .height(trackThicknessDp)
+                                    .graphicsLayer {
+                                        rotationZ = -90f
+                                        transformOrigin = TransformOrigin.Center
+                                    },
+                            )
+                        }
+                    } else {
+                        val sliderWidthPx = 100.dp.toPx()
+                        val sliderBlockHeightPx = 40.dp.toPx()
+                        val maxTop = (overlayH - sliderBlockHeightPx).coerceAtLeast(minTop)
+                        val maxLeftForSlider = (overlayW - sliderWidthPx).coerceAtLeast(0f)
+                        val gapBelowPx = (-9).dp.toPx()
+                        val leftPx = (tap.x - sliderWidthPx / 2f).coerceIn(0f, maxLeftForSlider)
+                        val topPx = (tap.y + circleRadiusPx + gapBelowPx).coerceIn(minTop, maxTop)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .zIndex(4f)
+                                .absoluteOffset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                                .width(100.dp)
+                                .padding(horizontal = 8.dp),
+                        ) {
+                            ExposureSliderContent(modifier = Modifier.fillMaxWidth())
+                        }
                     }
                 }
             }
@@ -756,31 +836,12 @@ fun DefaultCameraPreview(
                         isRecording = recordingUiState.isRecording,
                         recordingDurationMs = recordingUiState.recordingDurationMs,
                         stateHolder = stateHolder,
-                        onPhotoCapture = {
-                            scope.launch {
-                                val mode = controller.getFlashMode() ?: FlashMode.OFF
-                                val deferShutterUntilAfterCapture =
-                                    currentCameraLens != CameraLens.FRONT && mode != FlashMode.OFF
-                                if (!deferShutterUntilAfterCapture) {
-                                    showShutterFlash = true
-                                    shutterEffectTrigger++
-                                }
-                                val result = controller.takePictureToFile()
-                                if (result is ImageCaptureResult.Success) {
-                                    lastCapturedBitmap = result.bitmap
-                                    lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
-                                } else {
-                                    lastCapturedBitmap = null
-                                    lastCapturedWithFrontLens = false
-                                }
-                                onImageCaptured(result)
-                                if (deferShutterUntilAfterCapture) {
-                                    showShutterFlash = true
-                                    shutterEffectTrigger++
-                                }
-                            }
+                        onPhotoCapture = capturePhotoDuringPreview,
+                        onVideoStart = {
+                            stateHolder?.startRecording(
+                                VideoConfiguration(maxDurationMs = maxVideoRecordingDurationMs),
+                            )
                         },
-                        onVideoStart = { stateHolder?.startRecording(VideoConfiguration()) },
                         onVideoStop = { stateHolder?.stopRecording() },
                     )
                 }
@@ -791,7 +852,7 @@ fun DefaultCameraPreview(
                     if (stateHolder != null) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             ModeSwitcher(
                                 currentMode = captureMode,
@@ -801,15 +862,57 @@ fun DefaultCameraPreview(
                                 enabled = !recordingUiState.isRecording,
                             )
                             Box(
-                                modifier = Modifier.heightIn(min = 20.dp),
+                                modifier = Modifier.heightIn(min = 10.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (recordingUiState.isRecording) {
-                                    Text(
-                                        text = formatRecordingDuration(recordingUiState.recordingDurationMs),
-                                        color = Color.White,
-                                        style = CoreRegularTextStyle().copy(fontSize = 16.sp),
-                                    )
+                                when {
+                                    captureMode == CameraCaptureMode.Video &&
+                                        recordingUiState.isRecording -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Text(
+                                                text = formatRecordingProgress(
+                                                    recordingUiState.recordingDurationMs,
+                                                    maxVideoRecordingDurationMs,
+                                                ),
+                                                color = Color.White,
+                                                style = CoreRegularTextStyle().copy(fontSize = 13.sp),
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .border(1.5.dp, Color.White, CircleShape)
+                                                    .clickable(
+                                                        interactionSource = remember {
+                                                            MutableInteractionSource()
+                                                        },
+                                                        indication = null,
+                                                        onClick = capturePhotoDuringPreview,
+                                                    ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(14.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color.White),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    recordingUiState.isRecording -> {
+                                        Text(
+                                            text = formatRecordingProgress(
+                                                recordingUiState.recordingDurationMs,
+                                                maxVideoRecordingDurationMs,
+                                            ),
+                                            color = Color.White,
+                                            style = CoreRegularTextStyle().copy(fontSize = 16.sp),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -862,7 +965,7 @@ private fun ModeSwitcher(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .heightIn(min = 48.dp)
+                    .heightIn(min = 40.dp)
                     .clickable(enabled = enabled) { onModeChange(mode) },
             ) {
                 Text(
@@ -873,7 +976,7 @@ private fun ModeSwitcher(
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     ),
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Box(
                     modifier = Modifier
                         .height(3.dp)
