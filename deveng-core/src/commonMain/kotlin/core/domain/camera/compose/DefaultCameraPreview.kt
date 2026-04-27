@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -36,8 +37,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -520,12 +524,37 @@ fun DefaultCameraPreview(
             val (min, max) = controller.getExposureCompensationRange()
             if (min != max) {
                 val density = LocalDensity.current
+                val useVerticalExposureDrag =
+                    hostPlatform == Platform.IOS || hostPlatform == Platform.NATIVE
+                val brightnessIndexState = rememberUpdatedState(brightnessIndex)
+                FocusRingExposureDragOverlay(
+                    tap = tap,
+                    ringRadiusPx = with(density) { (FocusIndicatorRingDiameter / 2f).toPx() },
+                    useVerticalDrag = useVerticalExposureDrag,
+                    min = min,
+                    max = max,
+                    brightnessIndexState = brightnessIndexState,
+                    onCommittedIndex = { index ->
+                        brightnessIndex = index.toFloat()
+                        controller.setExposureCompensationIndex(index)
+                        val baseline = 0.coerceIn(min, max)
+                        if (index == baseline) {
+                            isLowLightBoostOn = false
+                        }
+                    },
+                    onDragStarted = { isAdjustingBrightness = true },
+                    onDragFinished = { isAdjustingBrightness = false },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .zIndex(3.4f),
+                )
                 with(density) {
                     val circleRadiusPx = 38.dp.toPx()
                     val minTop = 0f
-                    val gapEndPx = 6.dp.toPx()
                     val overlayW = overlaySizePx.width.toFloat()
                     val overlayH = overlaySizePx.height.toFloat()
+
+                    val isExposureSliderVertical = hostPlatform.exposureSliderToEndOfRing()
 
                     @Composable
                     fun ExposureSliderContent(modifier: Modifier = Modifier) {
@@ -554,9 +583,9 @@ fun DefaultCameraPreview(
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(if (isExposureSliderVertical) 14.dp else 18.dp)
                                         .then(
-                                            if (hostPlatform.exposureSliderToEndOfRing()) {
+                                            if (isExposureSliderVertical) {
                                                 Modifier.graphicsLayer {
                                                     rotationZ = 90f
                                                     transformOrigin = TransformOrigin.Center
@@ -570,7 +599,9 @@ fun DefaultCameraPreview(
                             track = { sliderState ->
                                 SliderDefaults.Track(
                                     sliderState = sliderState,
-                                    modifier = Modifier.height(1.5.dp),
+                                    modifier = Modifier.height(
+                                        if (isExposureSliderVertical) 1.dp else 1.5.dp,
+                                    ),
                                     drawStopIndicator = null,
                                     colors = SliderDefaults.colors(
                                         thumbColor = Color.Transparent,
@@ -583,17 +614,25 @@ fun DefaultCameraPreview(
                         )
                     }
 
-                    if (hostPlatform.exposureSliderToEndOfRing()) {
-                        // Vertical slider: rotate horizontal Slider -90°; layout slab matches post-rotate bounds.
-                        val trackLengthDp = 100.dp
-                        val trackThicknessDp = 40.dp
-                        val slabW = 52.dp
+                    if (isExposureSliderVertical) {
+                        // Vertical slider: track length matches focus ring diameter (see [FocusIndicatorRingDiameter]).
+                        // Outer width must be >= track width before rotation; a narrow box (e.g. 52.dp) clamps the
+                        // Slider and collapses the track to almost nothing.
+                        val trackLengthDp = FocusIndicatorRingDiameter
+                        val trackThicknessDp = 36.dp
+                        // Center the control so the vertical track sits just outside the ring (not box-left at ring+gap,
+                        // which leaves half the slab width as empty air between ring and track).
+                        val horizontalPad = 0.dp
+                        // Gap from ring outer edge to vertical track center.
+                        val gapRingToTrackCenterPx = 8.dp.toPx()
+                        val slabW = trackLengthDp + horizontalPad * 2
                         val slabH = trackLengthDp + 24.dp
                         val slabWpx = slabW.toPx()
                         val slabHpx = slabH.toPx()
                         val maxLeft = (overlayW - slabWpx).coerceAtLeast(0f)
                         val maxTop = (overlayH - slabHpx).coerceAtLeast(minTop)
-                        val leftPx = (tap.x + circleRadiusPx + gapEndPx).coerceIn(0f, maxLeft)
+                        val trackCenterX = tap.x + circleRadiusPx + gapRingToTrackCenterPx
+                        val leftPx = (trackCenterX - slabWpx / 2f).coerceIn(0f, maxLeft)
                         val topPx = (tap.y - slabHpx / 2f).coerceIn(minTop, maxTop)
                         Box(
                             modifier = Modifier
@@ -602,7 +641,7 @@ fun DefaultCameraPreview(
                                 .absoluteOffset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
                                 .width(slabW)
                                 .height(slabH)
-                                .padding(horizontal = 4.dp, vertical = 10.dp),
+                                .padding(horizontal = horizontalPad, vertical = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             ExposureSliderContent(
@@ -1080,6 +1119,83 @@ private fun FrontCameraModeChips(
             }
         }
     }
+}
+
+/**
+ * Drag on the focus ring to adjust exposure: vertical on iOS/NATIVE, horizontal on Android.
+ * Uses a local logical index during the gesture so multiple steps in one frame apply correctly.
+ */
+@Composable
+private fun FocusRingExposureDragOverlay(
+    tap: Offset,
+    ringRadiusPx: Float,
+    useVerticalDrag: Boolean,
+    min: Int,
+    max: Int,
+    brightnessIndexState: State<Float>,
+    onCommittedIndex: (Int) -> Unit,
+    onDragStarted: () -> Unit,
+    onDragFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val density = LocalDensity.current
+    val hitExpansionPx = with(density) { 12.dp.toPx() }
+    val hitPx = ringRadiusPx * 2f + hitExpansionPx * 2f
+    val hitSizeDp = with(density) { hitPx.toDp() }
+    val stepPx = with(density) { 22.dp.toPx() }
+    val minState = rememberUpdatedState(min)
+    val maxState = rememberUpdatedState(max)
+    val indexState = rememberUpdatedState(brightnessIndexState.value)
+
+    Box(
+        modifier = modifier
+            .absoluteOffset {
+                IntOffset(
+                    (tap.x - hitPx / 2f).roundToInt(),
+                    (tap.y - hitPx / 2f).roundToInt(),
+                )
+            }
+            .size(hitSizeDp)
+            .pointerInput(useVerticalDrag, tap, ringRadiusPx, min, max, stepPx, hitExpansionPx) {
+                var accumulated = 0f
+                var logicalIndex = indexState.value.toInt().coerceIn(minState.value, maxState.value)
+                detectDragGestures(
+                    onDragStart = {
+                        logicalIndex = indexState.value.toInt().coerceIn(minState.value, maxState.value)
+                        onDragStarted()
+                    },
+                    onDragEnd = {
+                        accumulated = 0f
+                        onDragFinished()
+                    },
+                    onDragCancel = {
+                        accumulated = 0f
+                        onDragFinished()
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        val deltaPx = if (useVerticalDrag) -dragAmount.y else dragAmount.x
+                        accumulated += deltaPx
+                        val lo = minState.value
+                        val hi = maxState.value
+                        while (accumulated <= -stepPx) {
+                            if (logicalIndex > lo) {
+                                logicalIndex--
+                                onCommittedIndex(logicalIndex)
+                            }
+                            accumulated += stepPx
+                        }
+                        while (accumulated >= stepPx) {
+                            if (logicalIndex < hi) {
+                                logicalIndex++
+                                onCommittedIndex(logicalIndex)
+                            }
+                            accumulated -= stepPx
+                        }
+                    },
+                )
+            },
+    )
 }
 
 @Composable

@@ -15,11 +15,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 private const val CIRCLE_RADIUS_DP = 38f
+
+/**
+ * Outer diameter of the tap-to-focus ring (2 × [CIRCLE_RADIUS_DP]).
+ * Use for aligning controls to the reticle (e.g. vertical exposure track length).
+ */
+val FocusIndicatorRingDiameter: Dp
+    get() = (CIRCLE_RADIUS_DP * 2f).dp
+
 private const val STROKE_WIDTH_DP = 1f
 private const val STAY_DURATION_MS = 3000L
 
