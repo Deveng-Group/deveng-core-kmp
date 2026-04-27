@@ -99,6 +99,8 @@ actual class CameraController(
     private var camera: Camera? = null
     var imageAnalyzer: ImageAnalysis? = null
     private var previewView: PreviewView? = null
+    var onDeviceTypeSwitchTransition: ((Boolean) -> Unit)? = null
+    private var isSwitchingDeviceType = false
 
     // Multiple analyzer support: plugins register their analyzers here
     private val registeredAnalyzers = mutableListOf<ImageAnalysis.Analyzer>()
@@ -191,9 +193,17 @@ actual class CameraController(
             applyImageCaptureFlashAndTorchForCurrentState()
 
             onCameraReady()
+            if (isSwitchingDeviceType) {
+                isSwitchingDeviceType = false
+                onDeviceTypeSwitchTransition?.invoke(false)
+            }
         } catch (exc: Exception) {
             Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
             exc.printStackTrace()
+            if (isSwitchingDeviceType) {
+                isSwitchingDeviceType = false
+                onDeviceTypeSwitchTransition?.invoke(false)
+            }
         }
     }
 
@@ -804,7 +814,10 @@ actual class CameraController(
     }
 
     actual fun setZoom(zoomRatio: Float) {
-        camera?.cameraControl?.setZoomRatio(zoomRatio.coerceIn(1f, getMaxZoom()))
+        val zoomState = camera?.cameraInfo?.zoomState?.value
+        val minZoom = zoomState?.minZoomRatio ?: 1f
+        val maxZoom = zoomState?.maxZoomRatio ?: 1f
+        camera?.cameraControl?.setZoomRatio(zoomRatio.coerceIn(minZoom, maxZoom))
     }
 
     actual fun getZoom(): Float = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1f
@@ -868,7 +881,14 @@ actual class CameraController(
     actual fun getPreferredCameraDeviceType(): CameraDeviceType = cameraDeviceType
 
     actual fun setPreferredCameraDeviceType(deviceType: CameraDeviceType) {
+        if (cameraDeviceType == deviceType) return
         cameraDeviceType = deviceType
+        isSwitchingDeviceType = true
+        onDeviceTypeSwitchTransition?.invoke(true)
+        previewView?.let { bindCamera(it) } ?: run {
+            isSwitchingDeviceType = false
+            onDeviceTypeSwitchTransition?.invoke(false)
+        }
     }
 
     actual fun startSession() {

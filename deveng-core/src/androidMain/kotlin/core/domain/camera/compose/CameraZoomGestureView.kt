@@ -5,6 +5,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import android.util.Log
 import core.domain.camera.controller.CameraController
 
 /**
@@ -26,8 +27,14 @@ internal class CameraZoomGestureView(
                 val current = controller.getZoom()
                 val max = controller.getMaxZoom().coerceAtLeast(1f)
                 val newZoom = (current * detector.scaleFactor).coerceIn(1f, max)
+                Log.d(
+                    "CameraK-ZoomDebug",
+                    "gestureScale current=$current factor=${detector.scaleFactor} max=$max new=$newZoom",
+                )
                 controller.setZoom(newZoom)
-                onZoomChange(controller.getZoom())
+                val applied = controller.getZoom()
+                Log.d("CameraK-ZoomDebug", "gestureScale applied=$applied")
+                onZoomChange(applied)
                 return true
             }
         },

@@ -69,6 +69,7 @@ import core.domain.camera.video.VideoConfiguration
 import kotlinx.coroutines.flow.collect
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
+import core.domain.camera.enums.CameraDeviceType
 import core.domain.camera.enums.CameraLens
 import core.domain.camera.enums.FlashMode
 import core.domain.camera.result.ImageCaptureResult
@@ -281,6 +282,7 @@ fun DefaultCameraPreview(
     var currentFlashMode by remember { mutableStateOf(FlashMode.OFF) }
     /** Tracked in Compose so flash visibility updates when lens changes (controller alone does not trigger recomposition). */
     var currentCameraLens by remember { mutableStateOf(controller.getCameraLens() ?: CameraLens.BACK) }
+    var currentCameraDeviceType by remember { mutableStateOf(controller.getPreferredCameraDeviceType()) }
     var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
     var overlaySizePx by remember { mutableStateOf(IntSize.Zero) }
     var brightnessIndex by remember { mutableStateOf(0f) }
@@ -358,6 +360,7 @@ fun DefaultCameraPreview(
             if (stateHolder != null) stateHolder.toggleCameraLens()
             else controller.toggleCameraLens()
             currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+            currentCameraDeviceType = controller.getPreferredCameraDeviceType()
             isLowLightBoostOn = false
             if (currentCameraLens == CameraLens.FRONT) {
                 isWideSelfie = true
@@ -383,6 +386,7 @@ fun DefaultCameraPreview(
     LaunchedEffect(controller) {
         isLowLightBoostOn = false
         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
         brightnessIndex = controller.getExposureCompensationIndex().toFloat()
         maxZoomState.value = controller.getMaxZoom()
@@ -439,6 +443,7 @@ fun DefaultCameraPreview(
                 if (stateHolder != null) stateHolder.toggleCameraLens()
                 else controller.toggleCameraLens()
                 currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                currentCameraDeviceType = controller.getPreferredCameraDeviceType()
                 isLowLightBoostOn = false
                 if (currentCameraLens == CameraLens.FRONT) {
                     isWideSelfie = true
@@ -611,6 +616,7 @@ fun DefaultCameraPreview(
                         if (stateHolder != null) stateHolder.toggleCameraLens()
                         else controller.toggleCameraLens()
                         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
                         isLowLightBoostOn = false
                         if (currentCameraLens == CameraLens.FRONT) {
                             isWideSelfie = true
@@ -646,11 +652,30 @@ fun DefaultCameraPreview(
                     },
                 )
             } else {
-                ZoomChips(
+                BackCameraZoomChips(
                     zoomLevel = zoomLevel,
+                    cameraDeviceType = currentCameraDeviceType,
                     maxZoom = maxZoom,
                     onZoomChange = { level ->
-                        controller.setZoom(level)
+                        if (level <= 0.5f) {
+                            // Try seamless logical-camera ultra-wide first (no rebind on supported devices).
+                            controller.setZoom(0.5f)
+                            val appliedZoom = controller.getZoom()
+                            val seamlessUltraWideApplied = appliedZoom < 0.75f
+                            if (!seamlessUltraWideApplied) {
+                                // Fallback for devices that don't expose minZoom < 1.0
+                                controller.setPreferredCameraDeviceType(CameraDeviceType.ULTRA_WIDE)
+                                controller.setZoom(1f)
+                            }
+                        } else {
+                            // Keep logical/default camera to avoid unnecessary rebind on 1x/2x taps.
+                            if (currentCameraDeviceType == CameraDeviceType.ULTRA_WIDE) {
+                                controller.setPreferredCameraDeviceType(CameraDeviceType.DEFAULT)
+                            }
+                            controller.setZoom(level)
+                        }
+                        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+                        maxZoomState.value = controller.getMaxZoom()
                         zoomLevelState.value = controller.getZoom()
                     },
                 )
@@ -955,17 +980,20 @@ private fun FrontCameraModeChips(
 }
 
 @Composable
-private fun ZoomChips(
+private fun BackCameraZoomChips(
     modifier: Modifier = Modifier,
     zoomLevel: Float,
+    cameraDeviceType: CameraDeviceType,
     maxZoom: Float,
     onZoomChange: (Float) -> Unit,
 ) {
+    val effectiveZoomLevel = if (zoomLevel < 0.75f || cameraDeviceType == CameraDeviceType.ULTRA_WIDE) 0.5f else zoomLevel
+    val chipMaxZoom = 10f.coerceAtMost(maxZoom)
     val stops = buildList {
+        add(0.5f)
         add(1f)
         if (maxZoom >= 2f) add(2f)
-        if (maxZoom > 2f && maxZoom >= 4f) add(4f.coerceAtMost(maxZoom))
-        if (maxZoom > 4f) add(maxZoom)
+        if (chipMaxZoom > 2f) add(chipMaxZoom)
     }.distinct()
 
     Box(
@@ -979,7 +1007,7 @@ private fun ZoomChips(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             stops.forEach { stop ->
-                val isActive = (zoomLevel - stop).let { it > -0.15f && it < 0.15f }
+                val isActive = (effectiveZoomLevel - stop).let { it > -0.15f && it < 0.15f }
                 val label = if (stop == stop.toLong().toFloat()) {
                     "${stop.toInt()}x"
                 } else {
