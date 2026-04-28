@@ -5,8 +5,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeFormat
 import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.MonthNames.Companion.ENGLISH_ABBREVIATED
-import kotlinx.datetime.format.MonthNames.Companion.ENGLISH_FULL
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.number
@@ -39,25 +37,8 @@ val dotLocalDateFormat = LocalDate.Format {
     year()
 }
 
-private val TURKISH_DAYS = listOf(
-    "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"
-)
-
-private val TURKISH_MONTH_ABBREVIATIONS = listOf(
-    "Oca", "Şub", "Mar", "Nis", "May", "Haz",
-    "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"
-)
-
-private val TURKISH_MONTH = listOf(
-    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-)
-
 fun getMonthAbbreviationDateFormat(systemLanguage: String): DateTimeFormat<LocalDate> {
-    val monthNames = when (systemLanguage) {
-        "tr" -> TURKISH_MONTH_ABBREVIATIONS
-        else -> ENGLISH_ABBREVIATED.names
-    }
+    val monthNames = resolveMonthAbbreviationNames(systemLanguage)
 
     return LocalDate.Format {
         day(padding = Padding.ZERO)
@@ -69,10 +50,7 @@ fun getMonthAbbreviationDateFormat(systemLanguage: String): DateTimeFormat<Local
 }
 
 fun getMonthDateFormat(systemLanguage: String): DateTimeFormat<LocalDate> {
-    val monthNames = when (systemLanguage) {
-        "tr" -> TURKISH_MONTH
-        else -> ENGLISH_FULL.names
-    }
+    val monthNames = resolveMonthNames(systemLanguage)
 
     return LocalDate.Format {
         day(padding = Padding.ZERO)
@@ -82,25 +60,13 @@ fun getMonthDateFormat(systemLanguage: String): DateTimeFormat<LocalDate> {
 }
 
 fun getMonthNames(systemLanguage: String): List<String> {
-    return when (systemLanguage) {
-        "tr" -> TURKISH_MONTH
-        else -> ENGLISH_FULL.names
-    }
+    return resolveMonthNames(systemLanguage)
 }
 
 fun getDayName(date: LocalDate, systemLanguage: String): String {
     val dayIndex = date.dayOfWeek.ordinal
-
-    return when (systemLanguage) {
-        "tr" -> TURKISH_DAYS[dayIndex]
-        else -> {
-            val lower = date.dayOfWeek.name.lowercase()
-            when (lower.length) {
-                0 -> lower
-                else -> lower[0].uppercaseChar() + lower.substring(1)
-            }
-        }
-    }
+    val dayNames = resolveDayNames(systemLanguage)
+    return dayNames.getOrElse(dayIndex) { "Monday" }
 }
 
 val hourMinuteFormat = LocalDateTime.Format {

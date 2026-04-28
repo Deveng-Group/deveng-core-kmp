@@ -246,6 +246,30 @@ data class DateRangePickerTheme(
 )
 
 /**
+ * Theme for WheelDatePicker component
+ */
+data class WheelDatePickerTheme(
+    val trailingIconTint: Color = CoreCustomBlackColor,
+    val dialogContainerColor: Color = Color.White,
+    val dialogContentColor: Color = CoreCustomBlackColor,
+    val selectedItemTextStyle: TextStyle = TextStyle(
+        fontSize = 18.sp,
+        color = CoreCustomBlackColor
+    ),
+    val unselectedItemTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = CoreCustomGrayHintColor
+    ),
+    val labelTextStyle: TextStyle = TextStyle(
+        fontSize = 12.sp,
+        color = CoreCustomGrayHintColor
+    ),
+    val selectorLineColor: Color = CoreCustomGrayHintColor.copy(alpha = 0.5f),
+    val confirmButtonTextColor: Color = CorePrimaryColor,
+    val dismissButtonTextColor: Color = CorePrimaryColor
+)
+
+/**
  * Theme for CustomHeader component
  */
 data class HeaderTheme(
@@ -628,6 +652,7 @@ data class ComponentTheme(
     val customTextField: CustomTextFieldTheme = CustomTextFieldTheme(),
     val datePicker: DatePickerTheme = DatePickerTheme(),
     val dateRangePicker: DateRangePickerTheme = DateRangePickerTheme(),
+    val wheelDatePicker: WheelDatePickerTheme = WheelDatePickerTheme(),
     val header: HeaderTheme = HeaderTheme(),
     val searchField: SearchFieldTheme = SearchFieldTheme(),
     val progressIndicatorBars: ProgressIndicatorBarsTheme = ProgressIndicatorBarsTheme(),

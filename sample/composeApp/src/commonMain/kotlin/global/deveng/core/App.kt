@@ -80,6 +80,7 @@ import core.presentation.component.chips.ChipItem
 import core.presentation.component.chips.ChipsMenu
 import core.presentation.component.datepicker.CustomDatePicker
 import core.presentation.component.datepicker.CustomDateRangePicker
+import core.presentation.component.datepicker.WheelDatePicker
 import core.presentation.component.json.JsonViewer
 import core.presentation.component.labeledslot.Label
 import core.presentation.component.labeledslot.LabeledSlot
@@ -127,6 +128,7 @@ import core.presentation.theme.SearchFieldTheme
 import core.presentation.theme.SurfaceTheme
 import core.presentation.theme.SwipeCardsTheme
 import core.presentation.theme.TypographyTheme
+import core.presentation.theme.WheelDatePickerTheme
 import core.util.datetime.CustomSelectableDates
 import core.util.multiplatform.Platform
 import core.util.datetime.TargetDates
@@ -268,6 +270,26 @@ internal fun App() {
             selectedYearContentColor = Color.White,
             confirmButtonTextColor = Color(0xFF1976D2),
             dismissButtonTextColor = Color(0xFF1976D2)
+        ),
+        wheelDatePicker = WheelDatePickerTheme(
+            trailingIconTint = Color(0xFF7C3AED),
+            dialogContainerColor = Color(0xFF0B1020),
+            dialogContentColor = Color(0xFFFFF59D),
+            selectedItemTextStyle = CoreBoldTextStyle().copy(
+                fontSize = 20.sp,
+                color = Color(0xFFFF6B6B)
+            ),
+            unselectedItemTextStyle = CoreRegularTextStyle().copy(
+                fontSize = 14.sp,
+                color = Color(0xFF7DD3FC)
+            ),
+            labelTextStyle = CoreSemiBoldTextStyle().copy(
+                fontSize = 12.sp,
+                color = Color(0xFF86EFAC)
+            ),
+            selectorLineColor = Color(0xFFFFC107),
+            confirmButtonTextColor = Color(0xFF22D3EE),
+            dismissButtonTextColor = Color(0xFFF472B6)
         ),
         scrollbarWithScrollState = ScrollbarWithScrollStateTheme(
             scrollBarColor = Color.Red,
@@ -601,6 +623,7 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var pickerSelection by remember { mutableStateOf<String?>(null) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var wheelSelectedDate by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 4, 28)) }
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var searchText by remember { mutableStateOf("") }
@@ -1641,6 +1664,17 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             selectableDates = selectableDates,
                             onDateChange = { selectedDate = it },
                             isEnabled = false
+                        )
+
+                        SectionTitle("WheelDatePicker Examples")
+
+                        WheelDatePicker(
+                            title = "Select date with wheel",
+                            selectedDate = wheelSelectedDate,
+                            selectedDateText = wheelSelectedDate?.format(slashDateFormat),
+                            targetDates = TargetDates.PAST,
+                            isLabelsVisible = false,
+                            onDateChange = { wheelSelectedDate = it }
                         )
 
                         SectionTitle("CustomDateRangePicker Examples")
