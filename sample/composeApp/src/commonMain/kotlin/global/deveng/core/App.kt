@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import core.domain.camera.compose.DefaultCameraPreview
 import core.domain.camera.compose.rememberCameraKState
 import core.domain.camera.enums.AspectRatio
@@ -86,6 +87,7 @@ import core.presentation.component.labeledslot.Label
 import core.presentation.component.labeledslot.LabeledSlot
 import core.presentation.component.lazyswipecards.SwipeCards
 import core.presentation.component.lazyswipecards.rememberSwipeCardsState
+import core.util.markdown.MarkdownContentParser
 import core.presentation.component.navigationmenu.MenuMode
 import core.presentation.component.navigationmenu.NavigationMenu
 import core.presentation.component.navigationmenu.NavigationMenuItem
@@ -603,6 +605,7 @@ private fun CameraContent(onBack: () -> Unit) {
 private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var showDialog by remember { mutableStateOf(false) }
     var showDefaultDialog by remember { mutableStateOf(false) }
+    var showMarkdownDialog by remember { mutableStateOf(false) }
     var showOptionDialog by remember { mutableStateOf(false) }
     var showMultiSelectDialog by remember { mutableStateOf(false) }
     val sampleOptions = remember {
@@ -665,6 +668,16 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
     var otpDigitsError by remember { mutableStateOf("") }
     var otpDigitsAlphanumeric by remember { mutableStateOf("") }
     var isOtpError by remember { mutableStateOf(false) }
+    val sampleMarkdown = remember {
+        """
+        # Terms
+        ## Account
+        - You accept **safe usage** rules.
+        - You can cancel _anytime_.
+        ### Notes
+        Keep this text short for demo.
+        """.trimIndent()
+    }
 
     val swipeCardsDemoImages = remember {
         List(12) { Res.drawable.ic_cyclone }
@@ -1287,6 +1300,12 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             onClick = { showDefaultDialog = true }
                         )
 
+                        CustomButton(
+                            text = "Show Markdown Dialog",
+                            containerColor = Color(0xFF7C4DFF),
+                            onClick = { showMarkdownDialog = true }
+                        )
+
                         CustomAlertDialog(
                             isDialogVisible = showDialog,
                             title = "Themed Dialog",
@@ -1329,6 +1348,32 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                             onNegativeButtonClick = { showDefaultDialog = false },
                             onDismissRequest = { showDefaultDialog = false }
                         )
+
+                        if (showMarkdownDialog) {
+                            Dialog(onDismissRequest = { showMarkdownDialog = false }) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(Color(0xFF1E1E1E))
+                                        .padding(16.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Text(
+                                            text = "Markdown Parser Demo",
+                                            style = CoreSemiBoldTextStyle().copy(
+                                                fontSize = 18.sp,
+                                                color = Color.White
+                                            )
+                                        )
+                                        MarkdownContentParser(markdownContent = sampleMarkdown)
+                                        CustomButton(
+                                            text = "Close",
+                                            onClick = { showMarkdownDialog = false }
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         SectionTitle("Scrollbar Examples")
 
