@@ -15,6 +15,9 @@
     <string name="shared_cont_desc_camera_icon">camera icon</string>
     <string name="shared_ok">Ok</string>
     <string name="shared_cancel">Cancel</string>
+    <string name="shared_day">Day</string>
+    <string name="shared_month">Month</string>
+    <string name="shared_year">Year</string>
     <string name="shared_content_desc_icon_direction">Detail icon</string>
     <string name="shared_clarification_notice">Clarification Notice</string>
     <string name="shared_read_and_approve_text">I have read and approve.</string>
