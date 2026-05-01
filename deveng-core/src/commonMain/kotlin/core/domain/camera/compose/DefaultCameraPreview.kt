@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -547,6 +548,16 @@ fun DefaultCameraPreview(
                     },
                     onDragStarted = { isAdjustingBrightness = true },
                     onDragFinished = { isAdjustingBrightness = false },
+                    onTap = { newTap ->
+                        val w = overlaySizePx.width
+                        val h = overlaySizePx.height
+                        if (w > 0 && h > 0) {
+                            val nx = (newTap.x / w).coerceIn(0f, 1f)
+                            val ny = (newTap.y / h).coerceIn(0f, 1f)
+                            controller.setFocusPoint(nx, ny)
+                            focusTapOffset = newTap
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .zIndex(3.4f),
@@ -1141,6 +1152,7 @@ private fun FocusRingExposureDragOverlay(
     onBrightnessChange: (Float) -> Unit,
     onDragStarted: () -> Unit,
     onDragFinished: () -> Unit,
+    onTap: (Offset) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -1151,6 +1163,8 @@ private fun FocusRingExposureDragOverlay(
     val maxState = rememberUpdatedState(max)
     val indexState = rememberUpdatedState(brightnessIndexState.value)
     val trackPx = (ringRadiusPx * 2f).coerceAtLeast(1f)
+    val onTapState = rememberUpdatedState(onTap)
+    val tapState = rememberUpdatedState(tap)
 
     Box(
         modifier = modifier
@@ -1161,6 +1175,18 @@ private fun FocusRingExposureDragOverlay(
                 )
             }
             .size(hitSizeDp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { local ->
+                        val origin = tapState.value
+                        val absolute = Offset(
+                            x = origin.x - hitPx / 2f + local.x,
+                            y = origin.y - hitPx / 2f + local.y,
+                        )
+                        onTapState.value(absolute)
+                    },
+                )
+            }
             .pointerInput(useVerticalDrag, tap, ringRadiusPx, min, max, hitExpansionPx) {
                 var current = indexState.value
                 detectDragGestures(
