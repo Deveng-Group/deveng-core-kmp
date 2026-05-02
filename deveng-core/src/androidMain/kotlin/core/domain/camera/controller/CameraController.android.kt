@@ -179,7 +179,7 @@ actual class CameraController(
 
             // Do not force a ViewPort crop rect here.
             // On tall displays this can crop left/right aggressively; keeping use cases uncropped
-            // and letting PreviewView FIT_CENTER handle layout preserves more horizontal FoV.
+            // and letting PreviewView FIT_END handle layout preserves more horizontal FoV.
 
             val useCaseGroup = useCaseGroupBuilder.build()
 

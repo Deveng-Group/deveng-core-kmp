@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -94,11 +96,20 @@ private const val ExposureBoostSteps = 6
 /** Half of [debouncedCombinedClickable] default (600ms) — top camera chrome (flash / moon) feels more responsive. */
 private const val CameraChromeClickDebounceMillis = 300L
 
+/**
+ * When false, the flash / low-light / switch row is not composed (hidden from UI only).
+ * When true, that row is composed next to [DefaultCameraPreviewContent] in the root [Box] (not inside the clipped preview stack).
+ */
+private const val ShowCameraPreviewTopLensChromeUi = true
+
 /** Fill alpha for [TapToFocusExclusionDebugOverlay] when [showTapToFocusExclusionDebugOverlay] is true (very subtle red). */
 private const val TapToFocusExclusionDebugOverlayAlpha = 0.09f
 
 /** Tight halo around controls: only taps clearly next to chrome suppress tap-to-focus. */
 private val TapToFocusChromeClearanceDp = 12.dp
+
+/** Top-start / top-end radius for the live preview (card-style UI; bottom corners stay square). */
+private val CameraPreviewTopCornerRadius = 28.dp
 
 /** True: exposure slider to the end (right in LTR) of the focus ring; false: below the ring (Android-style). */
 private fun Platform.exposureSliderToEndOfRing(): Boolean =
@@ -108,28 +119,32 @@ private fun buildTapToFocusExclusionRects(
     overlayW: Int,
     overlayH: Int,
     density: Density,
-    previewTopInsetDp: Dp,
+    topChromeRowPaddingTop: Dp,
     cameraLens: CameraLens,
     iconButtonDp: Dp,
+    includeTopTrailingChromeExclusion: Boolean = true,
 ): List<Rect> {
     if (overlayW <= 0 || overlayH <= 0) return emptyList()
     val w = overlayW.toFloat()
     val h = overlayH.toFloat()
     val c = with(density) { TapToFocusChromeClearanceDp.toPx() }
 
-    val endPad = with(density) { 4.dp.toPx() }
-    val topPad = with(density) { (previewTopInsetDp + 16.dp).toPx() }
-    val btn = with(density) { iconButtonDp.toPx() }
-    val gap = with(density) { 12.dp.toPx() }
-    val iconCount = if (cameraLens == CameraLens.FRONT) 2 else 3
-    val colH = iconCount * btn + max(0, iconCount - 1) * gap
-    val colLeft = w - endPad - btn
-    val topColumn = Rect(
-        left = colLeft - c,
-        top = topPad - c,
-        right = w,
-        bottom = topPad + colH + c,
-    )
+    val topChromeRect: Rect? = if (includeTopTrailingChromeExclusion) {
+        val endPad = with(density) { 8.dp.toPx() }
+        val topPad = with(density) { topChromeRowPaddingTop.toPx() }
+        val btn = with(density) { iconButtonDp.toPx() }
+        val gap = with(density) { 8.dp.toPx() }
+        val iconCount = if (cameraLens == CameraLens.FRONT) 2 else 3
+        val rowW = iconCount * btn + max(0, iconCount - 1) * gap
+        Rect(
+            left = w - endPad - rowW - c,
+            top = topPad - c,
+            right = w,
+            bottom = topPad + btn + c,
+        )
+    } else {
+        null
+    }
 
     val bottomPad = with(density) { 20.dp.toPx() }
     val chipH = with(density) { 40.dp.toPx() }
@@ -174,11 +189,11 @@ private fun buildTapToFocusExclusionRects(
         bottom = mainBottom,
     )
 
-    return listOf(topColumn, chipRow, galleryRow, shutterRow, modeRow)
+    return listOfNotNull(topChromeRect, chipRow, galleryRow, shutterRow, modeRow)
 }
 
 /**
- * Mirrors [DefaultCameraPreview] top-trailing icon column and compact bottom control hit areas
+ * Mirrors [DefaultCameraPreview] top-trailing icon row and compact bottom control hit areas
  * (zoom pill center, gallery cluster, shutter, Photo/Video) so the rest of the preview still focuses.
  */
 private fun suppressTapToFocusNearDefaultCameraChrome(
@@ -187,9 +202,10 @@ private fun suppressTapToFocusNearDefaultCameraChrome(
     overlayW: Int,
     overlayH: Int,
     density: Density,
-    previewTopInsetDp: Dp,
+    topChromeRowPaddingTop: Dp,
     cameraLens: CameraLens,
     iconButtonDp: Dp,
+    includeTopTrailingChromeExclusion: Boolean = true,
 ): Boolean {
     if (overlayW <= 0 || overlayH <= 0) return false
     val p = Offset(x = nx * overlayW, y = ny * overlayH)
@@ -197,9 +213,10 @@ private fun suppressTapToFocusNearDefaultCameraChrome(
         overlayW = overlayW,
         overlayH = overlayH,
         density = density,
-        previewTopInsetDp = previewTopInsetDp,
+        topChromeRowPaddingTop = topChromeRowPaddingTop,
         cameraLens = cameraLens,
         iconButtonDp = iconButtonDp,
+        includeTopTrailingChromeExclusion = includeTopTrailingChromeExclusion,
     ).any { it.contains(p) }
 }
 
@@ -208,20 +225,30 @@ private fun TapToFocusExclusionDebugOverlay(
     overlayW: Int,
     overlayH: Int,
     density: Density,
-    previewTopInsetDp: Dp,
+    topChromeRowPaddingTop: Dp,
     cameraLens: CameraLens,
     iconButtonDp: Dp,
+    includeTopTrailingChromeExclusion: Boolean,
     fillAlpha: Float,
     modifier: Modifier = Modifier,
 ) {
-    val rects = remember(overlayW, overlayH, previewTopInsetDp, cameraLens, iconButtonDp, density) {
+    val rects = remember(
+        overlayW,
+        overlayH,
+        topChromeRowPaddingTop,
+        cameraLens,
+        iconButtonDp,
+        density,
+        includeTopTrailingChromeExclusion,
+    ) {
         buildTapToFocusExclusionRects(
             overlayW = overlayW,
             overlayH = overlayH,
             density = density,
-            previewTopInsetDp = previewTopInsetDp,
+            topChromeRowPaddingTop = topChromeRowPaddingTop,
             cameraLens = cameraLens,
             iconButtonDp = iconButtonDp,
+            includeTopTrailingChromeExclusion = includeTopTrailingChromeExclusion,
         )
     }
     Canvas(modifier = modifier) {
@@ -252,7 +279,7 @@ private fun formatRecordingProgress(elapsedMs: Long, maxDurationMs: Long): Strin
 }
 
 /**
- * Default camera preview with built-in controls: flash, switch camera, zoom chips,
+ * Default camera preview with built-in controls: flash / low-light / switch (root overlay), zoom chips,
  * gallery button, and capture button. Use this when you want a ready-to-use camera UI.
  *
  * @param controller The camera controller from [CameraKState.Ready].
@@ -267,6 +294,9 @@ private fun formatRecordingProgress(elapsedMs: Long, maxDurationMs: Long): Strin
  * @param lastRecordedVideoThumbnail Optional bitmap to show as thumbnail for the last recorded video (e.g. first frame). Shown when the last capture was video; replaced when user takes a photo.
  * @param showTapToFocusExclusionDebugOverlay When true, draws a very faint red overlay on regions where tap-to-focus is suppressed (for tuning/debug).
  * @param hostPlatform Host OS for tap-to-focus exposure slider placement: [Platform.IOS] or [Platform.NATIVE] places the slider to the right of the reticle; [Platform.ANDROID] keeps it below the ring (also used for [Platform.WEB] and [Platform.DESKTOP]). The app must pass the correct value; core does not detect the platform.
+ * @param thumbnailSaveInProgress When true, shows a progress indicator on the last-capture thumbnail and blocks thumbnail taps (e.g. while persisting to disk). Thumbnail is also blocked for the in-flight interval from shutter until [onImageCaptured] returns.
+ * @param onPhotoCaptureEngaged Invoked synchronously when the user triggers still capture, before any suspend work — use to flip app-level “saving” UI immediately and avoid thumbnail races.
+ * @param onPhotoCaptureFailed Invoked when still capture throws before [onImageCaptured] runs; pair with [onPhotoCaptureEngaged] to clear app state.
  * @param modifier Modifier for the root layout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -277,6 +307,9 @@ fun DefaultCameraPreview(
     onGalleryClick: (() -> Unit)? = null,
     onLastPhotoClick: ((ImageBitmap) -> Unit)? = null,
     initialThumbnailBitmap: ImageBitmap? = null,
+    thumbnailSaveInProgress: Boolean = false,
+    onPhotoCaptureEngaged: () -> Unit = {},
+    onPhotoCaptureFailed: () -> Unit = {},
     thumbnailTopEndContent: @Composable () -> Unit = {},
     stateHolder: CameraKStateHolder? = null,
     maxVideoRecordingDurationMs: Long = 0L,
@@ -287,6 +320,9 @@ fun DefaultCameraPreview(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    /** True from photo shutter pipeline until [onImageCaptured] returns; avoids thumbnail taps before [thumbnailSaveInProgress] can flip. */
+    var awaitingThumbnailUnlockAfterCapture by remember { mutableStateOf(false) }
+    val thumbnailBusy = thumbnailSaveInProgress || awaitingThumbnailUnlockAfterCapture
     val recordingUiState by (stateHolder?.uiState?.collectAsState(CameraUIState())
         ?: remember { mutableStateOf(CameraUIState()) })
     val zoomLevelState = remember { mutableStateOf(1f) }
@@ -311,13 +347,52 @@ fun DefaultCameraPreview(
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
     val density = LocalDensity.current
-    // Android preview is bottom-aligned with FIT_END; estimate top letterbox inset so
-    // top-right controls stay on preview content instead of the black bar.
-    val previewTopInsetDp = with(density) {
-        val estimatedPreviewHeightPx = overlaySizePx.width * (16f / 9f)
-        (overlaySizePx.height - estimatedPreviewHeightPx).coerceAtLeast(0f).toDp()
-    }
     val iconButtonDp = LocalComponentTheme.current.iconButton.buttonSize
+    val letterboxTopInsetDp = computeCameraLetterboxTopInsetDp(
+        overlayWidthPx = overlaySizePx.width,
+        overlayHeightPx = overlaySizePx.height,
+        density = density,
+    )
+    val topChromeRowPaddingTop = computeCameraTopChromeRowPaddingTop(
+        letterboxTopInset = letterboxTopInsetDp,
+        iconRowHeight = iconButtonDp,
+    )
+
+    val onTopChromeToggleFlash: () -> Unit = {
+        controller.toggleFlashMode()
+        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+    }
+    val onTopChromeMoonClick: () -> Unit = {
+        val (min, max) = controller.getExposureCompensationRange()
+        if (min < max) {
+            val baseline = 0.coerceIn(min, max)
+            if (!isLowLightBoostOn) {
+                val target = (baseline + ExposureBoostSteps).coerceIn(min, max)
+                controller.setExposureCompensationIndex(target)
+                brightnessIndex = target.toFloat()
+                isLowLightBoostOn = true
+            } else {
+                controller.setExposureCompensationIndex(baseline)
+                brightnessIndex = baseline.toFloat()
+                isLowLightBoostOn = false
+            }
+        }
+    }
+    val onTopChromeSwitchCamera: () -> Unit = {
+        if (stateHolder != null) stateHolder.toggleCameraLens()
+        else controller.toggleCameraLens()
+        currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+        isLowLightBoostOn = false
+        if (currentCameraLens == CameraLens.FRONT) {
+            isWideSelfie = true
+            controller.setWideSelfieMode(true)
+            controller.setZoom(1f)
+        }
+        maxZoomState.value = controller.getMaxZoom()
+        zoomLevelState.value = controller.getZoom()
+    }
 
     LaunchedEffect(stateHolder) {
         stateHolder?.events?.collect { event ->
@@ -347,7 +422,7 @@ fun DefaultCameraPreview(
         overlaySizePx,
         currentCameraLens,
         iconButtonDp,
-        previewTopInsetDp,
+        topChromeRowPaddingTop,
         density,
     ) {
         controller.shouldSuppressTapToFocus = { nx, ny ->
@@ -357,9 +432,10 @@ fun DefaultCameraPreview(
                 overlayW = overlaySizePx.width,
                 overlayH = overlaySizePx.height,
                 density = density,
-                previewTopInsetDp = previewTopInsetDp,
+                topChromeRowPaddingTop = topChromeRowPaddingTop,
                 cameraLens = currentCameraLens,
                 iconButtonDp = iconButtonDp,
+                includeTopTrailingChromeExclusion = ShowCameraPreviewTopLensChromeUi,
             )
         }
         controller.onPreviewTapListener = { nx, ny ->
@@ -425,40 +501,63 @@ fun DefaultCameraPreview(
     }
 
     val capturePhotoDuringPreview: () -> Unit = {
+        onPhotoCaptureEngaged()
+        awaitingThumbnailUnlockAfterCapture = true
         scope.launch {
-            val mode = controller.getFlashMode() ?: FlashMode.OFF
-            val deferShutterUntilAfterCapture =
-                currentCameraLens != CameraLens.FRONT && mode != FlashMode.OFF
-            if (!deferShutterUntilAfterCapture) {
-                showShutterFlash = true
-                shutterEffectTrigger++
-            }
-            val result = controller.takePictureToFile()
-            if (result is ImageCaptureResult.Success) {
-                lastCapturedBitmap = result.bitmap
-                lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
-            } else {
-                lastCapturedBitmap = null
-                lastCapturedWithFrontLens = false
-            }
-            onImageCaptured(result)
-            if (deferShutterUntilAfterCapture) {
-                showShutterFlash = true
-                shutterEffectTrigger++
+            try {
+                val mode = controller.getFlashMode() ?: FlashMode.OFF
+                val deferShutterUntilAfterCapture =
+                    currentCameraLens != CameraLens.FRONT && mode != FlashMode.OFF
+                if (!deferShutterUntilAfterCapture) {
+                    showShutterFlash = true
+                    shutterEffectTrigger++
+                }
+                val result = controller.takePictureToFile()
+                if (result is ImageCaptureResult.Success) {
+                    lastCapturedBitmap = result.bitmap
+                    lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
+                } else {
+                    lastCapturedBitmap = null
+                    lastCapturedWithFrontLens = false
+                }
+                onImageCaptured(result)
+                if (deferShutterUntilAfterCapture) {
+                    showShutterFlash = true
+                    shutterEffectTrigger++
+                }
+            } catch (_: Throwable) {
+                onPhotoCaptureFailed()
+            } finally {
+                awaitingThumbnailUnlockAfterCapture = false
             }
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .onSizeChanged { overlaySizePx = it },
-    ) {
-        // Preview first so overlay can be drawn on top (important on iOS: native preview must not steal first tap)
-        CameraPreviewView(
-            controller = controller,
-            modifier = Modifier.fillMaxSize(),
-        )
+    /** Camera surface, gestures, and bottom chrome — same role as “CameraPreview” in a `Box { …; lens row }` split. */
+    @Composable
+    fun DefaultCameraPreviewContent() {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .onSizeChanged { overlaySizePx = it },
+        ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(
+                    RoundedCornerShape(
+                        topStart = CameraPreviewTopCornerRadius,
+                        topEnd = CameraPreviewTopCornerRadius,
+                    ),
+                ),
+        ) {
+            // Preview first so overlay can be drawn on top (important on iOS: native preview must not steal first tap)
+            CameraPreviewView(
+                controller = controller,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         if (showTapToFocusExclusionDebugOverlay &&
             overlaySizePx.width > 0 &&
             overlaySizePx.height > 0
@@ -467,9 +566,10 @@ fun DefaultCameraPreview(
                 overlayW = overlaySizePx.width,
                 overlayH = overlaySizePx.height,
                 density = density,
-                previewTopInsetDp = previewTopInsetDp,
+                topChromeRowPaddingTop = topChromeRowPaddingTop,
                 cameraLens = currentCameraLens,
                 iconButtonDp = iconButtonDp,
+                includeTopTrailingChromeExclusion = ShowCameraPreviewTopLensChromeUi,
                 fillAlpha = TapToFocusExclusionDebugOverlayAlpha,
                 modifier = Modifier.fillMaxSize().zIndex(1f),
             )
@@ -692,79 +792,6 @@ fun DefaultCameraPreview(
         }
         Column(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .zIndex(4f)
-                .padding(top = previewTopInsetDp + 16.dp, end = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (currentCameraLens != CameraLens.FRONT) {
-                CustomIconButton(
-                    icon = CameraIcons.flash,
-                    iconDescription = "Flash",
-                    iconTint = when (currentFlashMode) {
-                        FlashMode.ON, FlashMode.AUTO -> Color.White
-                        FlashMode.OFF -> Color.White.copy(alpha = 0.5f)
-                    },
-                    backgroundColor = Color.Transparent,
-                    shadowElevation = 0.dp,
-                    clickDebounceMillis = CameraChromeClickDebounceMillis,
-                    onClick = {
-                        controller.toggleFlashMode()
-                        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-                    },
-                )
-            }
-            // AE compensation applies to preview (and typically recording) in both photo and video.
-            CustomIconButton(
-                icon = CameraIcons.moon,
-                iconDescription = "Low light boost",
-                iconTint = if (isLowLightBoostOn) Color.White else Color.White.copy(alpha = 0.5f),
-                backgroundColor = Color.Transparent,
-                shadowElevation = 0.dp,
-                clickDebounceMillis = CameraChromeClickDebounceMillis,
-                onClick = {
-                    val (min, max) = controller.getExposureCompensationRange()
-                    if (min < max) {
-                        val baseline = 0.coerceIn(min, max)
-                        if (!isLowLightBoostOn) {
-                            val target = (baseline + ExposureBoostSteps).coerceIn(min, max)
-                            controller.setExposureCompensationIndex(target)
-                            brightnessIndex = target.toFloat()
-                            isLowLightBoostOn = true
-                        } else {
-                            controller.setExposureCompensationIndex(baseline)
-                            brightnessIndex = baseline.toFloat()
-                            isLowLightBoostOn = false
-                        }
-                    }
-                },
-            )
-            CustomIconButton(
-                icon = CameraIcons.switchCamera,
-                iconDescription = "Switch camera",
-                iconTint = Color.White,
-                backgroundColor = Color.Transparent,
-                shadowElevation = 0.dp,
-                    onClick = {
-                        if (stateHolder != null) stateHolder.toggleCameraLens()
-                        else controller.toggleCameraLens()
-                        currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-                        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
-                        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-                        isLowLightBoostOn = false
-                        if (currentCameraLens == CameraLens.FRONT) {
-                            isWideSelfie = true
-                            controller.setWideSelfieMode(true)
-                            controller.setZoom(1f)
-                        }
-                        maxZoomState.value = controller.getMaxZoom()
-                        zoomLevelState.value = controller.getZoom()
-                    },
-            )
-        }
-
-        Column(
-            modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .zIndex(4f)
                 .fillMaxWidth()
@@ -829,43 +856,73 @@ fun DefaultCameraPreview(
                             lastCapturedWithFrontLens &&
                             thumbnailBitmap === lastCapturedBitmap
                     thumbnailBitmap?.let { bitmap ->
-                        val thumbShape = RoundedCornerShape(8.dp)
+                        // Top-end square so the count badge meets the frame; other corners rounded (bottom-start = bottom-left in LTR).
+                        val thumbShape = RoundedCornerShape(
+                            topStart = 8.dp,
+                            topEnd = 0.dp,
+                            bottomEnd = 8.dp,
+                            bottomStart = 8.dp,
+                        )
+                        // Clip only the image so the count badge is not cut off by [thumbShape] (badge sits in margin).
                         Box(
                             modifier = Modifier
                                 .size(width = 44.dp, height = 56.dp)
-                                .clip(thumbShape)
                                 .border(2.dp, Color.White, thumbShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = { onLastPhotoClick?.invoke(bitmap) },
+                                .then(
+                                    if (thumbnailBusy) {
+                                        Modifier
+                                    } else {
+                                        Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = { onLastPhotoClick?.invoke(bitmap) },
+                                        )
+                                    },
                                 ),
-                            contentAlignment = Alignment.Center,
                         ) {
-                            Image(
-                                bitmap = bitmap,
-                                contentDescription = "Photo thumbnail",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .then(
-                                        if (mirrorThumbnailHorizontally) {
-                                            Modifier.graphicsLayer {
-                                                scaleX = -1f
-                                                transformOrigin = TransformOrigin(0.5f, 0.5f)
-                                            }
-                                        } else {
-                                            Modifier
-                                        },
-                                    ),
-                            )
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 4.dp, y = (-4).dp),
+                                    .fillMaxSize()
+                                    .clip(thumbShape),
+                            ) {
+                                Image(
+                                    bitmap = bitmap,
+                                    contentDescription = "Photo thumbnail",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .then(
+                                            if (mirrorThumbnailHorizontally) {
+                                                Modifier.graphicsLayer {
+                                                    scaleX = -1f
+                                                    transformOrigin = TransformOrigin(0.5f, 0.5f)
+                                                }
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier.align(Alignment.TopEnd),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 thumbnailTopEndContent()
+                            }
+                            if (thumbnailBusy) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(thumbShape)
+                                        .background(Color.Black.copy(alpha = 0.45f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.size(8.dp))
@@ -974,6 +1031,81 @@ fun DefaultCameraPreview(
                 }
             }
         }
+        }
+    }
+
+    /** Flash / low-light / switch row — sibling overlay; apps can mirror this with their own leading (e.g. logo). */
+    @Composable
+    fun BoxScope.DefaultCameraPreviewLensChromeOverlay() {
+        if (ShowCameraPreviewTopLensChromeUi) {
+            DefaultCameraPreviewTopLensChromeRow(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .zIndex(4.5f)
+                    .padding(top = topChromeRowPaddingTop, end = 8.dp),
+                currentCameraLens = currentCameraLens,
+                currentFlashMode = currentFlashMode,
+                isLowLightBoostOn = isLowLightBoostOn,
+                onToggleFlash = onTopChromeToggleFlash,
+                onMoonClick = onTopChromeMoonClick,
+                onSwitchCamera = onTopChromeSwitchCamera,
+            )
+        }
+    }
+
+    // Box { camera preview stack; top lens chrome } — chrome sits outside the clipped preview layer.
+    Box(modifier.fillMaxSize()) {
+        DefaultCameraPreviewContent()
+        DefaultCameraPreviewLensChromeOverlay()
+    }
+}
+
+@Composable
+private fun DefaultCameraPreviewTopLensChromeRow(
+    modifier: Modifier = Modifier,
+    currentCameraLens: CameraLens,
+    currentFlashMode: FlashMode,
+    isLowLightBoostOn: Boolean,
+    onToggleFlash: () -> Unit,
+    onMoonClick: () -> Unit,
+    onSwitchCamera: () -> Unit,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (currentCameraLens != CameraLens.FRONT) {
+            CustomIconButton(
+                icon = CameraIcons.flash,
+                iconDescription = "Flash",
+                iconTint = when (currentFlashMode) {
+                    FlashMode.ON, FlashMode.AUTO -> Color.White
+                    FlashMode.OFF -> Color.White.copy(alpha = 0.5f)
+                },
+                backgroundColor = Color.Transparent,
+                shadowElevation = 0.dp,
+                clickDebounceMillis = CameraChromeClickDebounceMillis,
+                onClick = onToggleFlash,
+            )
+        }
+        CustomIconButton(
+            icon = CameraIcons.moon,
+            iconDescription = "Low light boost",
+            iconTint = if (isLowLightBoostOn) Color.White else Color.White.copy(alpha = 0.5f),
+            backgroundColor = Color.Transparent,
+            shadowElevation = 0.dp,
+            clickDebounceMillis = CameraChromeClickDebounceMillis,
+            onClick = onMoonClick,
+        )
+        CustomIconButton(
+            icon = CameraIcons.switchCamera,
+            iconDescription = "Switch camera",
+            iconTint = Color.White,
+            backgroundColor = Color.Transparent,
+            shadowElevation = 0.dp,
+            onClick = onSwitchCamera,
+        )
     }
 }
 

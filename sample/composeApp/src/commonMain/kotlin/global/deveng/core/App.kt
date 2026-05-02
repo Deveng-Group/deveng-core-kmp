@@ -87,6 +87,8 @@ import core.presentation.component.labeledslot.Label
 import core.presentation.component.labeledslot.LabeledSlot
 import core.presentation.component.lazyswipecards.SwipeCards
 import core.presentation.component.lazyswipecards.rememberSwipeCardsState
+import core.presentation.component.reviewstack.ReviewStack
+import core.presentation.component.reviewstack.rememberReviewStackState
 import core.util.markdown.MarkdownContentParser
 import core.presentation.component.navigationmenu.MenuMode
 import core.presentation.component.navigationmenu.NavigationMenu
@@ -925,6 +927,35 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                                 }
                             )
                         }
+
+                        SectionTitle("ReviewStack Examples")
+
+                        val reviewStackState = rememberReviewStackState()
+                        ReviewStack(
+                            modifier = Modifier.fillMaxWidth(),
+                            items = swipeCardsDemoImages,
+                            key = { it.toString() },
+                            state = reviewStackState,
+                            previousIcon = Res.drawable.ic_arrow_left,
+                            nextIcon = Res.drawable.ic_arrow_right,
+                            negativeIcon = Res.drawable.ic_arrow_left,
+                            positiveIcon = Res.drawable.ic_arrow_right,
+                            onDecision = { _, decision ->
+                                println("ReviewStack: decision=$decision")
+                            },
+                            itemContent = { image ->
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Image(
+                                        painter = painterResource(image),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(180.dp),
+                                    )
+                                }
+                            },
+                        )
 
                         Text(
                             text = "ComponentTheme Demo",

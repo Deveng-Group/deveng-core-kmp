@@ -94,6 +94,65 @@ data class SwipeCardsTheme(
 )
 
 /**
+ * Theme for ReviewStack component (stacked viewer with prev/next + negative/positive buttons).
+ */
+data class ReviewStackTheme(
+    val cardCornerRadius: Dp = 16.dp,
+    val cardColor: Color = Color(0xFF3A3A3A),
+    val cardShadowElevation: Dp = 0.dp,
+    val cardAspectRatio: Float = 1f,
+    val stackScalePerLevel: Float = 0.05f,
+    val stackTranslatePerLevel: Dp = 10.dp,
+    val visibleStackDepth: Int = 3,
+    val controlsSpacing: Dp = 16.dp,
+    val controlsTopPadding: Dp = 12.dp,
+    val controlsBottomPadding: Dp = 16.dp,
+    val arrowButtonSize: Dp = 44.dp,
+    val arrowButtonBackgroundColor: Color = Color.Transparent,
+    val arrowButtonBorderColor: Color = CoreCustomGrayColor,
+    val arrowButtonIconTint: Color = CorePrimaryColor,
+    val arrowButtonShadowElevation: Dp = 0.dp,
+    val decisionButtonSize: Dp = 44.dp,
+    val decisionButtonShape: Shape = CircleShape,
+    val decisionButtonBackgroundColor: Color = Color.Transparent,
+    val negativeBorderColor: Color = CoreErrorColor,
+    val negativeIconTint: Color = CoreErrorColor,
+    val positiveBorderColor: Color = CorePrimaryColor,
+    val positiveIconTint: Color = CorePrimaryColor,
+    val decisionBorderWidth: Dp = 1.dp,
+    val decisionContentSpacing: Dp = 6.dp,
+    val decisionCountTextStyle: TextStyle = TextStyle(
+        fontSize = 16.sp,
+    ),
+    val negativeCountColor: Color = CoreErrorColor,
+    val positiveCountColor: Color = CorePrimaryColor,
+    val indexIndicatorTextStyle: TextStyle = TextStyle(
+        fontSize = 14.sp,
+        color = CoreCustomGrayHintColor,
+    ),
+    val topBarPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+    val positiveOverlayColor: Color = Color(0xFF2ECC71),
+    val negativeOverlayColor: Color = Color(0xFFE74C3C),
+    val overlayAlpha: Float = 0.35f,
+    val exitScale: Float = 0.15f,
+    val exitRotationDegrees: Float = 12f,
+    val decisionAnimationPhase1Ms: Int = 160,
+    val decisionAnimationPhase2Ms: Int = 220,
+    /** Custom undo banner at the bottom of the card stack; auto-dismiss after this duration (ms). */
+    val undoBannerVisibleMs: Int = 3000,
+    val undoBannerHorizontalPadding: Dp = 16.dp,
+    val undoBannerBottomPadding: Dp = 12.dp,
+    val undoBannerCornerRadius: Dp = 8.dp,
+    val undoBannerContainerColor: Color = Color(0xFF323232),
+    val undoBannerContentColor: Color = Color.White,
+    val undoBannerActionColor: Color = CorePrimaryColor,
+    val undoBannerMessageTextStyle: TextStyle = TextStyle(fontSize = 14.sp),
+    val undoBannerActionTextStyle: TextStyle = TextStyle(fontSize = 14.sp),
+    /** When non-null, limits banner width inside the stack area. */
+    val undoBannerMaxWidth: Dp? = null,
+)
+
+/**
  * Theme for LabeledSwitch component
  */
 data class LabeledSwitchTheme(
@@ -669,6 +728,7 @@ data class ComponentTheme(
     val customSlider: CustomSliderTheme = CustomSliderTheme(),
     val otpView: OtpViewTheme = OtpViewTheme(),
     val swipeCards: SwipeCardsTheme = SwipeCardsTheme(),
+    val reviewStack: ReviewStackTheme = ReviewStackTheme(),
     val tabRow: TabRowTheme = TabRowTheme(),
     val shutter: ShutterTheme = ShutterTheme()
 )
