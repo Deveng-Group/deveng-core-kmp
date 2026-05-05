@@ -1,7 +1,9 @@
 package core.util.markdown
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -9,21 +11,28 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.BasicText
 
 /**
  * Renders a markdown string as simple rich text lines.
  * Supports headings (#, ##, ###), list items (-), bold (**text**) and italic (_text_).
  *
  * @param markdownContent Raw markdown content to render.
+ * @param textColor Color for all rendered text (paragraphs inherit via [BasicText] style; inline spans keep weight/style only).
  */
 @Composable
-fun MarkdownContentParser(markdownContent: String) {
+fun MarkdownContentParser(
+    markdownContent: String,
+    textColor: Color,
+) {
     val lines = markdownContent.lines()
+    val baseStyle = TextStyle(color = textColor)
 
     Column {
         lines.forEach { line ->
-            BasicText(text = parseMarkdownLine(line = line))
+            BasicText(
+                text = parseMarkdownLine(line = line),
+                style = baseStyle,
+            )
         }
     }
 }

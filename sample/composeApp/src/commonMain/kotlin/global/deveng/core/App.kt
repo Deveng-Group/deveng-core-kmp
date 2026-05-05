@@ -1396,7 +1396,10 @@ private fun ThemingDemo(onOpenCamera: () -> Unit = {}) {
                                                 color = Color.White
                                             )
                                         )
-                                        MarkdownContentParser(markdownContent = sampleMarkdown)
+                                        MarkdownContentParser(
+                                            markdownContent = sampleMarkdown,
+                                            textColor = Color.Red,
+                                        )
                                         CustomButton(
                                             text = "Close",
                                             onClick = { showMarkdownDialog = false }

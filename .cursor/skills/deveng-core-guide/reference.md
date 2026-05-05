@@ -17,8 +17,24 @@ sources for those.
 | Get current device location (lat/lon)            | `MultiPlatformUtils.getCurrentLocation` (suspend)         |
 | Share text (system share sheet)                  | `MultiPlatformUtils.shareText`                            |
 
-**Do not:** Implement dial, clipboard, maps, URL open, share, or location with custom/platform code
+**Do not:** Implement dial, clipboard, maps, URL open, share **text**, or location with custom/platform code
 in the app.
+
+---
+
+## RemoteMediaExportManager (`core.util.media`)
+
+| Situation                                                                 | Use                                                                 |
+|---------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Download a **remote file** (image/video) by URL and open the **system share sheet** (file intent) | `RemoteMediaExportManager.shareSingleFileFromUrl` / `shareMultipleFilesFromUrls` |
+| Download by URL and **save to the device gallery** (MediaStore / Photos) | `RemoteMediaExportManager.saveSingleFileFromUrl` / `saveMultipleFilesFromUrls` |
+| Model for bulk URL + file name + MIME                                     | `RemoteMediaFile`                                                   |
+
+**Android:** Host app must configure **FileProvider** paths for cache when using share. **Desktop / wasmJs:** implementations are no-ops (return false / 0) unless extended later.
+
+**Do not:** Use `MultiPlatformUtils.shareText` for “share this image URL as a file.” Use **RemoteMediaExportManager** when the product needs actual file share or gallery save from URLs.
+
+**Contrast:** **PhotoSaveUtils** operates on **image bytes** and a target path (e.g. after capture); **RemoteMediaExportManager** starts from **remote URLs**.
 
 ---
 
@@ -136,6 +152,8 @@ Implementation: **core.data.temp** — `TempFileRepositoryImpl(dirProvider, file
 | Progress bars                                 | `ProgressIndicatorBars`                                                                                                                                                                                                                                                                                                                                               |
 | OTP input                                     | `OtpView`, `OtpDigit`; `rememberShakeOffset` for shake                                                                                                                                                                                                                                                                                                                |
 | JSON display                                  | `JsonViewer`; `formatJson` for formatting                                                                                                                                                                                                                                                                                                                             |
+| Simple markdown (headings, lists, bold/italic) | `MarkdownContentParser` (`core.util.markdown`); pass **`textColor`** so text matches theme/surface |
+| Fullscreen image viewer (zoom, swipe dismiss, paging) | `MediaViewer`, `MediaViewerState`, `MediaViewerDefaults` (`core.presentation.component.mediaviewer`) |
 | Swipeable card stack (Tinder-style)           | `SwipeCards`, `SwipeCardsState`, `rememberSwipeCardsState`, `SwipeCardsScope` (`items` / `itemsIndexed`, `onSwiping` / `onSwiped`); optional overlay icon buttons: `showSwipeButtons` + `negativeButtonIcon` / `positiveButtonIcon` / `revertButtonIcon`. **Theme:** `ComponentTheme` → `swipeCards` (`SwipeCardsTheme` in `core.presentation.theme` / `ComponentTheme.kt`): `buttonBackgroundColor`, `buttonIconTint`, `buttonSize`, `buttonShadowElevation`, and swipe-direction highlights `negativeSwipeHighlightColor`, `positiveSwipeHighlightColor`, `swipeHighlightIconTintBlend` (tint while dragging left/right). **Revert:** `state.canRevert` + `animateBackSwipe`, or **`pendingRevertKey`** if the list changed and internal revert state was lost. **Optional:** `SwipeCardsState.swipeNegativeButtonHighlight` / `swipePositiveButtonHighlight` (0..1) for custom UI tied to drag progress. |
 
 Use these instead of reimplementing equivalent generic components.
