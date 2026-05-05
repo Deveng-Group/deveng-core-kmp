@@ -6,7 +6,9 @@ import platform.Foundation.NSDate
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
+import platform.Foundation.dataWithContentsOfURL
 import platform.Foundation.timeIntervalSince1970
+import platform.Foundation.writeToURL
 import platform.Photos.PHAssetChangeRequest
 import platform.Photos.PHPhotoLibrary
 import platform.UIKit.UIActivityViewController
@@ -81,8 +83,8 @@ actual class RemoteMediaExportManager {
     private fun writeTempFile(data: NSData, fileName: String): NSURL {
         val tempDir = NSURL.fileURLWithPath(NSTemporaryDirectory(), isDirectory = true)
         val name = fileName.ifBlank { "media_${NSDate().timeIntervalSince1970.toLong()}" }
-        return tempDir.URLByAppendingPathComponent(name)!!.also { url ->
-            data.writeToURL(url, atomically = true)
+        return tempDir.URLByAppendingPathComponent(name)!!.also { fileUrl ->
+            data.writeToURL(fileUrl, atomically = true)
         }
     }
 
