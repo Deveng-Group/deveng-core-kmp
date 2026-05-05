@@ -1,6 +1,6 @@
 # Deveng-Core Library Guide (Vibecoding)
 
-Version: 1.0.2  
+Version: 1.0.3  
 Owner: deveng-core-kmp  
 Risk: Low
 
@@ -20,7 +20,10 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 
 - Before implementing a feature, check the **reference** for a matching situation and use the listed core API.
 - When the user asks for dial, clipboard, maps, URL open, share, location, or platform info → use **MultiPlatformUtils**.
+- When the app needs to **download remote media by URL** and **share as files** or **save to the device gallery** (photos/videos from URLs) → use **RemoteMediaExportManager** (`core.util.media`) and **`RemoteMediaFile`** for bulk lists—not `MultiPlatformUtils.shareText` (that API is for plain text).
 - When the app needs to save captured photo bytes or add location EXIF → use **PhotoSaveUtils**.
+- When the app needs **simple markdown lines** in Compose (headings, lists, bold/italic) with a **caller-controlled text color** → use **MarkdownContentParser** (`core.util.markdown`).
+- When the app needs a **fullscreen image viewer** with zoom and swipe-to-dismiss → use **MediaViewer** (`core.presentation.component.mediaviewer`).
 - When the app needs camera capture, preview, or recording → use **CameraController** / **CameraKScreen** / **rememberCameraKState** and related compose/domain APIs.
 - When the app needs to stack or persist camera photos in temp storage (e.g. before upload, swipe-to-delete flow) → use core **CameraTempPhotoRepository** and **TempPhotoItem**; register **CameraTempDirProvider** in DI (or use default implementations from core).
 - When the app needs permission request/check or app settings → use **PermissionsController** (and **rememberPermissionsControllerFactory** / **BindEffect**) or camera-domain **Permissions** where applicable.
@@ -48,13 +51,14 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 2. **Match situation:** For the requested feature, check the reference: “What exists and when to use it.”
 3. **Plan:** Prefer the core module/API listed for that situation; only add app-specific wiring or UI that is not in core.
 4. **Execute:** Write code that calls core APIs (MultiPlatformUtils, PhotoSaveUtils, camera, permissions, pagination, presentation components, SwipeCards where applicable, utils) instead of reimplementing their behavior.
-5. **Verify:** Ensure no duplicate logic exists for dial, clipboard, maps, URL open, share, location, platform config, photo save/EXIF, camera lifecycle, permissions, or pagination.
+5. **Verify:** Ensure no duplicate logic exists for dial, clipboard, maps, URL open, share text, remote URL media export (share/save gallery), location, platform config, photo save/EXIF, camera lifecycle, permissions, or pagination.
 
 ## Rules
 
 ### MUST
 
 - Use **MultiPlatformUtils** for: dial, copy to clipboard, open maps with location, open URL, share text, get current location, get platform config. Do not implement these with platform-specific or custom code in the app.
+- Use **RemoteMediaExportManager** for: download media from **HTTPS URLs** and invoke the system share sheet for **files** or persist to the **gallery** (bulk: `List<RemoteMediaFile>`). Do not reimplement URL fetch + FileProvider/MediaStore/Photos for that flow when this API fits. Do not confuse with **MultiPlatformUtils.shareText** (text-only).
 - Use **PhotoSaveUtils** for saving photo bytes to a path and for adding location EXIF to image bytes (e.g. after camera capture). Do not reimplement file write or EXIF handling.
 - Use core **camera** APIs (CameraController, builder, rememberCameraKState, CameraKScreen, DefaultCameraPreview, etc.) for capture, preview, and recording. Do not introduce a separate camera stack unless the user explicitly requests it.
 - Use core **CameraTempPhotoRepository** (and **TempPhotoItem**, **CameraTempDirProvider** / **CameraTempFileOps**) for persisting captured photos in temp storage; do not reimplement temp photo storage in the app.
@@ -72,6 +76,7 @@ This skill ensures that when building or vibecoding an app that depends on **dev
 ### MUST NOT
 
 - Implement “dial number,” “copy to clipboard,” “open map,” “open URL,” or “share text” without using MultiPlatformUtils.
+- Implement “download URL → share file or save to gallery” without using **RemoteMediaExportManager** when the task is exactly that (plain text share remains **MultiPlatformUtils.shareText**).
 - Implement “save image bytes to file” or “add GPS EXIF to image” without using PhotoSaveUtils.
 - Implement camera capture/preview/recording with a different stack when core camera APIs are available.
 - Implement temp photo stacking/storage (e.g. for pre-upload or swipe flows) without using core CameraTempPhotoRepository and related types.
@@ -91,6 +96,7 @@ Core uses a **domain + data** split for camera temp storage: repository interfac
 
 ## Changelog
 
+- 1.0.3: **RemoteMediaExportManager** / **RemoteMediaFile** (`core.util.media`); **MarkdownContentParser** (`textColor`); **MediaViewer** (`core.presentation.component.mediaviewer`); sample `App.kt` demo touch-up.
 - 1.0.2: SwipeCards + SwipeCardsTheme (highlight colors); KDoc convention when editing core; sample SwipeCards location.
 - 1.0.1: Camera temp storage (CameraTempPhotoRepository, TempPhotoItem); architecture note for domain/data split.
 - 1.0.0: Initial skill; scope, procedure, rules, and reference pointer.
