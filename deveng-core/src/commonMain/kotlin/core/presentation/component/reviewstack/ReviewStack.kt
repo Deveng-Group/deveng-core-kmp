@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -78,10 +80,15 @@ private data class ReviewStackUndoSession<T>(
 /** Quick fade when the user taps undo on the banner. */
 private const val UndoBannerFadeOutMs = 320
 
-/** Slower, more visible fade for timer dismiss, oldest-row eviction when a 3rd banner appears, and overflow ghost. */
+/** Slower, more visible fade for timer dismiss, oldest-row eviction at capacity, and overflow ghost. */
 private const val UndoBannerStackSlotFadeOutMs = 520
 
-private const val MaxUndoBannerStack = 3
+/** Slide + [animateContentSize] duration when a new undo banner appears (newest row). */
+private const val UndoBannerSlideInMs = 320
+
+/** Banners older than the two newest start this fade immediately (see [onUndoBannerSuperseded]). */
+private const val UndoBannerOlderFadeOutMs = 420
+
 private val UndoBannerStackSpacing = 8.dp
 
 /**
@@ -123,12 +130,17 @@ private val UndoBannerStackSpacing = 8.dp
  *        Pass non-null (or set [undoLabel]) to enable undo banner support.
  * @param undoLabel Action label on the undo banner (e.g. "Undo"). Shown when undo is enabled.
  * @param onUndoDecision Called when the user taps undo on the banner before it auto-dismisses.
+ * @param onUndoBannerSuperseded When more than two undo banners are visible, the third-oldest and older
+ *        fade out immediately; this is invoked for each such banner so the host can commit the decision
+ *        (e.g. cancel a delayed delete). Optional; omit if the stack is display-only.
  * @param topEndContent Optional slot rendered on the end side of the top bar (e.g. an overflow menu).
  *        Ignored when [topBar] is non-null.
  * @param topBar When non-null, replaces the default index [Row] entirely. Receives the 0-based current
  *        pager page and total item count (use for a custom bar, e.g. back + “n / total” in one panel).
  * @param onFrontCardZoomedChanged When [itemZoomEnabled], called with whether the **settled** page’s
  *        front card is zoomed in (scale above minimum). Resets to `false` when the settled page changes.
+ * @param restartPagerToFirstKey Increment (e.g. after an undo that prepends the item) to snap the pager
+ *        and [state] back to page 0 so the restored front card is visible.
  * @param itemContent Composable used to render each item card's content.
  */
 @Composable
@@ -136,6 +148,7 @@ fun <T> ReviewStack(
     items: List<T>,
     key: (T) -> Any,
     modifier: Modifier = Modifier,
+    restartPagerToFirstKey: Int = 0,
     state: ReviewStackState = rememberReviewStackState(),
     previousIcon: DrawableResource,
     nextIcon: DrawableResource,
@@ -157,6 +170,7 @@ fun <T> ReviewStack(
     undoMessage: String? = null,
     undoLabel: String? = null,
     onUndoDecision: ((item: T, decision: ReviewDecision) -> Unit)? = null,
+    onUndoBannerSuperseded: ((item: T) -> Unit)? = null,
     topEndContent: (@Composable () -> Unit)? = null,
     topBar: (@Composable (currentPage: Int, totalCount: Int) -> Unit)? = null,
     onFrontCardZoomedChanged: ((Boolean) -> Unit)? = null,
@@ -172,6 +186,18 @@ fun <T> ReviewStack(
         pageCount = { itemCount },
     )
     val cardShape = RoundedCornerShape(theme.cardCornerRadius)
+
+    LaunchedEffect(restartPagerToFirstKey) {
+        if (restartPagerToFirstKey == 0) return@LaunchedEffect
+        repeat(6) { attempt ->
+            if (items.isNotEmpty()) {
+                state.currentIndex = 0
+                pagerState.scrollToPage(0)
+                return@LaunchedEffect
+            }
+            if (attempt < 5) delay(16)
+        }
+    }
 
     LaunchedEffect(pagerState, itemCount) {
         if (itemCount <= 0) return@LaunchedEffect
@@ -216,12 +242,9 @@ fun <T> ReviewStack(
 
     val onDecisionRef = rememberUpdatedState(onDecision)
     val onUndoDecisionRef = rememberUpdatedState(onUndoDecision)
+    val onUndoBannerSupersededRef = rememberUpdatedState(onUndoBannerSuperseded)
     var undoBannerStack by remember { mutableStateOf<List<ReviewStackUndoSession<T>>>(emptyList()) }
-    var evictingUndoSession by remember { mutableStateOf<ReviewStackUndoSession<T>?>(null) }
-    val evictingAlphaAnim = remember { Animatable(1f) }
     var undoSessionId by remember { mutableStateOf(0L) }
-    /** Oldest session id when stack reaches [MaxUndoBannerStack]; that row fades out immediately. */
-    var forcedImmediateFadeSessionId by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(pendingDecision, pendingItem) {
         val decision = pendingDecision
@@ -259,6 +282,11 @@ fun <T> ReviewStack(
         // Animation done — commit decision, advance, then snap back so the next card renders cleanly.
         val committedItem = item
         val committedDecision = decision
+        println(
+            "ReviewStackRevert where=decisionCommitted itemKey=${key(committedItem)} decision=$committedDecision " +
+                "pagerCurrent=${pagerState.currentPage} pagerSettled=${pagerState.settledPage} " +
+                "stateIndex=${state.currentIndex} itemCount=$itemCount",
+        )
         state.setDecision(key(committedItem), committedDecision)
         onDecisionRef.value?.invoke(committedItem, committedDecision)
         if (autoAdvanceOnDecision) state.goNext(itemCount)
@@ -270,7 +298,8 @@ fun <T> ReviewStack(
         // Clear pending first so next decision can start immediately.
         pendingItem = null
         pendingDecision = null
-        // In-stack undo banner(s) for negative decisions (when undo UI is configured). Max [MaxUndoBannerStack].
+        // In-stack undo banner(s) for negative decisions (when undo UI is configured); unlimited stack,
+        // with the two newest kept on the normal timer and older rows fading via [UndoBannerOlderFadeOutMs].
         if ((undoMessage != null || undoLabel != null) && committedDecision == ReviewDecision.NEGATIVE) {
             undoSessionId += 1L
             val openedAt = Clock.System.now().toEpochMilliseconds()
@@ -280,33 +309,10 @@ fun <T> ReviewStack(
                 decision = committedDecision,
                 openedAtEpochMillis = openedAt,
             )
-            if (undoBannerStack.size < MaxUndoBannerStack) {
-                undoBannerStack = undoBannerStack + (newSession as ReviewStackUndoSession<T>)
-                if (undoBannerStack.size == MaxUndoBannerStack) {
-                    // Third banner: keep all three visible; oldest row starts fading immediately (timer ignored).
-                    forcedImmediateFadeSessionId = undoBannerStack.first().id
-                }
-            } else {
-                forcedImmediateFadeSessionId = null
-                val oldest = undoBannerStack.first()
-                evictingUndoSession = oldest
-                undoBannerStack = undoBannerStack.drop(1) + (newSession as ReviewStackUndoSession<T>)
-                val evictedId = oldest.id
-                launch {
-                    evictingAlphaAnim.snapTo(1f)
-                    evictingAlphaAnim.animateTo(
-                        0f,
-                        tween(
-                            durationMillis = UndoBannerStackSlotFadeOutMs,
-                            easing = FastOutSlowInEasing,
-                        ),
-                    )
-                    if (evictingUndoSession?.id == evictedId) {
-                        evictingUndoSession = null
-                    }
-                    evictingAlphaAnim.snapTo(1f)
-                }
-            }
+            println(
+                "ReviewStackRevert where=undoBannerPushed sessionId=${newSession.id} itemKey=${key(committedItem)}",
+            )
+            undoBannerStack = undoBannerStack + (newSession as ReviewStackUndoSession<T>)
         }
     }
 
@@ -485,95 +491,44 @@ fun <T> ReviewStack(
                 }
             }
 
-            if (undoBannerStack.isNotEmpty() || evictingUndoSession != null) {
+            // Over the media (same card area as the pager), not in the outer column above controls.
+            if (undoBannerStack.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
                         .padding(horizontal = theme.undoBannerHorizontalPadding)
                         .padding(bottom = theme.undoBannerBottomPadding)
-                        .fillMaxWidth(),
+                        .animateContentSize(
+                            animationSpec = tween(
+                                durationMillis = UndoBannerSlideInMs,
+                                easing = FastOutSlowInEasing,
+                            ),
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(UndoBannerStackSpacing, Alignment.Bottom),
                 ) {
-                    // Bottom-first order: overflow ghost (fading evicted row), then oldest → newest active rows.
-                    evictingUndoSession?.let { evicted ->
-                        key(evicted.id) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .graphicsLayer { alpha = evictingAlphaAnim.value },
-                            ) {
-                                ReviewStackUndoBanner(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    message = undoMessage.orEmpty(),
-                                    label = undoLabel.orEmpty(),
-                                    onUndoClick = {},
-                                    theme = theme,
-                                    interactive = false,
-                                )
-                            }
-                        }
-                    }
-                    if (undoBannerStack.isNotEmpty()) {
-                        key(undoBannerStack[0].id) {
-                            UndoBannerRow(
-                                session = undoBannerStack[0],
+                    undoBannerStack.forEachIndexed { index, session ->
+                        val ageFromNewest = undoBannerStack.lastIndex - index
+                        val isNewest = index == undoBannerStack.lastIndex
+                        key(session.id) {
+                            UndoBannerRowWithSlideIn(
+                                session = session,
+                                itemKeyForLog = key(session.item).toString(),
                                 theme = theme,
                                 undoMessage = undoMessage.orEmpty(),
                                 undoLabel = undoLabel.orEmpty(),
                                 composableScope = composableScope,
-                                modifier = Modifier.fillMaxWidth(),
-                                immediateFadeOut = undoBannerStack[0].id == forcedImmediateFadeSessionId,
+                                animateSlideInFromBottom = isNewest,
+                                ageFromNewest = ageFromNewest,
                                 onRemoveFromStack = { id ->
-                                    if (forcedImmediateFadeSessionId == id) {
-                                        forcedImmediateFadeSessionId = null
-                                    }
                                     undoBannerStack = undoBannerStack.filter { it.id != id }
                                 },
                                 onUndoDecisionRef = onUndoDecisionRef,
                                 suspendOnUndoFromBanner = bannerUndoPreFade,
-                            )
-                        }
-                    }
-                    if (undoBannerStack.size >= 2) {
-                        key(undoBannerStack[1].id) {
-                            UndoBannerRow(
-                                session = undoBannerStack[1],
-                                theme = theme,
-                                undoMessage = undoMessage.orEmpty(),
-                                undoLabel = undoLabel.orEmpty(),
-                                composableScope = composableScope,
-                                modifier = Modifier.fillMaxWidth(),
-                                immediateFadeOut = false,
-                                onRemoveFromStack = { id ->
-                                    if (forcedImmediateFadeSessionId == id) {
-                                        forcedImmediateFadeSessionId = null
-                                    }
-                                    undoBannerStack = undoBannerStack.filter { it.id != id }
+                                onUndoBannerSuperseded = { item ->
+                                    onUndoBannerSupersededRef.value?.invoke(item)
                                 },
-                                onUndoDecisionRef = onUndoDecisionRef,
-                                suspendOnUndoFromBanner = bannerUndoPreFade,
-                            )
-                        }
-                    }
-                    if (undoBannerStack.size >= 3) {
-                        key(undoBannerStack[2].id) {
-                            UndoBannerRow(
-                                session = undoBannerStack[2],
-                                theme = theme,
-                                undoMessage = undoMessage.orEmpty(),
-                                undoLabel = undoLabel.orEmpty(),
-                                composableScope = composableScope,
-                                modifier = Modifier.fillMaxWidth(),
-                                immediateFadeOut = false,
-                                onRemoveFromStack = { id ->
-                                    if (forcedImmediateFadeSessionId == id) {
-                                        forcedImmediateFadeSessionId = null
-                                    }
-                                    undoBannerStack = undoBannerStack.filter { it.id != id }
-                                },
-                                onUndoDecisionRef = onUndoDecisionRef,
-                                suspendOnUndoFromBanner = bannerUndoPreFade,
                             )
                         }
                     }
@@ -705,6 +660,64 @@ private suspend fun animateNegativeUndoReveal(
     }
 }
 
+@Composable
+private fun <T> UndoBannerRowWithSlideIn(
+    session: ReviewStackUndoSession<T>,
+    itemKeyForLog: String,
+    theme: ReviewStackTheme,
+    undoMessage: String,
+    undoLabel: String,
+    composableScope: CoroutineScope,
+    animateSlideInFromBottom: Boolean,
+    ageFromNewest: Int,
+    onRemoveFromStack: (Long) -> Unit,
+    onUndoDecisionRef: State<((T, ReviewDecision) -> Unit)?>,
+    suspendOnUndoFromBanner: (suspend (ReviewStackUndoSession<T>) -> Unit)?,
+    onUndoBannerSuperseded: (T) -> Unit,
+) {
+    val density = LocalDensity.current
+    val slidePx = with(density) { 56.dp.toPx() }
+    val offsetY = remember(session.id) { Animatable(0f) }
+    val enterAlpha = remember(session.id) { Animatable(1f) }
+    LaunchedEffect(session.id, animateSlideInFromBottom) {
+        if (animateSlideInFromBottom) {
+            offsetY.snapTo(slidePx)
+            enterAlpha.snapTo(0.55f)
+            val spec = tween<Float>(UndoBannerSlideInMs, easing = FastOutSlowInEasing)
+            coroutineScope {
+                launch { offsetY.animateTo(0f, spec) }
+                launch { enterAlpha.animateTo(1f, spec) }
+            }
+        } else {
+            offsetY.snapTo(0f)
+            enterAlpha.snapTo(1f)
+        }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationY = offsetY.value
+                alpha = enterAlpha.value
+            },
+    ) {
+        UndoBannerRow(
+            session = session,
+            itemKeyForLog = itemKeyForLog,
+            theme = theme,
+            undoMessage = undoMessage,
+            undoLabel = undoLabel,
+            composableScope = composableScope,
+            ageFromNewest = ageFromNewest,
+            onRemoveFromStack = onRemoveFromStack,
+            onUndoDecisionRef = onUndoDecisionRef,
+            suspendOnUndoFromBanner = suspendOnUndoFromBanner,
+            onUndoBannerSuperseded = onUndoBannerSuperseded,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
 private suspend fun <T> executeBannerUndoPreFade(
     session: ReviewStackUndoSession<T>,
     state: ReviewStackState,
@@ -722,6 +735,9 @@ private suspend fun <T> executeBannerUndoPreFade(
 ) {
     setUndoEntryAnimating(true)
     try {
+        println(
+            "ReviewStackRevert where=undoExecuteStart sessionId=${session.id} itemKey=${itemKey(session.item)} decision=${session.decision}",
+        )
         onUndoDecision?.invoke(session.item, session.decision)
         state.clearDecision(itemKey(session.item))
         if (session.decision == ReviewDecision.NEGATIVE) {
@@ -745,27 +761,30 @@ private suspend fun <T> executeBannerUndoPreFade(
 @Composable
 private fun <T> UndoBannerRow(
     session: ReviewStackUndoSession<T>,
+    itemKeyForLog: String,
     theme: ReviewStackTheme,
     undoMessage: String,
     undoLabel: String,
     composableScope: CoroutineScope,
+    ageFromNewest: Int,
     onRemoveFromStack: (Long) -> Unit,
     onUndoDecisionRef: State<((T, ReviewDecision) -> Unit)?>,
     suspendOnUndoFromBanner: (suspend (ReviewStackUndoSession<T>) -> Unit)?,
+    onUndoBannerSuperseded: (T) -> Unit,
     modifier: Modifier = Modifier,
-    /** When true, skip the visible timer and fade this row out immediately (oldest row when a 3rd banner appears). */
-    immediateFadeOut: Boolean = false,
 ) {
     val rowFadeAnim = remember(session.id) { Animatable(1f) }
-    LaunchedEffect(session.id, session.openedAtEpochMillis, theme.undoBannerVisibleMs, immediateFadeOut) {
-        if (immediateFadeOut) {
+    LaunchedEffect(session.id, ageFromNewest, session.openedAtEpochMillis, theme.undoBannerVisibleMs) {
+        if (ageFromNewest >= 2) {
+            rowFadeAnim.snapTo(1f)
             rowFadeAnim.animateTo(
                 0f,
                 tween(
-                    durationMillis = UndoBannerStackSlotFadeOutMs,
+                    durationMillis = UndoBannerOlderFadeOutMs,
                     easing = FastOutSlowInEasing,
                 ),
             )
+            onUndoBannerSuperseded(session.item)
             onRemoveFromStack(session.id)
             rowFadeAnim.snapTo(1f)
             return@LaunchedEffect
@@ -790,6 +809,9 @@ private fun <T> UndoBannerRow(
             label = undoLabel,
             onUndoClick = {
                 composableScope.launch {
+                    println(
+                        "ReviewStackRevert where=undoBannerClick sessionId=${session.id} itemKey=$itemKeyForLog",
+                    )
                     val preFade = suspendOnUndoFromBanner
                     if (preFade != null) {
                         preFade(session)

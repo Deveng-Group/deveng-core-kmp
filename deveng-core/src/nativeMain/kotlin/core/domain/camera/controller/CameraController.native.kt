@@ -66,12 +66,21 @@ import platform.UIKit.UIPinchGestureRecognizer
 import platform.UIKit.UITapGestureRecognizer
 import platform.UIKit.UIViewController
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_HIGH
+import platform.darwin.DISPATCH_TIME_NOW
+import platform.darwin.dispatch_after
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
+import platform.darwin.dispatch_time
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
+
+/**
+ * Max interval between taps for double-tap; single-tap focus runs after this delay at most.
+ * Same 0.20s window as Android `CameraZoomGestureView` companion `DOUBLE_TAP_MAX_INTERVAL_SEC`.
+ */
+private const val DOUBLE_TAP_MAX_INTERVAL_SEC = 0.20
 
 actual class CameraController(
     internal var flashMode: FlashMode,
@@ -110,6 +119,17 @@ actual class CameraController(
     private val pendingCaptures = atomic(0)
     private val maxConcurrentCaptures = 3
 
+    /**
+     * Single vs double tap: UIKit's [requireGestureRecognizerToFail] keeps single-tap focus correct
+     * but delays one-tap focus by the system double-tap timeout (~350ms). We use one 1-tap
+     * recognizer and resolve in software: second tap within this window switches lens immediately;
+     * otherwise focus runs after this delay (shorter than the default wait).
+     */
+    private var previewTapSequence = 0L
+    private var lastPreviewTapTimeSec = 0.0
+    private var lastPreviewTapNx = 0f
+    private var lastPreviewTapNy = 0f
+
     override fun viewDidLoad() {
         super.viewDidLoad()
 
@@ -126,19 +146,12 @@ actual class CameraController(
         )
         singleTap.numberOfTapsRequired = 1u
 
-        val doubleTap = UITapGestureRecognizer(
-            target = this,
-            action = NSSelectorFromString("handleNativeDoubleTap:"),
-        )
-        doubleTap.numberOfTapsRequired = 2u
-
         val pinch = UIPinchGestureRecognizer(
             target = this,
             action = NSSelectorFromString("handleNativePinch:"),
         )
 
         view.addGestureRecognizer(singleTap)
-        view.addGestureRecognizer(doubleTap)
         view.addGestureRecognizer(pinch)
     }
 
@@ -151,16 +164,31 @@ actual class CameraController(
         val location = sender.locationInView(view)
         val nx = (location.useContents { x } / viewWidth).toFloat().coerceIn(0f, 1f)
         val ny = (location.useContents { y } / viewHeight).toFloat().coerceIn(0f, 1f)
-        println("[CameraFocus] Native handleSingleTap: nx=$nx ny=$ny")
-        if (shouldSuppressTapToFocus?.invoke(nx, ny) == true) return
-        setFocusPoint(nx, ny)
-        onPreviewTapListener?.invoke(nx, ny)
-    }
 
-    @ObjCAction
-    fun handleNativeDoubleTap(sender: UITapGestureRecognizer) {
-        println("[CameraFocus] Native handleDoubleTap")
-        onPreviewDoubleTapListener?.invoke()
+        val now = NSDate().timeIntervalSince1970
+        val prevTime = lastPreviewTapTimeSec
+        if (prevTime > 0.0 && now - prevTime <= DOUBLE_TAP_MAX_INTERVAL_SEC) {
+            previewTapSequence++
+            lastPreviewTapTimeSec = 0.0
+            println("[CameraFocus] Native double-tap (switch lens), dtMs=${((now - prevTime) * 1000).toInt()}")
+            onPreviewDoubleTapListener?.invoke()
+            return
+        }
+
+        lastPreviewTapTimeSec = now
+        lastPreviewTapNx = nx
+        lastPreviewTapNy = ny
+        previewTapSequence++
+        val scheduledSeq = previewTapSequence
+        val delayNs = (DOUBLE_TAP_MAX_INTERVAL_SEC * 1_000_000_000.0).toLong()
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delayNs), dispatch_get_main_queue()) {
+            if (scheduledSeq != previewTapSequence) return@dispatch_after
+            lastPreviewTapTimeSec = 0.0
+            println("[CameraFocus] Native single-tap (focus): nx=$lastPreviewTapNx ny=$lastPreviewTapNy")
+            if (shouldSuppressTapToFocus?.invoke(lastPreviewTapNx, lastPreviewTapNy) == true) return@dispatch_after
+            setFocusPoint(lastPreviewTapNx, lastPreviewTapNy)
+            onPreviewTapListener?.invoke(lastPreviewTapNx, lastPreviewTapNy)
+        }
     }
 
     @ObjCAction
