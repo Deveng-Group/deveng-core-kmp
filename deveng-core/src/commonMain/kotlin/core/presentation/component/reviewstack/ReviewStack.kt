@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +48,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -58,6 +60,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import core.presentation.theme.ReviewStackTheme
+import core.presentation.component.mediaviewer.zoom.ZoomableConfig
+import core.presentation.component.mediaviewer.zoom.internal.ZoomableBox
+import core.presentation.component.mediaviewer.zoom.rememberZoomableState
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -79,8 +85,9 @@ private const val MaxUndoBannerStack = 3
 private val UndoBannerStackSpacing = 8.dp
 
 /**
- * A stacked viewer for browsing items one at a time using arrow buttons, while collecting a
- * positive / negative review decision per item.
+ * A stacked viewer for browsing items one at a time using arrow buttons or horizontal swipe, while
+ * collecting a positive / negative review decision per item. The front card supports pinch and
+ * double-tap zoom when [itemZoomEnabled] is true.
  *
  * When the user marks a decision, the front card animates toward the corresponding decision button
  * (slight rotation + scale-down + translation) while a semi-transparent green / red overlay fades
@@ -107,12 +114,21 @@ private val UndoBannerStackSpacing = 8.dp
  *        (same circular shape as arrow buttons).
  * @param topBarPadding Optional override for the top bar padding inside the card area. When null,
  *        uses [ReviewStackTheme.topBarPadding].
+ * @param indexIndicatorAtEnd When true, the "n / total" label is aligned to the end of the top bar
+ *        (after [topEndContent] if present). Default keeps the label at the start.
+ * @param zoomableConfig Pinch / double-tap zoom behavior for the front card ([itemZoomEnabled]).
+ * @param itemZoomEnabled When true, the front card wraps [itemContent] with zoom gestures.
  * @param onDecision Called when the user marks the front item, AFTER the exit animation completes.
  * @param undoMessage Optional message on the in-stack undo banner after a negative decision.
  *        Pass non-null (or set [undoLabel]) to enable undo banner support.
  * @param undoLabel Action label on the undo banner (e.g. "Undo"). Shown when undo is enabled.
  * @param onUndoDecision Called when the user taps undo on the banner before it auto-dismisses.
  * @param topEndContent Optional slot rendered on the end side of the top bar (e.g. an overflow menu).
+ *        Ignored when [topBar] is non-null.
+ * @param topBar When non-null, replaces the default index [Row] entirely. Receives the 0-based current
+ *        pager page and total item count (use for a custom bar, e.g. back + “n / total” in one panel).
+ * @param onFrontCardZoomedChanged When [itemZoomEnabled], called with whether the **settled** page’s
+ *        front card is zoomed in (scale above minimum). Resets to `false` when the settled page changes.
  * @param itemContent Composable used to render each item card's content.
  */
 @Composable
@@ -134,21 +150,53 @@ fun <T> ReviewStack(
     expandCardArea: Boolean = false,
     showDecisionCounts: Boolean = true,
     topBarPadding: PaddingValues? = null,
+    indexIndicatorAtEnd: Boolean = false,
+    zoomableConfig: ZoomableConfig = ZoomableConfig(),
+    itemZoomEnabled: Boolean = true,
     onDecision: ((item: T, decision: ReviewDecision) -> Unit)? = null,
     undoMessage: String? = null,
     undoLabel: String? = null,
     onUndoDecision: ((item: T, decision: ReviewDecision) -> Unit)? = null,
     topEndContent: (@Composable () -> Unit)? = null,
+    topBar: (@Composable (currentPage: Int, totalCount: Int) -> Unit)? = null,
+    onFrontCardZoomedChanged: ((Boolean) -> Unit)? = null,
     itemContent: @Composable (item: T) -> Unit,
 ) {
     val theme = LocalComponentTheme.current.reviewStack
+    val onZoomedChangedRef = rememberUpdatedState(onFrontCardZoomedChanged)
     state.clampIndex(items.size)
     val itemCount = items.size
-    val currentIndex = state.currentIndex
     val hasItems = itemCount > 0
-    val canGoPrevious = hasItems && currentIndex > 0
-    val canGoNext = hasItems && currentIndex < itemCount - 1
+    val pagerState = rememberPagerState(
+        initialPage = state.currentIndex.coerceIn(0, (itemCount - 1).coerceAtLeast(0)),
+        pageCount = { itemCount },
+    )
     val cardShape = RoundedCornerShape(theme.cardCornerRadius)
+
+    LaunchedEffect(pagerState, itemCount) {
+        if (itemCount <= 0) return@LaunchedEffect
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                if (state.currentIndex != page) {
+                    state.currentIndex = page
+                }
+            }
+    }
+
+    LaunchedEffect(state.currentIndex, itemCount) {
+        if (itemCount <= 0) return@LaunchedEffect
+        val target = state.currentIndex.coerceIn(0, itemCount - 1)
+        if (pagerState.currentPage != target) {
+            pagerState.animateScrollToPage(target)
+        }
+    }
+
+    LaunchedEffect(pagerState.settledPage, itemZoomEnabled) {
+        if (itemZoomEnabled) {
+            onZoomedChangedRef.value?.invoke(false)
+        }
+    }
 
     // Position tracking (in root coordinates) for animating the front card toward a decision button.
     var cardCenter by remember { mutableStateOf<Offset?>(null) }
@@ -264,6 +312,11 @@ fun <T> ReviewStack(
 
     var undoEntryAnimating by remember { mutableStateOf(false) }
     val isAnimating = pendingDecision != null || undoEntryAnimating
+    val pagerPage = pagerState.currentPage
+    val pagerIdle = pagerState.currentPageOffsetFraction == 0f
+    val canGoPrevious = hasItems && pagerPage > 0 && !isAnimating
+    val canGoNext = hasItems && pagerPage < itemCount - 1 && !isAnimating
+    val canDecide = hasItems && !isAnimating && pagerIdle
 
     val bannerUndoPreFade: (suspend (ReviewStackUndoSession<T>) -> Unit)? =
         if (onUndoDecision != null && (undoMessage != null || undoLabel != null)) {
@@ -309,46 +362,72 @@ fun <T> ReviewStack(
                 )
             },
         ) {
-            val depth = theme.visibleStackDepth.coerceAtLeast(1)
-            val visible = (itemCount - currentIndex).coerceAtMost(depth).coerceAtLeast(0)
-            // Render rear cards first (highest local index) so the front card is on top.
-            for (localIndex in visible - 1 downTo 0) {
-                val itemIndex = currentIndex + localIndex
-                val item = items[itemIndex]
-                val isFront = localIndex == 0
-                val baseScale = 1f - theme.stackScalePerLevel * localIndex
-                val baseTranslateY = with(LocalDensity.current) {
-                    (theme.stackTranslatePerLevel * localIndex).toPx()
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            if (isFront) {
-                                val s = baseScale * scaleAnim.value
+            if (itemCount > 0) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = true,
+                    key = { it },
+                ) { page ->
+                    // One full-bleed card per page. Multi-layer stack peek (theme.visibleStackDepth)
+                    // is intentionally not used here: it only appeared on earlier indices (several items
+                    // still "ahead") and made the front photo look inset vs the last item where depth was 1.
+                    val item = items[page]
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val s = scaleAnim.value
                                 scaleX = s
                                 scaleY = s
                                 translationX = translationXAnim.value
-                                translationY = baseTranslateY + translationYAnim.value
+                                translationY = translationYAnim.value
                                 rotationZ = rotationAnim.value
-                            } else {
-                                scaleX = baseScale
-                                scaleY = baseScale
-                                translationY = baseTranslateY
+                            }
+                            .then(
+                                if (theme.cardShadowElevation > 0.dp) {
+                                    Modifier.shadow(theme.cardShadowElevation, cardShape)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .clip(cardShape)
+                            .background(theme.cardColor),
+                    ) {
+                        if (itemZoomEnabled) {
+                            val zoomableState = rememberZoomableState(
+                                config = zoomableConfig,
+                                resetKey = item,
+                            )
+                            val settledPage = pagerState.settledPage
+                            LaunchedEffect(page, settledPage, zoomableState) {
+                                if (page != settledPage) return@LaunchedEffect
+                                snapshotFlow { zoomableState.isZoomed }
+                                    .distinctUntilChanged()
+                                    .collect { zoomed ->
+                                        onZoomedChangedRef.value?.invoke(zoomed)
+                                    }
+                            }
+                            ZoomableBox(
+                                zoomableState = zoomableState,
+                                config = zoomableConfig,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    itemContent(item)
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                itemContent(item)
                             }
                         }
-                        .then(
-                            if (theme.cardShadowElevation > 0.dp) {
-                                Modifier.shadow(theme.cardShadowElevation, cardShape)
-                            } else {
-                                Modifier
-                            },
-                        )
-                        .clip(cardShape)
-                        .background(theme.cardColor),
-                ) {
-                    if (isFront) {
-                        itemContent(item)
                         // Decision overlay (green for positive, red for negative).
                         val overlayColor = when (pendingDecision) {
                             ReviewDecision.POSITIVE -> theme.positiveOverlayColor
@@ -367,20 +446,42 @@ fun <T> ReviewStack(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .padding(topBarPadding ?: theme.topBarPadding),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = if (hasItems) "${currentIndex + 1} / $itemCount" else "0 / 0",
-                    style = theme.indexIndicatorTextStyle,
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                if (topEndContent != null) {
-                    topEndContent()
+            if (topBar != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .padding(topBarPadding ?: theme.topBarPadding),
+                ) {
+                    topBar(pagerPage, itemCount)
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .padding(topBarPadding ?: theme.topBarPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (indexIndicatorAtEnd) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (topEndContent != null) {
+                            topEndContent()
+                        }
+                        Text(
+                            text = if (hasItems) "${pagerPage + 1} / $itemCount" else "0 / 0",
+                            style = theme.indexIndicatorTextStyle,
+                        )
+                    } else {
+                        Text(
+                            text = if (hasItems) "${pagerPage + 1} / $itemCount" else "0 / 0",
+                            style = theme.indexIndicatorTextStyle,
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (topEndContent != null) {
+                            topEndContent()
+                        }
+                    }
                 }
             }
 
@@ -492,7 +593,7 @@ fun <T> ReviewStack(
             ArrowButton(
                 icon = previousIcon,
                 contentDescription = previousIconDescription,
-                enabled = canGoPrevious && !isAnimating,
+                enabled = canGoPrevious,
                 size = theme.arrowButtonSize,
                 background = theme.arrowButtonBackgroundColor,
                 borderColor = theme.arrowButtonBorderColor,
@@ -507,7 +608,7 @@ fun <T> ReviewStack(
                 contentDescription = negativeIconDescription,
                 count = state.negativeCount,
                 showCount = showDecisionCounts,
-                enabled = hasItems && !isAnimating,
+                enabled = canDecide,
                 size = theme.decisionButtonSize,
                 shape = theme.decisionButtonShape,
                 background = theme.decisionButtonBackgroundColor,
@@ -519,8 +620,8 @@ fun <T> ReviewStack(
                 contentSpacing = theme.decisionContentSpacing,
                 onPositioned = { center -> negButtonCenter = center },
                 onClick = {
-                    if (!isAnimating && hasItems) {
-                        pendingItem = items[currentIndex]
+                    if (canDecide) {
+                        pendingItem = items[pagerPage]
                         pendingDecision = ReviewDecision.NEGATIVE
                     }
                 },
@@ -531,7 +632,7 @@ fun <T> ReviewStack(
                 contentDescription = positiveIconDescription,
                 count = state.positiveCount,
                 showCount = showDecisionCounts,
-                enabled = hasItems && !isAnimating,
+                enabled = canDecide,
                 size = theme.decisionButtonSize,
                 shape = theme.decisionButtonShape,
                 background = theme.decisionButtonBackgroundColor,
@@ -544,8 +645,8 @@ fun <T> ReviewStack(
                 leadingCount = true,
                 onPositioned = { center -> posButtonCenter = center },
                 onClick = {
-                    if (!isAnimating && hasItems) {
-                        pendingItem = items[currentIndex]
+                    if (canDecide) {
+                        pendingItem = items[pagerPage]
                         pendingDecision = ReviewDecision.POSITIVE
                     }
                 },
@@ -554,7 +655,7 @@ fun <T> ReviewStack(
             ArrowButton(
                 icon = nextIcon,
                 contentDescription = nextIconDescription,
-                enabled = canGoNext && !isAnimating,
+                enabled = canGoNext,
                 size = theme.arrowButtonSize,
                 background = theme.arrowButtonBackgroundColor,
                 borderColor = theme.arrowButtonBorderColor,
