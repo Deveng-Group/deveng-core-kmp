@@ -105,7 +105,7 @@ fun MediaViewer(
                 modifier = Modifier.fillMaxSize(),
                 pageSpacing = pageSpacing,
                 beyondViewportPageCount = beyondViewportPageCount,
-                userScrollEnabled = !state.isZoomed,
+                userScrollEnabled = true,
                 key = { it },
             ) { page ->
                 val item = items.getOrNull(page) ?: return@HorizontalPager
@@ -118,7 +118,7 @@ fun MediaViewer(
                     zoomEnabled = isPageZoomEnabled?.invoke(page) ?: true,
                     sharedModifier = pageModifier?.invoke(page) ?: Modifier,
                     onZoomChanged = { isZoomed ->
-                        if (page == state.currentPage) state.isZoomed = isZoomed
+                        if (page == state.pagerState.settledPage) state.isZoomed = isZoomed
                     },
                     content = content,
                 )

@@ -45,27 +45,26 @@ internal fun SwipeToDismissBox(
         modifier = Modifier
             .fillMaxSize()
             .onSizeChanged { containerHeight = it.height.toFloat().coerceAtLeast(1f) }
-            .then(
-                if (enabled) {
-                    Modifier.draggable(
-                        state = draggableState,
-                        orientation = Orientation.Vertical,
-                        onDragStarted = { onDragging(true) },
-                        onDragStopped = { velocity ->
-                            val fraction = abs(offsetY.value) / containerHeight
-                            if (fraction >= threshold || abs(velocity) >= velocityThreshold) {
-                                onDragging(false)
-                                onDismiss()
-                            } else {
-                                scope.launch {
-                                    offsetY.animateTo(0f, spring())
-                                    onProgressChanged(0f)
-                                    onDragging(false)
-                                }
-                            }
-                        },
-                    )
-                } else Modifier,
+            // Keep pointer node stable; toggling modifier on/off mid-pinch can cancel
+            // sibling gesture detectors while fingers are still down.
+            .draggable(
+                enabled = enabled,
+                state = draggableState,
+                orientation = Orientation.Vertical,
+                onDragStarted = { onDragging(true) },
+                onDragStopped = { velocity ->
+                    val fraction = abs(offsetY.value) / containerHeight
+                    if (fraction >= threshold || abs(velocity) >= velocityThreshold) {
+                        onDragging(false)
+                        onDismiss()
+                    } else {
+                        scope.launch {
+                            offsetY.animateTo(0f, spring())
+                            onProgressChanged(0f)
+                            onDragging(false)
+                        }
+                    }
+                },
             )
             .graphicsLayer {
                 if (enabled) {

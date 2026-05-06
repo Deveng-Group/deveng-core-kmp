@@ -6,7 +6,9 @@ import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
@@ -21,23 +23,24 @@ internal fun Modifier.zoomGestures(
     config: ZoomableConfig,
 ): Modifier = composed {
     val scope = rememberCoroutineScope()
+    val latestConfig by rememberUpdatedState(config)
     this
         .then(
             if (config.enableDoubleTapZoom) {
-                Modifier.pointerInput(state, config) {
+                Modifier.pointerInput(Unit) {
                     detectTapGestures(
                         onTap = {},
                         onDoubleTap = { offset ->
                             scope.launch {
                                 if (state.isZoomed) state.resetZoom()
-                                else state.zoomTo(config.doubleTapZoom, offset)
+                                else state.zoomTo(latestConfig.doubleTapZoom, offset)
                             }
                         },
                     )
                 }
             } else Modifier,
         )
-        .pointerInput(state, config) {
+        .pointerInput(Unit) {
             awaitEachGesture {
                 var wasMultiTouch = false
                 var totalPanDistance = 0f
