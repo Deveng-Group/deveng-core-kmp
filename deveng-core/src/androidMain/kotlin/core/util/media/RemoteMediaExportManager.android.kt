@@ -11,6 +11,8 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import java.io.File
 import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class RemoteMediaExportManager(
@@ -20,16 +22,16 @@ actual class RemoteMediaExportManager(
         const val TAG = "RemoteMediaExportManager"
     }
 
-    actual fun shareSingleFileFromUrl(
+    actual suspend fun shareSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
-    ): Boolean {
+    ): Boolean = withContext(Dispatchers.IO) {
         if (fileUrl.isBlank()) {
-            return false
+            return@withContext false
         }
 
-        return runCatching {
+        return@withContext runCatching {
             val bytes = URL(fileUrl).openStream().use { inputStream ->
                 inputStream.readBytes()
             }
@@ -43,14 +45,14 @@ actual class RemoteMediaExportManager(
         }.getOrDefault(false)
     }
 
-    actual fun shareMultipleFilesFromUrls(
+    actual suspend fun shareMultipleFilesFromUrls(
         files: List<RemoteMediaFile>,
-    ): Boolean {
+    ): Boolean = withContext(Dispatchers.IO) {
         if (files.isEmpty()) {
-            return false
+            return@withContext false
         }
 
-        return runCatching {
+        return@withContext runCatching {
             val sharedDir = File(context.cacheDir, "shared_media").apply {
                 mkdirs()
             }
@@ -84,42 +86,42 @@ actual class RemoteMediaExportManager(
             }
 
             if (uris.isEmpty()) {
-                return false
-            }
-
-            val uniqueMimeTypes = files.map { it.mimeType }.toSet()
-            val mimeType = if (uniqueMimeTypes.size == 1) {
-                uniqueMimeTypes.first()
+                false
             } else {
-                "*/*"
-            }
+                val uniqueMimeTypes = files.map { it.mimeType }.toSet()
+                val mimeType = if (uniqueMimeTypes.size == 1) {
+                    uniqueMimeTypes.first()
+                } else {
+                    "*/*"
+                }
 
-            val sendIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = mimeType
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
+                val sendIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                    type = mimeType
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
 
-            val chooserIntent = Intent.createChooser(sendIntent, null).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val chooserIntent = Intent.createChooser(sendIntent, null).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(chooserIntent)
+                true
             }
-            context.startActivity(chooserIntent)
-            true
         }.onFailure { throwable ->
             Log.e(TAG, "shareMultipleFilesFromUrls failed count=${files.size}", throwable)
         }.getOrDefault(false)
     }
 
-    actual fun saveSingleFileFromUrl(
+    actual suspend fun saveSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
-    ): Boolean {
+    ): Boolean = withContext(Dispatchers.IO) {
         if (fileUrl.isBlank()) {
-            return false
+            return@withContext false
         }
-        return runCatching {
+        return@withContext runCatching {
             val bytes = URL(fileUrl).openStream().use { inputStream ->
                 inputStream.readBytes()
             }
@@ -133,13 +135,13 @@ actual class RemoteMediaExportManager(
         }.getOrDefault(false)
     }
 
-    actual fun saveMultipleFilesFromUrls(
+    actual suspend fun saveMultipleFilesFromUrls(
         files: List<RemoteMediaFile>,
-    ): Int {
+    ): Int = withContext(Dispatchers.IO) {
         if (files.isEmpty()) {
-            return 0
+            return@withContext 0
         }
-        return runCatching {
+        return@withContext runCatching {
             var successfulSaveCount = 0
             files.forEach { remoteFile ->
                 if (remoteFile.fileUrl.isBlank()) {

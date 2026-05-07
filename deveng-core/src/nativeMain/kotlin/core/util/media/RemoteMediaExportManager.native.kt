@@ -13,19 +13,21 @@ import platform.Photos.PHAssetChangeRequest
 import platform.Photos.PHPhotoLibrary
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class RemoteMediaExportManager {
 
-    actual fun shareSingleFileFromUrl(
+    actual suspend fun shareSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
-    ): Boolean {
-        if (fileUrl.isBlank()) return false
-        return runCatching {
-            val url = NSURL.URLWithString(fileUrl) ?: return false
-            val data = NSData.dataWithContentsOfURL(url) ?: return false
+    ): Boolean = withContext(Dispatchers.Default) {
+        if (fileUrl.isBlank()) return@withContext false
+        return@withContext runCatching {
+            val url = NSURL.URLWithString(fileUrl) ?: return@runCatching false
+            val data = NSData.dataWithContentsOfURL(url) ?: return@runCatching false
             val tempFile = writeTempFile(data, fileName)
             NSOperationQueue.mainQueue.addOperationWithBlock {
                 shareFiles(listOf(tempFile))
@@ -34,16 +36,17 @@ actual class RemoteMediaExportManager {
         }.getOrDefault(false)
     }
 
-    actual fun shareMultipleFilesFromUrls(files: List<RemoteMediaFile>): Boolean {
-        if (files.isEmpty()) return false
-        return runCatching {
+    actual suspend fun shareMultipleFilesFromUrls(files: List<RemoteMediaFile>): Boolean =
+        withContext(Dispatchers.Default) {
+        if (files.isEmpty()) return@withContext false
+        return@withContext runCatching {
             val tempFiles = files.mapNotNull { remoteFile ->
                 if (remoteFile.fileUrl.isBlank()) return@mapNotNull null
                 val url = NSURL.URLWithString(remoteFile.fileUrl) ?: return@mapNotNull null
                 val data = NSData.dataWithContentsOfURL(url) ?: return@mapNotNull null
                 writeTempFile(data, remoteFile.fileName)
             }
-            if (tempFiles.isEmpty()) return false
+            if (tempFiles.isEmpty()) return@runCatching false
             NSOperationQueue.mainQueue.addOperationWithBlock {
                 shareFiles(tempFiles)
             }
@@ -51,23 +54,24 @@ actual class RemoteMediaExportManager {
         }.getOrDefault(false)
     }
 
-    actual fun saveSingleFileFromUrl(
+    actual suspend fun saveSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
-    ): Boolean {
-        if (fileUrl.isBlank()) return false
-        return runCatching {
-            val url = NSURL.URLWithString(fileUrl) ?: return false
-            val data = NSData.dataWithContentsOfURL(url) ?: return false
+    ): Boolean = withContext(Dispatchers.Default) {
+        if (fileUrl.isBlank()) return@withContext false
+        return@withContext runCatching {
+            val url = NSURL.URLWithString(fileUrl) ?: return@runCatching false
+            val data = NSData.dataWithContentsOfURL(url) ?: return@runCatching false
             val tempFile = writeTempFile(data, fileName)
             saveToPhotos(tempFile, mimeType)
         }.getOrDefault(false)
     }
 
-    actual fun saveMultipleFilesFromUrls(files: List<RemoteMediaFile>): Int {
-        if (files.isEmpty()) return 0
-        return runCatching {
+    actual suspend fun saveMultipleFilesFromUrls(files: List<RemoteMediaFile>): Int =
+        withContext(Dispatchers.Default) {
+        if (files.isEmpty()) return@withContext 0
+        return@withContext runCatching {
             var count = 0
             files.forEach { remoteFile ->
                 if (remoteFile.fileUrl.isBlank()) return@forEach

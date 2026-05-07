@@ -16,23 +16,23 @@ data class RemoteMediaFile(
  */
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 expect class RemoteMediaExportManager {
-    fun shareSingleFileFromUrl(
+    suspend fun shareSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
     ): Boolean
 
-    fun shareMultipleFilesFromUrls(
+    suspend fun shareMultipleFilesFromUrls(
         files: List<RemoteMediaFile>,
     ): Boolean
 
-    fun saveSingleFileFromUrl(
+    suspend fun saveSingleFileFromUrl(
         fileUrl: String,
         fileName: String,
         mimeType: String,
     ): Boolean
 
-    fun saveMultipleFilesFromUrls(
+    suspend fun saveMultipleFilesFromUrls(
         files: List<RemoteMediaFile>,
     ): Int
 }
