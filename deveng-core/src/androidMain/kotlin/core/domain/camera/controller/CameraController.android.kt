@@ -30,6 +30,8 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCaseGroup
+import androidx.camera.extensions.ExtensionMode
+import androidx.camera.extensions.ExtensionsManager
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -133,8 +135,20 @@ actual class CameraController(
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                cameraProvider ?: return@addListener
-                completeBinding(previewView, onCameraReady)
+                val provider = cameraProvider ?: return@addListener
+                val extensionsFuture = ExtensionsManager.getInstanceAsync(context, provider)
+                extensionsFuture.addListener(
+                    {
+                        val extensionsManager = try {
+                            extensionsFuture.get()
+                        } catch (e: Exception) {
+                            Log.w("CameraK", "ExtensionsManager unavailable: ${e.message}")
+                            null
+                        }
+                        completeBinding(previewView, onCameraReady, extensionsManager)
+                    },
+                    ContextCompat.getMainExecutor(context),
+                )
             } catch (exc: Exception) {
                 Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
                 exc.printStackTrace()
@@ -142,7 +156,35 @@ actual class CameraController(
         }, ContextCompat.getMainExecutor(context))
     }
 
-    private fun completeBinding(previewView: PreviewView, onCameraReady: () -> Unit) {
+    /**
+     * When the OEM exposes CameraX vendor extensions, prefer HDR (highlight recovery) then AUTO
+     * for preview + still capture. Falls back to [baseSelector] if unavailable or bind fails.
+     */
+    private fun extensionEnabledSelectorOrFallback(
+        baseSelector: CameraSelector,
+        extensionsManager: ExtensionsManager?,
+    ): CameraSelector {
+        if (extensionsManager == null) return baseSelector
+        val modes = intArrayOf(ExtensionMode.HDR, ExtensionMode.AUTO)
+        for (mode in modes) {
+            try {
+                if (extensionsManager.isExtensionAvailable(baseSelector, mode)) {
+                    val enabled = extensionsManager.getExtensionEnabledCameraSelector(baseSelector, mode)
+                    Log.d("CameraK", "Vendor extension enabled: mode=$mode")
+                    return enabled
+                }
+            } catch (e: Exception) {
+                Log.w("CameraK", "Extension query failed mode=$mode: ${e.message}")
+            }
+        }
+        return baseSelector
+    }
+
+    private fun completeBinding(
+        previewView: PreviewView,
+        onCameraReady: () -> Unit,
+        extensionsManager: ExtensionsManager?,
+    ) {
         try {
             cameraProvider?.unbindAll()
             Log.d("CameraK", "==> Unbind all existing cameras")
@@ -155,7 +197,8 @@ actual class CameraController(
                 ?: Surface.ROTATION_0
 
             val cameraSelector = createCameraSelector()
-            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType")
+            val bindSelector = extensionEnabledSelectorOrFallback(cameraSelector, extensionsManager)
+            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType (extensions=${bindSelector != cameraSelector})")
 
             val previewBuilder = Preview.Builder()
                 .setResolutionSelector(resolutionSelector)
@@ -183,11 +226,28 @@ actual class CameraController(
 
             val useCaseGroup = useCaseGroupBuilder.build()
 
-            camera = cameraProvider?.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                useCaseGroup,
-            )
+            camera = try {
+                cameraProvider?.bindToLifecycle(
+                    lifecycleOwner,
+                    bindSelector,
+                    useCaseGroup,
+                )
+            } catch (bindExc: Exception) {
+                if (bindSelector != cameraSelector) {
+                    Log.w(
+                        "CameraK",
+                        "bindToLifecycle with vendor extension failed (${bindExc.message}); retrying without extension",
+                    )
+                    cameraProvider?.unbindAll()
+                    cameraProvider?.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        useCaseGroup,
+                    )
+                } else {
+                    throw bindExc
+                }
+            }
             Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
 
             applyImageCaptureFlashAndTorchForCurrentState()

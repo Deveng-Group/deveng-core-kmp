@@ -38,7 +38,9 @@ actual object PhotoSaveUtils {
                 ExifInterface.ORIENTATION_ROTATE_270 -> 270f
                 else -> 0f
             }
-            if (rotationAngle == 0f) return imageBytes
+            if (rotationAngle == 0f) {
+                return imageBytes
+            }
             var bitmap = BitmapFactory.decodeFile(tempFile.absolutePath, null) ?: return imageBytes
             try {
                 val matrix = Matrix().apply { postRotate(rotationAngle) }
@@ -48,7 +50,7 @@ actual object PhotoSaveUtils {
                 bitmap.recycle()
                 bitmap = rotated
                 val out = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
                 out.toByteArray()
             } finally {
                 if (!bitmap.isRecycled) bitmap.recycle()
@@ -56,7 +58,7 @@ actual object PhotoSaveUtils {
         } finally {
             tempFile.delete()
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         imageBytes
     }
 

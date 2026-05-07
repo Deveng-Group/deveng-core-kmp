@@ -398,9 +398,6 @@ actual class CameraController(
                     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH.toLong(), 0u)) {
                         try {
                             autoreleasepool {
-                                // Constant quality (0.95 for JPEG) - no dynamic adjustment
-                                val quality = 0.95
-
                                 val result = if (returnFilePath) {
                                     // Same as byte-array path: produce bytes + bitmap; app saves via PhotoSaveUtils
                                     when (imageFormat) {
@@ -481,8 +478,7 @@ actual class CameraController(
             captureHandler.process(null, "Capture cancelled")
         }
 
-        // Trigger capture with constant quality (95)
-        customCameraController.captureImage(0.95)
+        customCameraController.captureImage(quality = 1.0)
     }
 
     /**
@@ -575,7 +571,7 @@ actual class CameraController(
             captureHandler.process(null, "Capture cancelled")
         }
 
-        customCameraController.captureImage(0.95)
+        customCameraController.captureImage(quality = 1.0)
     }
 
     actual fun toggleFlashMode() {
