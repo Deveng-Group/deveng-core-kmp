@@ -60,7 +60,8 @@ actual class MultiPlatformUtils(
     }
 
     actual suspend fun getCurrentLocation(): Pair<Double, Double>? {
-        TODO("Not yet implemented")
+        // Geolocation API not wired yet; must not throw — callers assume null means "skip EXIF GPS".
+        return null
     }
 
     actual fun shareText(text: String) {

@@ -1,27 +1,26 @@
 package core.data.temp
 
 /**
- * WASM/JS: temp file ops not supported; operations throw.
+ * WASM/JS: in-memory temp "files" keyed by full path so [TempFileRepositoryImpl] works for camera roll / triage.
+ * Data is lost on full page reload (same class of persistence as typical web session storage usage elsewhere).
  */
 actual class TempFileOps actual constructor() {
 
-    actual fun ensureDir(path: String) {
-        throw UnsupportedOperationException("Temp file storage not supported on WASM")
-    }
+    actual fun ensureDir(path: String): Unit = Unit
 
     actual fun writeFile(path: String, bytes: ByteArray) {
-        throw UnsupportedOperationException("Temp file storage not supported on WASM")
+        wasmTempFileStore[keyFor(path)] = bytes
     }
 
-    actual fun readFile(path: String): ByteArray? {
-        throw UnsupportedOperationException("Temp file storage not supported on WASM")
-    }
+    actual fun readFile(path: String): ByteArray? = wasmTempFileStore[keyFor(path)]
 
     actual fun deleteFile(path: String) {
-        throw UnsupportedOperationException("Temp file storage not supported on WASM")
+        wasmTempFileStore.remove(keyFor(path))
     }
 
-    actual fun fileExists(path: String): Boolean {
-        return false
-    }
+    actual fun fileExists(path: String): Boolean = wasmTempFileStore.containsKey(keyFor(path))
+
+    private fun keyFor(path: String): String = path.replace('\\', '/')
 }
+
+private val wasmTempFileStore = mutableMapOf<String, ByteArray>()

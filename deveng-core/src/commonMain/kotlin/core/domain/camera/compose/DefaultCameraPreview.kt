@@ -576,9 +576,11 @@ fun DefaultCameraPreview(
         }
         // Full-screen pinch/tap for zoom & focus (Android/Desktop). Must stay *below* chrome (zIndex 4f+)
         // or it wins hit-testing and blocks capture / flash / gallery.
+        val gestureOverlayZIndex =
+            if (hostPlatform == Platform.WEB) 2f else 3f
         CameraZoomGestureOverlay(
             controller = controller,
-            modifier = Modifier.fillMaxSize().zIndex(3f),
+            modifier = Modifier.fillMaxSize().zIndex(gestureOverlayZIndex),
             onZoomChange = { zoomLevelState.value = it },
             onDoubleTap = {
                 if (stateHolder != null) stateHolder.toggleCameraLens()
@@ -790,10 +792,12 @@ fun DefaultCameraPreview(
                 }
             }
         }
+        val bottomChromeZIndex =
+            if (hostPlatform == Platform.WEB) 24f else 4f
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .zIndex(4f)
+                .zIndex(bottomChromeZIndex)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -864,26 +868,41 @@ fun DefaultCameraPreview(
                             bottomStart = 8.dp,
                         )
                         // Clip only the image so the count badge is not cut off by [thumbShape] (badge sits in margin).
+                        // Clicks: put [clickable] on the image stack and on the badge — some hosts (e.g. web/WASM)
+                        // do not deliver taps from [Image] to a parent [clickable] on the outer frame.
+                        val openLastCapture: () -> Unit = { onLastPhotoClick?.invoke(bitmap) }
+                        val thumbImageInteraction = remember(bitmap) { MutableInteractionSource() }
+                        val thumbBadgeInteraction = remember(bitmap, "badge") { MutableInteractionSource() }
+                        val thumbImageClickModifier =
+                            if (thumbnailBusy || onLastPhotoClick == null) {
+                                Modifier
+                            } else {
+                                Modifier.clickable(
+                                    interactionSource = thumbImageInteraction,
+                                    indication = null,
+                                    onClick = openLastCapture,
+                                )
+                            }
+                        val thumbBadgeClickModifier =
+                            if (thumbnailBusy || onLastPhotoClick == null) {
+                                Modifier
+                            } else {
+                                Modifier.clickable(
+                                    interactionSource = thumbBadgeInteraction,
+                                    indication = null,
+                                    onClick = openLastCapture,
+                                )
+                            }
                         Box(
                             modifier = Modifier
                                 .size(width = 44.dp, height = 56.dp)
-                                .border(2.dp, Color.White, thumbShape)
-                                .then(
-                                    if (thumbnailBusy) {
-                                        Modifier
-                                    } else {
-                                        Modifier.clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            onClick = { onLastPhotoClick?.invoke(bitmap) },
-                                        )
-                                    },
-                                ),
+                                .border(2.dp, Color.White, thumbShape),
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(thumbShape),
+                                    .clip(thumbShape)
+                                    .then(thumbImageClickModifier),
                             ) {
                                 Image(
                                     bitmap = bitmap,
@@ -904,7 +923,9 @@ fun DefaultCameraPreview(
                                 )
                             }
                             Box(
-                                modifier = Modifier.align(Alignment.TopEnd),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .then(thumbBadgeClickModifier),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 thumbnailTopEndContent()
