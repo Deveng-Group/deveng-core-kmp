@@ -85,7 +85,9 @@ import core.presentation.component.CustomIconButton
 import core.presentation.theme.CoreRegularTextStyle
 import core.presentation.theme.LocalComponentTheme
 import core.util.multiplatform.Platform
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 private enum class CameraCaptureMode { Photo, Video }
@@ -441,7 +443,6 @@ fun DefaultCameraPreview(
         controller.onPreviewTapListener = { nx, ny ->
             val w = overlaySizePx.width
             val h = overlaySizePx.height
-            println("[CameraFocus] onPreviewTapListener: nx=$nx ny=$ny overlaySizePx=${w}x$h")
             if (w > 0 && h > 0) {
                 focusTapOffset = Offset(x = nx * w, y = ny * h)
             }
@@ -512,7 +513,9 @@ fun DefaultCameraPreview(
                     showShutterFlash = true
                     shutterEffectTrigger++
                 }
-                val result = controller.takePictureToFile()
+                val result = withContext(Dispatchers.Default) {
+                    controller.takePictureToFile()
+                }
                 if (result is ImageCaptureResult.Success) {
                     lastCapturedBitmap = result.bitmap
                     lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT
@@ -525,7 +528,8 @@ fun DefaultCameraPreview(
                     showShutterFlash = true
                     shutterEffectTrigger++
                 }
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                t.printStackTrace()
                 onPhotoCaptureFailed()
             } finally {
                 awaitingThumbnailUnlockAfterCapture = false
@@ -600,13 +604,9 @@ fun DefaultCameraPreview(
             onFocusPointTapped = { nx, ny ->
                 val w = overlaySizePx.width
                 val h = overlaySizePx.height
-                println("[CameraFocus] DefaultCameraPreview onFocusPointTapped: nx=$nx ny=$ny overlaySizePx=${w}x$h")
                 if (w > 0 && h > 0) {
                     val offset = Offset(x = nx * w, y = ny * h)
-                    println("[CameraFocus] DefaultCameraPreview setting focusTapOffset=$offset")
                     focusTapOffset = offset
-                } else {
-                    println("[CameraFocus] DefaultCameraPreview SKIP (overlaySizePx invalid)")
                 }
             },
         )

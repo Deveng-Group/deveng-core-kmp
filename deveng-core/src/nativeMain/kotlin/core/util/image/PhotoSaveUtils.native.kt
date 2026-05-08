@@ -12,8 +12,9 @@ import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDataCreateMutable
 import platform.CoreFoundation.CFDataGetBytePtr
 import platform.CoreFoundation.CFDataGetLength
+import platform.CoreFoundation.CFStringCreateWithCString
 import platform.CoreFoundation.CFRelease
-import platform.CoreFoundation.CFStringRef
+import platform.CoreFoundation.kCFStringEncodingUTF8
 import platform.CoreFoundation.kCFAllocatorDefault
 import platform.CoreServices.kUTTypeJPEG
 import platform.Foundation.NSArray
@@ -25,21 +26,27 @@ import platform.Foundation.NSString
 import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.ImageIO.CGImageDestinationAddImageFromSource
+import platform.ImageIO.CGImageDestinationAddImageAndMetadata
 import platform.ImageIO.CGImageDestinationCreateWithData
 import platform.ImageIO.CGImageDestinationFinalize
+import platform.ImageIO.CGImageMetadataCreateMutable
+import platform.ImageIO.CGImageMetadataCreateMutableCopy
+import platform.ImageIO.CGImageMetadataSetValueMatchingImageProperty
+import platform.ImageIO.CGImageSourceCopyMetadataAtIndex
 import platform.ImageIO.CGImageSourceCopyPropertiesAtIndex
+import platform.ImageIO.CGImageSourceCreateImageAtIndex
 import platform.ImageIO.CGImageSourceCreateWithData
-import platform.ImageIO.kCGImagePropertyGPSDictionary
-import platform.ImageIO.kCGImagePropertyGPSLatitude
-import platform.ImageIO.kCGImagePropertyGPSLatitudeRef
-import platform.ImageIO.kCGImagePropertyGPSLongitude
-import platform.ImageIO.kCGImagePropertyGPSLongitudeRef
 import platform.Photos.PHAssetChangeRequest
 import platform.Photos.PHPhotoLibrary
 import platform.posix.memcpy
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 actual object PhotoSaveUtils {
+    private val gpsDictionaryKey: NSString = NSString.create(string = "{GPS}")
+    private val gpsLatitudeKey: NSString = NSString.create(string = "Latitude")
+    private val gpsLatitudeRefKey: NSString = NSString.create(string = "LatitudeRef")
+    private val gpsLongitudeKey: NSString = NSString.create(string = "Longitude")
+    private val gpsLongitudeRefKey: NSString = NSString.create(string = "LongitudeRef")
 
     actual fun setApplicationContext(context: Any?) {}
 
@@ -119,57 +126,117 @@ actual object PhotoSaveUtils {
             return imageBytes
         }
         try {
-            val propsRef = CGImageSourceCopyPropertiesAtIndex(
-                isrc = source,
-                index = 0u,
-                options = null,
-            ) ?: run {
-                CFRelease(dest)
-                CFRelease(outMutableData)
-                CFRelease(source)
+            val imageRef = CGImageSourceCreateImageAtIndex(source, 0u, options = null) ?: run {
                 return imageBytes
             }
-            val base = propsRef as NSDictionary
-            val metadata = (base.mutableCopy() as? NSMutableDictionary) ?: run {
-                CFRelease(propsRef)
-                CFRelease(dest)
-                CFRelease(outMutableData)
-                CFRelease(source)
+            val sourceMetadata = CGImageSourceCopyMetadataAtIndex(source, 0u, options = null)
+            val mutableMetadata = if (sourceMetadata != null) {
+                CGImageMetadataCreateMutableCopy(sourceMetadata)
+            } else {
+                CGImageMetadataCreateMutable()
+            } ?: run {
+                CFRelease(imageRef)
+                sourceMetadata?.let { CFRelease(it) }
                 return imageBytes
             }
-            CFRelease(propsRef)
-            val gpsDict = NSMutableDictionary()
-            gpsDict.setObject(
-                anObject = NSNumber(double = kotlin.math.abs(latitude)),
-                forKey = cfStringKey(kCGImagePropertyGPSLatitude),
-            )
-            gpsDict.setObject(
-                anObject = nsRefString(if (latitude >= 0.0) "N" else "S"),
-                forKey = cfStringKey(kCGImagePropertyGPSLatitudeRef),
-            )
-            gpsDict.setObject(
-                anObject = NSNumber(double = kotlin.math.abs(longitude)),
-                forKey = cfStringKey(kCGImagePropertyGPSLongitude),
-            )
-            gpsDict.setObject(
-                anObject = nsRefString(if (longitude >= 0.0) "E" else "W"),
-                forKey = cfStringKey(kCGImagePropertyGPSLongitudeRef),
-            )
-            metadata.setObject(
-                anObject = gpsDict,
-                forKey = cfStringKey(kCGImagePropertyGPSDictionary),
-            )
-
-            CGImageDestinationAddImageFromSource(
-                idst = dest,
-                isrc = source,
-                index = 0u,
-                properties = metadata as platform.CoreFoundation.CFDictionaryRef?,
-            )
+            try {
+                val gpsDictionaryName = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = "{GPS}",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val gpsLatitudeName = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = "Latitude",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val gpsLatitudeRefName = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = "LatitudeRef",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val gpsLongitudeName = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = "Longitude",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val gpsLongitudeRefName = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = "LongitudeRef",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val northSouthValue = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = if (latitude >= 0.0) "N" else "S",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                val eastWestValue = CFStringCreateWithCString(
+                    alloc = kCFAllocatorDefault,
+                    cStr = if (longitude >= 0.0) "E" else "W",
+                    encoding = kCFStringEncodingUTF8,
+                )
+                if (
+                    gpsDictionaryName == null ||
+                    gpsLatitudeName == null ||
+                    gpsLatitudeRefName == null ||
+                    gpsLongitudeName == null ||
+                    gpsLongitudeRefName == null ||
+                    northSouthValue == null ||
+                    eastWestValue == null
+                ) {
+                    return imageBytes
+                }
+                CGImageMetadataSetValueMatchingImageProperty(
+                    mutableMetadata,
+                    gpsDictionaryName,
+                    gpsLatitudeRefName,
+                    northSouthValue,
+                )
+                CGImageMetadataSetValueMatchingImageProperty(
+                    mutableMetadata,
+                    gpsDictionaryName,
+                    gpsLatitudeName,
+                    NSNumber(double = kotlin.math.abs(latitude)) as platform.CoreFoundation.CFTypeRef?,
+                )
+                CGImageMetadataSetValueMatchingImageProperty(
+                    mutableMetadata,
+                    gpsDictionaryName,
+                    gpsLongitudeRefName,
+                    eastWestValue,
+                )
+                CGImageMetadataSetValueMatchingImageProperty(
+                    mutableMetadata,
+                    gpsDictionaryName,
+                    gpsLongitudeName,
+                    NSNumber(double = kotlin.math.abs(longitude)) as platform.CoreFoundation.CFTypeRef?,
+                )
+                CGImageDestinationAddImageAndMetadata(
+                    idst = dest,
+                    image = imageRef,
+                    metadata = mutableMetadata,
+                    options = null,
+                )
+                CFRelease(gpsDictionaryName)
+                CFRelease(gpsLatitudeName)
+                CFRelease(gpsLatitudeRefName)
+                CFRelease(gpsLongitudeName)
+                CFRelease(gpsLongitudeRefName)
+                CFRelease(northSouthValue)
+                CFRelease(eastWestValue)
+            } finally {
+                CFRelease(imageRef)
+                CFRelease(mutableMetadata)
+                sourceMetadata?.let { CFRelease(it) }
+            }
             if (!CGImageDestinationFinalize(idst = dest)) {
                 return imageBytes
             }
-            return cfDataToByteArray(outMutableData) ?: imageBytes
+            val result = cfDataToByteArray(outMutableData) ?: run {
+                return imageBytes
+            }
+            return result
+        } catch (_: Exception) {
+            return imageBytes
         } finally {
             CFRelease(dest)
             CFRelease(outMutableData)
@@ -191,8 +258,8 @@ actual object PhotoSaveUtils {
             val props = CGImageSourceCopyPropertiesAtIndex(isrc = source, index = 0u, options = null)
                 ?: return null
             try {
-                val dict = props as NSDictionary
-                val gps = dict.objectForKey(cfStringKey(kCGImagePropertyGPSDictionary)) as? NSDictionary
+                val dict = (props as? NSDictionary) ?: return null
+                val gps = dict.objectForKey(gpsDictionaryKey) as? NSDictionary
                     ?: return null
                 readGpsLatLon(gps)
             } finally {
@@ -227,24 +294,21 @@ actual object PhotoSaveUtils {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun cfStringKey(ref: CFStringRef?): NSString = ref as NSString
-
     private fun nsRefString(s: String): NSString =
         NSString.create(string = s)
 
     private fun readGpsLatLon(gps: NSDictionary): Pair<Double, Double>? {
         val lat = readSignedGpsComponent(
             gps = gps,
-            valueKey = kCGImagePropertyGPSLatitude,
-            refKey = kCGImagePropertyGPSLatitudeRef,
+            valueKey = gpsLatitudeKey,
+            refKey = gpsLatitudeRefKey,
             positiveRef = "N",
             negativeRef = "S",
         ) ?: return null
         val lon = readSignedGpsComponent(
             gps = gps,
-            valueKey = kCGImagePropertyGPSLongitude,
-            refKey = kCGImagePropertyGPSLongitudeRef,
+            valueKey = gpsLongitudeKey,
+            refKey = gpsLongitudeRefKey,
             positiveRef = "E",
             negativeRef = "W",
         ) ?: return null
@@ -253,14 +317,14 @@ actual object PhotoSaveUtils {
 
     private fun readSignedGpsComponent(
         gps: NSDictionary,
-        valueKey: CFStringRef?,
-        refKey: CFStringRef?,
+        valueKey: NSString,
+        refKey: NSString,
         positiveRef: String,
         negativeRef: String,
     ): Double? {
-        val refObj = gps.objectForKey(cfStringKey(refKey)) ?: return null
+        val refObj = gps.objectForKey(refKey) ?: return null
         val ref = (refObj as? NSString)?.description ?: return null
-        val value = gps.objectForKey(cfStringKey(valueKey)) ?: return null
+        val value = gps.objectForKey(valueKey) ?: return null
         val magnitude = gpsValueToDecimalDegrees(value) ?: return null
         val signed = when (ref) {
             positiveRef -> kotlin.math.abs(magnitude)

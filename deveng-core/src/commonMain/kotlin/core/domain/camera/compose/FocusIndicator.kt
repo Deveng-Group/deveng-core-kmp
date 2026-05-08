@@ -52,10 +52,8 @@ fun FocusIndicator(
 
     LaunchedEffect(tapPosition, keepVisible) {
         if (tapPosition == null) {
-            println("[CameraFocus] FocusIndicator LaunchedEffect: tapPosition=null, not showing")
             return@LaunchedEffect
         }
-        println("[CameraFocus] FocusIndicator LaunchedEffect: showing at tapPosition=$tapPosition size=$size")
         scale.snapTo(1f)
         alpha.snapTo(1f)
 
@@ -72,7 +70,6 @@ fun FocusIndicator(
         // Fade out
         alpha.animateTo(0f, animationSpec = tween(200))
 
-        println("[CameraFocus] FocusIndicator animation complete, calling onAnimationComplete()")
         onAnimationComplete()
     }
 
@@ -82,13 +79,11 @@ fun FocusIndicator(
     Canvas(
         modifier = modifier.onSizeChanged {
             size = it
-            if (it.width > 0 && it.height > 0) println("[CameraFocus] FocusIndicator Canvas size=${it.width}x${it.height}")
         },
     ) {
         val pos = tapPosition ?: return@Canvas
         val s = size
         if (s.width <= 0 || s.height <= 0) {
-            println("[CameraFocus] FocusIndicator draw SKIP: tapPosition=$pos but size=${s.width}x${s.height}")
             return@Canvas
         }
 

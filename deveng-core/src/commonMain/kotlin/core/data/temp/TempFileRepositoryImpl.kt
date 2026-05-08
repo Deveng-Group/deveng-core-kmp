@@ -42,6 +42,14 @@ class TempFileRepositoryImpl(
         fileOps.readFile(fullPath)
     }
 
+    override suspend fun updateBytes(itemId: String, byteArray: ByteArray): Boolean = withContext(IoDispatcher) {
+        val entry = index.read().firstOrNull { it.id == itemId } ?: return@withContext false
+        val fullPath = "${dirProvider.getPath()}/${entry.fileName}"
+        if (!fileOps.fileExists(fullPath)) return@withContext false
+        fileOps.writeFile(fullPath, byteArray)
+        true
+    }
+
     override suspend fun delete(itemId: String) = withContext(IoDispatcher) {
         val entries = index.read().toMutableList()
         val entry = entries.find { it.id == itemId } ?: return@withContext

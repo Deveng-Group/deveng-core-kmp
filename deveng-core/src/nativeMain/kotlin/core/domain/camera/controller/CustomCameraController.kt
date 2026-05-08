@@ -88,7 +88,6 @@ class CustomCameraController(
      * - AVCaptureDeviceTypeBuiltInMacroCamera
      */
     fun setupSession(cameraDeviceType: CameraDeviceType = CameraDeviceType.DEFAULT) {
-        NSLog("CameraK Debug: setupSession started cameraDeviceType=$cameraDeviceType initialLens=$initialCameraLens aspectRatio=$aspectRatio targetResolution=$targetResolution")
         try {
             // Perform heavy setup off the main thread to reduce UI stalls (#73)
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH.toLong(), 0u)) {
@@ -98,7 +97,6 @@ class CustomCameraController(
                 // Start with a fast preset; prefer target resolution if provided
                 val initialPreset = targetResolution?.toPreset() ?: AVCaptureSessionPresetHigh
                 captureSession?.sessionPreset = initialPreset
-                NSLog("CameraK Debug: setupSession initialPreset=$initialPreset")
 
                 if (!setupInputs(cameraDeviceType)) {
                     NSLog("CameraK Error: setupSession setupInputs returned false -> DeviceNotAvailable")
@@ -109,7 +107,6 @@ class CustomCameraController(
                     return@dispatch_async
                 }
 
-                NSLog("CameraK Debug: setupSession setupInputs OK, calling setupPhotoOutput")
                 setupPhotoOutput()
                 captureSession?.commitConfiguration()
 
@@ -121,7 +118,6 @@ class CustomCameraController(
                     captureSession?.commitConfiguration()
                     // Prefer stabilization and full-quality capture path unless caller explicitly chose SPEED.
                     highQualityEnabled = qualityPrioritization != QualityPrioritization.SPEED
-                    NSLog("CameraK Debug: setupSession complete finalPreset=$finalPreset onSessionReady")
                     onSessionReady?.invoke()
                 }
             }
@@ -169,7 +165,6 @@ class CustomCameraController(
         })
 
         val canAdd = captureSession?.canAddOutput(photoOutput!!) == true
-        NSLog("CameraK Debug: setupPhotoOutput canAddOutput(photoOutput)=$canAdd")
         if (canAdd) {
             captureSession?.addOutput(photoOutput!!)
         } else {
@@ -186,7 +181,6 @@ class CustomCameraController(
             AVCaptureDeviceTypeBuiltInTelephotoCamera,
             AVCaptureDeviceTypeBuiltInUltraWideCamera,
         )
-        NSLog("CameraK Debug: setupInputs deviceTypes=$deviceTypes")
 
         val discoverySession = AVCaptureDeviceDiscoverySession.discoverySessionWithDeviceTypes(
             deviceTypes,
@@ -197,7 +191,6 @@ class CustomCameraController(
         val devices = discoverySession.devices.ifEmpty {
             AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)?.let { listOf<Any?>(it) } ?: emptyList()
         }
-        NSLog("CameraK Debug: setupInputs discoverySession.devices.size=${devices.size}")
 
         devices.forEach { device ->
             val cam = device as AVCaptureDevice
@@ -206,7 +199,6 @@ class CustomCameraController(
                 AVCaptureDevicePositionFront -> frontCamera = cam
             }
         }
-        NSLog("CameraK Debug: setupInputs backCamera=${backCamera != null} frontCamera=${frontCamera != null}")
 
         fun findByTypeAndPosition(type: String?, position: Long?): AVCaptureDevice? = devices.firstOrNull { dev ->
             val cam = dev as AVCaptureDevice
@@ -232,7 +224,6 @@ class CustomCameraController(
                 }
 
         isUsingFrontCamera = (currentCamera == frontCamera)
-        NSLog("CameraK Debug: setupInputs currentCamera selected isUsingFrontCamera=$isUsingFrontCamera")
 
         return try {
             val input = AVCaptureDeviceInput.deviceInputWithDevice(currentCamera!!, null)
@@ -242,7 +233,6 @@ class CustomCameraController(
             }
 
             val canAdd = captureSession?.canAddInput(input) == true
-            NSLog("CameraK Debug: setupInputs canAddInput=$canAdd")
             if (canAdd) {
                 captureSession?.addInput(input)
                 applyContinuousAutofocusAndExposure(currentCamera)
@@ -392,10 +382,8 @@ class CustomCameraController(
 
     fun setFlashMode(mode: AVCaptureFlashMode) {
         val supportedFlashModes = photoOutput?.supportedFlashModes() as? List<*>
-        NSLog("CameraK Debug: setFlashMode requested=$mode supported=$supportedFlashModes currentCamera=${currentCamera != null} hasTorch=${currentCamera?.hasTorch == true}")
         if (supportedFlashModes?.contains(mode) == true) {
             flashMode = mode
-            NSLog("CameraK Debug: setFlashMode applied=$flashMode")
         } else {
             platform.Foundation.NSLog("CameraK: Flash mode not supported on this device, using OFF")
             flashMode = AVCaptureFlashModeOff
@@ -406,22 +394,18 @@ class CustomCameraController(
     fun setTorchMode(mode: AVCaptureTorchMode) {
         torchMode = mode
         val camera = currentCamera
-        NSLog("CameraK Debug: setTorchMode requested=$mode currentCamera=${camera != null} hasTorch=${camera?.hasTorch == true}")
         camera?.let { cam ->
             if (cam.hasTorch) {
                 try {
                     cam.lockForConfiguration(null)
                     cam.torchMode = mode
                     cam.unlockForConfiguration()
-                    NSLog("CameraK Debug: setTorchMode applied torchMode=$mode")
                 } catch (e: Exception) {
                     NSLog("CameraK Error: setTorchMode exception: ${e.message}")
                     onError?.invoke(CameraException.ConfigurationError("Failed to set torch mode"))
                 }
-            } else {
-                NSLog("CameraK Debug: setTorchMode skipped (no torch on this device, e.g. front camera)")
             }
-        } ?: NSLog("CameraK Debug: setTorchMode skipped (no currentCamera)")
+        }
     }
 
     /**
@@ -487,7 +471,6 @@ class CustomCameraController(
                 }
             }
             cam.unlockForConfiguration()
-            NSLog("CameraK Debug: applyContinuousAutofocusAndExposure OK")
         } catch (e: Exception) {
             NSLog("CameraK Error: applyContinuousAutofocusAndExposure: ${e.message}")
             try { cam.unlockForConfiguration() } catch (_: Exception) { }
@@ -531,11 +514,7 @@ class CustomCameraController(
      */
     @OptIn(ExperimentalForeignApi::class)
     fun setFocusPoint(normalizedX: Float, normalizedY: Float) {
-        println("[CameraFocus] CustomCameraController.setFocusPoint($normalizedX, $normalizedY)")
-        val camera = currentCamera ?: run {
-            println("[CameraFocus] CustomCameraController.setFocusPoint SKIP: currentCamera=null")
-            return
-        }
+        val camera = currentCamera ?: return
         val (x, y) = devicePointOfInterestFromNormalizedTap(normalizedX, normalizedY)
         val point = CGPointMake(x.coerceIn(0.0, 1.0), y.coerceIn(0.0, 1.0))
         try {
@@ -549,13 +528,7 @@ class CustomCameraController(
                     camera.isFocusModeSupported(AVCaptureFocusModeAutoFocus) -> {
                         camera.focusMode = AVCaptureFocusModeAutoFocus
                     }
-                    else -> {
-                        NSLog("CameraK Debug: setFocusPoint no supported focus mode")
-                    }
                 }
-                NSLog("CameraK Debug: setFocusPoint focus point=($x, $y)")
-            } else {
-                NSLog("CameraK Debug: setFocusPoint focus POI not supported")
             }
             if (camera.isExposurePointOfInterestSupported()) {
                 camera.exposurePointOfInterest = point
@@ -566,11 +539,7 @@ class CustomCameraController(
                     camera.isExposureModeSupported(AVCaptureExposureModeAutoExpose) -> {
                         camera.exposureMode = AVCaptureExposureModeAutoExpose
                     }
-                    else -> {
-                        NSLog("CameraK Debug: setFocusPoint no supported exposure mode")
-                    }
                 }
-                NSLog("CameraK Debug: setFocusPoint exposure point=($x, $y)")
             }
             camera.unlockForConfiguration()
         } catch (e: Exception) {
@@ -776,8 +745,6 @@ class CustomCameraController(
 
         val session = captureSession!!
         val wasRunning = session.isRunning()
-        val fromLens = getCurrentLens()
-        NSLog("CameraK Debug: switchCamera from lens=$fromLens wasRunning=$wasRunning")
 
         if (wasRunning) {
             session.stopRunning()
@@ -795,8 +762,6 @@ class CustomCameraController(
 
             isUsingFrontCamera = !isUsingFrontCamera
             currentCamera = if (isUsingFrontCamera) frontCamera else backCamera
-            val targetLens = getCurrentLens()
-            NSLog("CameraK Debug: switchCamera targetLens=$targetLens (isUsingFrontCamera=$isUsingFrontCamera)")
 
             val newCamera = currentCamera
             if (newCamera == null) {
@@ -815,7 +780,6 @@ class CustomCameraController(
             }
 
             val canAdd = session.canAddInput(newInput)
-            NSLog("CameraK Debug: toggleCameraLens canAddInput=$canAdd targetLens=$targetLens")
             if (canAdd) {
                 session.addInput(newInput)
                 cameraPreviewLayer?.connection?.let { connection ->
@@ -825,7 +789,6 @@ class CustomCameraController(
                     }
                 }
                 session.commitConfiguration()
-                NSLog("CameraK Debug: switchCamera SUCCESS now lens=${getCurrentLens()} sessionInputs=${session.inputs?.size ?: 0}")
                 return true
             }
 
@@ -838,12 +801,10 @@ class CustomCameraController(
                 session.commitConfiguration()
                 isUsingFrontCamera = !isUsingFrontCamera
                 currentCamera = previousCamera
-                NSLog("CameraK Debug: switchCamera RESTORED previous lens=${getCurrentLens()}")
             } else {
                 // Could not restore; revert state so retry will try the same target (back) again, not flip to front
                 isUsingFrontCamera = !isUsingFrontCamera
                 currentCamera = previousCamera
-                NSLog("CameraK Debug: switchCamera could not restore previous input prevInput=${prevInput != null} canAdd=${prevInput?.let { session.canAddInput(it) }} reverted state to lens=${getCurrentLens()}")
             }
             return false
         }
@@ -852,17 +813,14 @@ class CustomCameraController(
             var success = trySwitch()
             if (!success && previousCamera != null) {
                 // Retry once (iOS sometimes accepts the new input on second attempt)
-                NSLog("CameraK Debug: toggleCameraLens retry after canAddInput=false")
                 success = trySwitch()
             }
 
             if (success) {
                 // Force preview layer to pick up new input (iOS can leave connection stale)
                 cameraPreviewLayer?.let { layer ->
-                    val s = layer.session
                     layer.session = null
                     layer.session = session
-                    NSLog("CameraK Debug: switchCamera refreshed preview layer session (was=${s != null})")
                 }
                 processPendingConfigurations()
                 // Re-apply torch after camera switch (back has torch, front does not)
@@ -878,7 +836,6 @@ class CustomCameraController(
                         session.startRunning()
                     }
                 }
-                NSLog("CameraK Debug: switchCamera done success=true lens=${getCurrentLens()}")
             } else {
                 if (wasRunning) {
                     dispatch_async(

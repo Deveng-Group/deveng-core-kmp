@@ -11,10 +11,10 @@ import core.domain.camera.enums.TorchMode
 import core.domain.camera.plugins.CameraPlugin
 import core.domain.camera.result.ImageCaptureResult
 import core.domain.camera.utils.MemoryManager
-import core.util.bytearray.toImageBitmap
 import core.domain.camera.utils.fixOrientation
 import core.domain.camera.utils.toByteArray
 import core.domain.camera.utils.toUIImage
+import core.util.bytearray.toImageBitmap
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
 import core.domain.camera.video.VideoQuality
@@ -170,7 +170,6 @@ actual class CameraController(
         if (prevTime > 0.0 && now - prevTime <= DOUBLE_TAP_MAX_INTERVAL_SEC) {
             previewTapSequence++
             lastPreviewTapTimeSec = 0.0
-            println("[CameraFocus] Native double-tap (switch lens), dtMs=${((now - prevTime) * 1000).toInt()}")
             onPreviewDoubleTapListener?.invoke()
             return
         }
@@ -184,7 +183,6 @@ actual class CameraController(
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delayNs), dispatch_get_main_queue()) {
             if (scheduledSeq != previewTapSequence) return@dispatch_after
             lastPreviewTapTimeSec = 0.0
-            println("[CameraFocus] Native single-tap (focus): nx=$lastPreviewTapNx ny=$lastPreviewTapNy")
             if (shouldSuppressTapToFocus?.invoke(lastPreviewTapNx, lastPreviewTapNy) == true) return@dispatch_after
             setFocusPoint(lastPreviewTapNx, lastPreviewTapNy)
             onPreviewTapListener?.invoke(lastPreviewTapNx, lastPreviewTapNy)
@@ -440,20 +438,16 @@ actual class CameraController(
                                     }
                                 }
 
-                                dispatch_async(dispatch_get_main_queue()) {
-                                    isCapturing.value = false
-                                    pendingCaptures.decrementAndGet()
-                                    continuation.resume(
-                                        result ?: ImageCaptureResult.Error(Exception("Image processing failed")),
-                                    )
-                                }
-                            }
-                        } catch (e: Exception) {
-                            dispatch_async(dispatch_get_main_queue()) {
                                 isCapturing.value = false
                                 pendingCaptures.decrementAndGet()
-                                continuation.resume(ImageCaptureResult.Error(e))
+                                continuation.resume(
+                                    result ?: ImageCaptureResult.Error(Exception("Image processing failed")),
+                                )
                             }
+                        } catch (e: Exception) {
+                            isCapturing.value = false
+                            pendingCaptures.decrementAndGet()
+                            continuation.resume(ImageCaptureResult.Error(e))
                         }
                     }
                 } else {
@@ -533,20 +527,16 @@ actual class CameraController(
                                     ImageCaptureResult.Error(e)
                                 }
 
-                                dispatch_async(dispatch_get_main_queue()) {
-                                    isCapturing.value = false
-                                    pendingCaptures.decrementAndGet()
-                                    continuation.resume(
-                                        result ?: ImageCaptureResult.Error(Exception("Unsupported image format")),
-                                    )
-                                }
-                            }
-                        } catch (e: Exception) {
-                            dispatch_async(dispatch_get_main_queue()) {
                                 isCapturing.value = false
                                 pendingCaptures.decrementAndGet()
-                                continuation.resume(ImageCaptureResult.Error(e))
+                                continuation.resume(
+                                    result ?: ImageCaptureResult.Error(Exception("Unsupported image format")),
+                                )
                             }
+                        } catch (e: Exception) {
+                            isCapturing.value = false
+                            pendingCaptures.decrementAndGet()
+                            continuation.resume(ImageCaptureResult.Error(e))
                         }
                     }
                 } else {
