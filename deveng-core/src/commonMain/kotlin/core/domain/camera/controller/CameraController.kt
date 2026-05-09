@@ -203,6 +203,29 @@ expect class CameraController {
     fun addImageCaptureListener(listener: (ByteArray) -> Unit)
 
     /**
+     * Enables or disables preview stabilization (EIS). Only takes effect when the device reports
+     * support; no-op otherwise. On Android this rebuilds the Preview use case and rebinds — expect
+     * a brief viewfinder interruption. Intended to be called when the UI switches between photo and
+     * video capture modes so that stabilization (and its small FOV crop) is active only during video.
+     */
+    fun setPreviewStabilizationEnabled(enabled: Boolean)
+
+    /**
+     * Returns true if the device supports a real night photography extension (e.g. CameraX
+     * ExtensionMode.NIGHT on Android). When false, the night mode button has no hardware backing
+     * and callers can decide to hide it or fall back to a software approach.
+     */
+    fun isNightModeSupported(): Boolean
+
+    /**
+     * Enables or disables real night mode. On Android this rebinds the camera with
+     * ExtensionMode.NIGHT when [isNightModeSupported] is true; no-op on other platforms.
+     *
+     * @param enabled true to activate night mode, false to return to the default pipeline.
+     */
+    fun setNightMode(enabled: Boolean)
+
+    /**
      * Enables or disables wide-selfie mode (vendor-specific FOV expansion on the front camera).
      *
      * On Samsung/compatible devices, the front camera applies aggressive lens distortion

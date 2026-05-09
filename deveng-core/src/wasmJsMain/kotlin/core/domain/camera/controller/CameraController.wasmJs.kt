@@ -165,6 +165,12 @@ actual class CameraController internal constructor(
         this.listener = listener
     }
 
+    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
+
+    actual fun isNightModeSupported(): Boolean = false
+
+    actual fun setNightMode(enabled: Boolean) {}
+
     actual fun setWideSelfieMode(enabled: Boolean) {}
 
     actual fun isWideSelfieEnabled(): Boolean = false

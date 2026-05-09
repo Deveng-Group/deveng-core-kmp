@@ -677,6 +677,12 @@ actual class CameraController(
         imageCaptureListeners.add(listener)
     }
 
+    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
+
+    actual fun isNightModeSupported(): Boolean = false
+
+    actual fun setNightMode(enabled: Boolean) {}
+
     actual fun setWideSelfieMode(enabled: Boolean) {
         // iOS: no vendor-specific FOV expansion equivalent. AVFoundation already exposes
         // ultra-wide via setPreferredCameraDeviceType(ULTRA_WIDE) on supported devices.

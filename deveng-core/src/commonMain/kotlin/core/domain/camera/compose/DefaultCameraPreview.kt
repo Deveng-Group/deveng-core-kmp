@@ -344,7 +344,11 @@ fun DefaultCameraPreview(
     var lastCapturedBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     /** True if [lastCapturedBitmap] was taken with the front lens (mirrors thumbnail to match PreviewView). */
     var lastCapturedWithFrontLens by remember { mutableStateOf(false) }
+    var nightModeSupported by remember { mutableStateOf(controller.isNightModeSupported()) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
+    LaunchedEffect(captureMode) {
+        controller.setPreviewStabilizationEnabled(captureMode == CameraCaptureMode.Video)
+    }
     var isWideSelfie by remember { mutableStateOf(true) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
@@ -365,18 +369,24 @@ fun DefaultCameraPreview(
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
     }
     val onTopChromeMoonClick: () -> Unit = {
-        val (min, max) = controller.getExposureCompensationRange()
-        if (min < max) {
-            val baseline = 0.coerceIn(min, max)
-            if (!isLowLightBoostOn) {
-                val target = (baseline + ExposureBoostSteps).coerceIn(min, max)
-                controller.setExposureCompensationIndex(target)
-                brightnessIndex = target.toFloat()
-                isLowLightBoostOn = true
-            } else {
-                controller.setExposureCompensationIndex(baseline)
-                brightnessIndex = baseline.toFloat()
-                isLowLightBoostOn = false
+        val newState = !isLowLightBoostOn
+        if (controller.isNightModeSupported()) {
+            controller.setNightMode(newState)
+            isLowLightBoostOn = newState
+        } else {
+            val (min, max) = controller.getExposureCompensationRange()
+            if (min < max) {
+                val baseline = 0.coerceIn(min, max)
+                if (newState) {
+                    val target = (baseline + ExposureBoostSteps).coerceIn(min, max)
+                    controller.setExposureCompensationIndex(target)
+                    brightnessIndex = target.toFloat()
+                    isLowLightBoostOn = true
+                } else {
+                    controller.setExposureCompensationIndex(baseline)
+                    brightnessIndex = baseline.toFloat()
+                    isLowLightBoostOn = false
+                }
             }
         }
     }
@@ -413,7 +423,11 @@ fun DefaultCameraPreview(
         if (focusTapOffset != null) {
             controller.setExposureCompensationIndex(0)
             brightnessIndex = 0f
-            isLowLightBoostOn = false
+            // Night mode is a camera-level mode, not just EV; keep it active on focus tap.
+            // EV-based boost (fallback path) is reset because it's tied to a specific brightness target.
+            if (!controller.isNightModeSupported() || !isLowLightBoostOn) {
+                isLowLightBoostOn = false
+            }
         }
     }
 
@@ -478,19 +492,21 @@ fun DefaultCameraPreview(
 
     LaunchedEffect(controller) {
         isLowLightBoostOn = false
+        nightModeSupported = false
         currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
         currentCameraDeviceType = controller.getPreferredCameraDeviceType()
         currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
         brightnessIndex = controller.getExposureCompensationIndex().toFloat()
         maxZoomState.value = controller.getMaxZoom()
         zoomLevelState.value = controller.getZoom()
-        // Re-read zoom when camera may have bound (Android reports maxZoom only after bind)
+        // Re-read values after binding (Android reports maxZoom and extension support only after bind)
         repeat(5) {
             kotlinx.coroutines.delay(400L)
             val newMax = controller.getMaxZoom()
             val newZoom = controller.getZoom()
             if (newMax > 0f) maxZoomState.value = newMax
             if (newZoom > 0f) zoomLevelState.value = newZoom
+            nightModeSupported = controller.isNightModeSupported()
         }
         if (currentCameraLens == CameraLens.FRONT) {
             // Default front-camera mode is group.
@@ -1067,6 +1083,7 @@ fun DefaultCameraPreview(
                 currentCameraLens = currentCameraLens,
                 currentFlashMode = currentFlashMode,
                 isLowLightBoostOn = isLowLightBoostOn,
+                showMoonButton = nightModeSupported,
                 onToggleFlash = onTopChromeToggleFlash,
                 onMoonClick = onTopChromeMoonClick,
                 onSwitchCamera = onTopChromeSwitchCamera,
@@ -1087,6 +1104,7 @@ private fun DefaultCameraPreviewTopLensChromeRow(
     currentCameraLens: CameraLens,
     currentFlashMode: FlashMode,
     isLowLightBoostOn: Boolean,
+    showMoonButton: Boolean,
     onToggleFlash: () -> Unit,
     onMoonClick: () -> Unit,
     onSwitchCamera: () -> Unit,
@@ -1110,15 +1128,17 @@ private fun DefaultCameraPreviewTopLensChromeRow(
                 onClick = onToggleFlash,
             )
         }
-        CustomIconButton(
-            icon = CameraIcons.moon,
-            iconDescription = "Low light boost",
-            iconTint = if (isLowLightBoostOn) Color.White else Color.White.copy(alpha = 0.5f),
-            backgroundColor = Color.Transparent,
-            shadowElevation = 0.dp,
-            clickDebounceMillis = CameraChromeClickDebounceMillis,
-            onClick = onMoonClick,
-        )
+        if (showMoonButton) {
+            CustomIconButton(
+                icon = CameraIcons.moon,
+                iconDescription = "Night mode",
+                iconTint = if (isLowLightBoostOn) Color.White else Color.White.copy(alpha = 0.5f),
+                backgroundColor = Color.Transparent,
+                shadowElevation = 0.dp,
+                clickDebounceMillis = CameraChromeClickDebounceMillis,
+                onClick = onMoonClick,
+            )
+        }
         CustomIconButton(
             icon = CameraIcons.switchCamera,
             iconDescription = "Switch camera",
