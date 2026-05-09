@@ -180,6 +180,22 @@ actual class CameraController(
         return baseSelector
     }
 
+    private fun checkUltraHdrSupport(
+        provider: ProcessCameraProvider,
+        selector: CameraSelector,
+    ): Boolean = try {
+        provider.availableCameraInfos
+            .filter { selector.filter(listOf(it)).isNotEmpty() }
+            .any { cameraInfo ->
+                ImageCapture.getImageCaptureCapabilities(cameraInfo)
+                    .supportedOutputFormats
+                    .contains(ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR)
+            }
+    } catch (e: Exception) {
+        Log.w("CameraK", "Ultra HDR capability check failed: ${e.message}")
+        false
+    }
+
     private fun completeBinding(
         previewView: PreviewView,
         onCameraReady: () -> Unit,
@@ -198,7 +214,8 @@ actual class CameraController(
 
             val cameraSelector = createCameraSelector()
             val bindSelector = extensionEnabledSelectorOrFallback(cameraSelector, extensionsManager)
-            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType (extensions=${bindSelector != cameraSelector})")
+            val supportsUltraHdr = checkUltraHdrSupport(cameraProvider ?: return, bindSelector)
+            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType extensions=${bindSelector !== cameraSelector} ultraHdr=$supportsUltraHdr")
 
             val previewBuilder = Preview.Builder()
                 .setResolutionSelector(resolutionSelector)
@@ -210,7 +227,7 @@ actual class CameraController(
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-            configureCaptureUseCase(resolutionSelector, displayRotation)
+            configureCaptureUseCase(resolutionSelector, displayRotation, supportsUltraHdr)
             configureVideoCaptureUseCase()
 
             val useCaseGroupBuilder = UseCaseGroup.Builder()
@@ -388,6 +405,7 @@ actual class CameraController(
     private fun configureCaptureUseCase(
         resolutionSelector: ResolutionSelector,
         displayRotation: Int,
+        useUltraHdr: Boolean = false,
     ) {
         val builder = ImageCapture.Builder()
             .setFlashMode(flashMode.toCameraXFlashMode())
@@ -402,6 +420,9 @@ actual class CameraController(
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(displayRotation)
         applyWideSelfieInterop(builder)
+        if (useUltraHdr) {
+            builder.setOutputFormat(ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR)
+        }
         imageCapture = builder.build()
     }
 
@@ -893,8 +914,10 @@ actual class CameraController(
         val viewY = normalizedY.coerceIn(0f, 1f) * h
         try {
             val factory = view.meteringPointFactory
-            val point = factory.createPoint(viewX, viewY)
-            val action = FocusMeteringAction.Builder(point).build()
+            val point = factory.createPoint(viewX, viewY, 0.05f)
+            val action = FocusMeteringAction.Builder(point)
+                .disableAutoCancel()
+                .build()
             camera?.cameraControl?.startFocusAndMetering(action)
         } catch (e: Exception) {
             Log.w("CameraK", "setFocusPoint failed: ${e.message}")
