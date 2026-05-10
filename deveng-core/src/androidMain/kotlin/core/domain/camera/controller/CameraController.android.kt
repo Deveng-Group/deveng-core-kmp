@@ -104,10 +104,6 @@ actual class CameraController(
     var onDeviceTypeSwitchTransition: ((Boolean) -> Unit)? = null
     private var isSwitchingDeviceType = false
 
-    private var savedExtensionsManager: ExtensionsManager? = null
-    private var nightModeEnabled = false
-    private var previewStabilizationEnabled = false
-
     // Multiple analyzer support: plugins register their analyzers here
     private val registeredAnalyzers = mutableListOf<ImageAnalysis.Analyzer>()
 
@@ -161,105 +157,71 @@ actual class CameraController(
     }
 
     /**
-     * When the OEM exposes CameraX vendor extensions, selects the best available extension for
-     * the current mode. Night mode (user-toggled) takes priority; otherwise tries HDR then AUTO.
-     * Falls back to [baseSelector] if nothing is available or bind fails.
+     * When the OEM exposes CameraX vendor extensions, prefer HDR (highlight recovery) then AUTO
+     * for preview + still capture. Falls back to [baseSelector] if unavailable or bind fails.
      */
     private fun extensionEnabledSelectorOrFallback(
         baseSelector: CameraSelector,
         extensionsManager: ExtensionsManager?,
     ): CameraSelector {
-        if (extensionsManager == null) return baseSelector
-        if (nightModeEnabled) {
-            try {
-                if (extensionsManager.isExtensionAvailable(baseSelector, ExtensionMode.NIGHT)) {
-                    val enabled = extensionsManager.getExtensionEnabledCameraSelector(baseSelector, ExtensionMode.NIGHT)
-                    Log.d("CameraK", "Night extension enabled")
-                    return enabled
-                }
-            } catch (e: Exception) {
-                Log.w("CameraK", "Night extension query failed: ${e.message}")
-            }
-        }
-        val modes = intArrayOf(ExtensionMode.HDR, ExtensionMode.AUTO)
-        for (mode in modes) {
-            try {
-                if (extensionsManager.isExtensionAvailable(baseSelector, mode)) {
-                    val enabled = extensionsManager.getExtensionEnabledCameraSelector(baseSelector, mode)
-                    Log.d("CameraK", "Vendor extension enabled: mode=$mode")
-                    return enabled
-                }
-            } catch (e: Exception) {
-                Log.w("CameraK", "Extension query failed mode=$mode: ${e.message}")
-            }
-        }
-        return baseSelector
-    }
-
-    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {
-        if (previewStabilizationEnabled == enabled) return
-        previewStabilizationEnabled = enabled
-        previewView?.let { bindCamera(it) }
-    }
-
-    actual fun isNightModeSupported(): Boolean {
-        val em = savedExtensionsManager ?: return false
-        return try {
-            em.isExtensionAvailable(createCameraSelector(), ExtensionMode.NIGHT)
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    actual fun setNightMode(enabled: Boolean) {
-        if (nightModeEnabled == enabled) return
-        nightModeEnabled = enabled
-        previewView?.let { bindCamera(it) }
-    }
-
-    private fun checkUltraHdrSupport(
-        provider: ProcessCameraProvider,
-        selector: CameraSelector,
-    ): Boolean = try {
-        provider.availableCameraInfos
-            .filter { selector.filter(listOf(it)).isNotEmpty() }
-            .any { cameraInfo ->
-                ImageCapture.getImageCaptureCapabilities(cameraInfo)
-                    .supportedOutputFormats
-                    .contains(ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR)
-            }
-    } catch (e: Exception) {
-        Log.w("CameraK", "Ultra HDR capability check failed: ${e.message}")
-        false
-    }
-
-    private fun checkPreviewStabilizationSupport(
-        provider: ProcessCameraProvider,
-        selector: CameraSelector,
-    ): Boolean = try {
-        provider.availableCameraInfos
-            .filter { selector.filter(listOf(it)).isNotEmpty() }
-            .any { cameraInfo -> Preview.getPreviewCapabilities(cameraInfo).isStabilizationSupported }
-    } catch (e: Exception) {
-        Log.w("CameraK", "Preview stabilization check failed: ${e.message}")
-        false
-    }
-
-    private fun probeNightExtension(
-        baseSelector: CameraSelector,
-        extensionsManager: ExtensionsManager?,
-    ) {
         if (extensionsManager == null) {
-            Log.d("CameraK", "NIGHT-PROBE: ExtensionsManager null — cannot check")
-            return
+            Log.d(
+                "CameraK",
+                "ExtensionsManager is null; extensions disabled " +
+                    "(lens=$cameraLens, deviceType=$cameraDeviceType, aspectRatio=$aspectRatio, " +
+                    "targetResolution=$targetResolution, qualityPriority=$qualityPriority, " +
+                    "flashMode=$flashMode, torchMode=$torchMode, imageFormat=$imageFormat)",
+            )
+            return baseSelector
         }
-        val available = try {
-            extensionsManager.isExtensionAvailable(baseSelector, ExtensionMode.NIGHT)
-        } catch (e: Exception) {
-            Log.w("CameraK", "NIGHT-PROBE: query threw ${e.message}")
-            false
+
+        Log.d(
+            "CameraK",
+            "Checking extensions with specs " +
+                "(lens=$cameraLens, deviceType=$cameraDeviceType, aspectRatio=$aspectRatio, " +
+                "targetResolution=$targetResolution, qualityPriority=$qualityPriority, " +
+                "flashMode=$flashMode, torchMode=$torchMode, imageFormat=$imageFormat)",
+        )
+
+        val allModes = listOf(
+            "HDR" to ExtensionMode.HDR,
+            "AUTO" to ExtensionMode.AUTO,
+            "NIGHT" to ExtensionMode.NIGHT,
+            "BOKEH" to ExtensionMode.BOKEH,
+            "FACE_RETOUCH" to ExtensionMode.FACE_RETOUCH,
+        )
+        val availabilitySummary = buildString {
+            allModes.forEachIndexed { index, (name, mode) ->
+                val available = try {
+                    extensionsManager.isExtensionAvailable(baseSelector, mode)
+                } catch (e: Exception) {
+                    Log.w("CameraK", "$name availability query failed: ${e.message}")
+                    false
+                }
+                append("$name=$available")
+                if (index != allModes.lastIndex) append(", ")
+            }
         }
-        Log.d("CameraK", "NIGHT-PROBE: ExtensionMode.NIGHT available=$available")
+        Log.d("CameraK", "Extension availability -> $availabilitySummary")
+
+        val modes = listOf(
+            "HDR" to ExtensionMode.HDR,
+            "NIGHT" to ExtensionMode.NIGHT,
+            "AUTO" to ExtensionMode.AUTO,
+        )
+        for ((modeName, modeValue) in modes) {
+            try {
+                if (extensionsManager.isExtensionAvailable(baseSelector, modeValue)) {
+                    val enabled = extensionsManager.getExtensionEnabledCameraSelector(baseSelector, modeValue)
+                    Log.d("CameraK", "Vendor extension enabled: mode=$modeName")
+                    return enabled
+                }
+            } catch (e: Exception) {
+                Log.w("CameraK", "Extension query failed mode=$modeName: ${e.message}")
+            }
+        }
+        Log.d("CameraK", "No vendor extension selected; fallback to base selector")
+        return baseSelector
     }
 
     private fun completeBinding(
@@ -268,11 +230,13 @@ actual class CameraController(
         extensionsManager: ExtensionsManager?,
     ) {
         try {
-            savedExtensionsManager = extensionsManager
             cameraProvider?.unbindAll()
             Log.d("CameraK", "==> Unbind all existing cameras")
 
-            val resolutionSelector = createResolutionSelector()
+            // Preview: always follow [aspectRatio] so PreviewView fills the UI (portrait still-capture
+            // bounds must not constrain the viewfinder stream — that caused a large top letterbox).
+            val previewResolutionSelector = createPreviewResolutionSelector()
+            val imageCaptureResolutionSelector = createImageCaptureResolutionSelector()
 
             val displayRotation = (context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
                 ?.getDisplay(Display.DEFAULT_DISPLAY)
@@ -280,19 +244,12 @@ actual class CameraController(
                 ?: Surface.ROTATION_0
 
             val cameraSelector = createCameraSelector()
-            probeNightExtension(cameraSelector, extensionsManager)
             val bindSelector = extensionEnabledSelectorOrFallback(cameraSelector, extensionsManager)
-            val provider = cameraProvider ?: return
-            val supportsUltraHdr = checkUltraHdrSupport(provider, bindSelector)
-            val supportsPreviewStab = checkPreviewStabilizationSupport(provider, bindSelector)
-            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType extensions=${bindSelector !== cameraSelector} ultraHdr=$supportsUltraHdr previewStab=$supportsPreviewStab")
+            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType (extensions=${bindSelector != cameraSelector})")
 
             val previewBuilder = Preview.Builder()
-                .setResolutionSelector(resolutionSelector)
+                .setResolutionSelector(previewResolutionSelector)
                 .setTargetRotation(displayRotation)
-            if (previewStabilizationEnabled && supportsPreviewStab) {
-                previewBuilder.setPreviewStabilizationEnabled(true)
-            }
             applyWideSelfieInterop(previewBuilder)
             preview = previewBuilder
                 .build()
@@ -300,7 +257,7 @@ actual class CameraController(
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-            configureCaptureUseCase(resolutionSelector, displayRotation, supportsUltraHdr)
+            configureCaptureUseCase(imageCaptureResolutionSelector, displayRotation)
             configureVideoCaptureUseCase()
 
             val useCaseGroupBuilder = UseCaseGroup.Builder()
@@ -357,21 +314,37 @@ actual class CameraController(
         }
     }
 
-    /**
-     * Create a resolution selector from [targetResolution] or [aspectRatio].
-     */
-    private fun createResolutionSelector(): ResolutionSelector {
+    /** Preview stream: [aspectRatio] only so the viewfinder matches the screen layout. */
+    private fun createPreviewResolutionSelector(): ResolutionSelector {
         memoryManager.updateMemoryStatus()
+        return ResolutionSelector.Builder()
+            .setAspectRatioStrategy(aspectRatio.toCameraXAspectRatioStrategy())
+            .build()
+    }
 
+    /**
+     * Still capture: when [targetResolution] is set, it is a per-axis upper bound on the
+     * **stored** size (min side ≤ min(cap), max side ≤ max(cap)). Among all supported sizes that
+     * fit, we prefer the **largest pixel count** so devices like Samsung can reach 1440×2560 when
+     * listed, instead of a smaller 16:9-compatible size such as 1440×1080.
+     */
+    private fun createImageCaptureResolutionSelector(): ResolutionSelector {
+        memoryManager.updateMemoryStatus()
         return if (targetResolution != null) {
-            // When target resolution is set, prioritize it over aspect ratio
+            val capW = targetResolution!!.first
+            val capH = targetResolution!!.second
+            val shortCap = minOf(capW, capH)
+            val longCap = maxOf(capW, capH)
             ResolutionSelector.Builder()
-                .setResolutionStrategy(
-                    ResolutionStrategy(
-                        Size(targetResolution!!.first, targetResolution!!.second),
-                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
-                    ),
-                )
+                .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+                .setResolutionFilter { supportedSizes, _ ->
+                    val filtered = supportedSizes.filter { size ->
+                        minOf(size.width, size.height) <= shortCap &&
+                            maxOf(size.width, size.height) <= longCap
+                    }.sortedWith(compareByDescending<Size> { sz -> sz.width.toLong() * sz.height })
+                    if (filtered.isNotEmpty()) filtered else supportedSizes
+                }
+                .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
                 .build()
         } else {
             ResolutionSelector.Builder()
@@ -478,7 +451,6 @@ actual class CameraController(
     private fun configureCaptureUseCase(
         resolutionSelector: ResolutionSelector,
         displayRotation: Int,
-        useUltraHdr: Boolean = false,
     ) {
         val builder = ImageCapture.Builder()
             .setFlashMode(flashMode.toCameraXFlashMode())
@@ -493,9 +465,6 @@ actual class CameraController(
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(displayRotation)
         applyWideSelfieInterop(builder)
-        if (useUltraHdr) {
-            builder.setOutputFormat(ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR)
-        }
         imageCapture = builder.build()
     }
 
@@ -987,10 +956,8 @@ actual class CameraController(
         val viewY = normalizedY.coerceIn(0f, 1f) * h
         try {
             val factory = view.meteringPointFactory
-            val point = factory.createPoint(viewX, viewY, 0.05f)
-            val action = FocusMeteringAction.Builder(point)
-                .disableAutoCancel()
-                .build()
+            val point = factory.createPoint(viewX, viewY)
+            val action = FocusMeteringAction.Builder(point).build()
             camera?.cameraControl?.startFocusAndMetering(action)
         } catch (e: Exception) {
             Log.w("CameraK", "setFocusPoint failed: ${e.message}")
@@ -1064,6 +1031,12 @@ actual class CameraController(
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {
         imageCaptureListeners.add(listener)
     }
+
+    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
+
+    actual fun isNightModeSupported(): Boolean = false
+
+    actual fun setNightMode(enabled: Boolean) {}
 
     private var wideSelfieEnabled = false
 
@@ -1145,20 +1118,6 @@ actual class CameraController(
     // Video Recording
     // ═══════════════════════════════════════════════════════════════
 
-    @OptIn(ExperimentalCamera2Interop::class)
-    private fun resolveVideoTargetFps(): Int {
-        return try {
-            val ranges = cameraProvider?.availableCameraInfos
-                ?.filter { createCameraSelector().filter(listOf(it)).isNotEmpty() }
-                ?.firstOrNull()
-                ?.let { Camera2CameraInfo.from(it) }
-                ?.getCameraCharacteristic(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)
-            if (ranges?.any { it.upper >= 60 } == true) 60 else 30
-        } catch (_: Exception) {
-            30
-        }
-    }
-
     private fun configureVideoCaptureUseCase(quality: VideoQuality = VideoQuality.FHD) {
         try {
             val cameraXQuality = when (quality) {
@@ -1167,7 +1126,6 @@ actual class CameraController(
                 VideoQuality.FHD -> Quality.FHD
                 VideoQuality.UHD -> Quality.UHD
             }
-            val targetFps = resolveVideoTargetFps()
             val recorder = Recorder.Builder()
                 .setQualitySelector(
                     QualitySelector.from(
@@ -1176,10 +1134,7 @@ actual class CameraController(
                     ),
                 )
                 .build()
-            videoCapture = VideoCapture.Builder(recorder)
-                .setTargetFrameRate(android.util.Range(targetFps, targetFps))
-                .build()
-            Log.d("CameraK", "Video configured: quality=$quality fps=$targetFps")
+            videoCapture = VideoCapture.withOutput(recorder)
         } catch (e: Exception) {
             Log.w("CameraK", "VideoCapture use case not supported: ${e.message}")
             videoCapture = null

@@ -235,7 +235,11 @@ sealed class CameraKEvent {
  * @property qualityPrioritization Quality vs performance trade-off.
  * @property cameraDeviceType Preferred camera device type.
  * @property aspectRatio Aspect ratio for preview and capture.
- * @property targetResolution Target resolution (width x height) or null for auto.
+ * @property targetResolution Upper bound (width × height) in pixels for **still capture**, or null
+ *   for auto. On Android, preview keeps [aspectRatio] only; still capture uses a max short/long
+ *   side filter plus highest-area selection among supported sizes so common devices can reach the
+ *   cap when the sensor lists that size (e.g. 1440×2560) instead of a smaller 16:9 intermediate.
+ *   On Apple hosts, shortest/longest sides map to an AVCaptureSessionPreset tier.
  * @property directory Directory for saving captured images.
  * @property returnFilePath If true, returns file path instead of byte array (faster).
  *

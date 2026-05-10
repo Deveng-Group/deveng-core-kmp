@@ -133,11 +133,12 @@ class CustomCameraController(
     }
 
     private fun Pair<Int, Int>.toPreset(): String? {
-        val (w, h) = this
+        val short = minOf(first, second)
+        val long = maxOf(first, second)
         return when {
-            w >= 3840 && h >= 2160 -> AVCaptureSessionPreset3840x2160
-            w >= 1920 && h >= 1080 -> AVCaptureSessionPreset1920x1080
-            w >= 1280 && h >= 720 -> AVCaptureSessionPreset1280x720
+            long >= 3840 && short >= 2160 -> AVCaptureSessionPreset3840x2160
+            long >= 1920 && short >= 1080 -> AVCaptureSessionPreset1920x1080
+            long >= 1280 && short >= 720 -> AVCaptureSessionPreset1280x720
             else -> null
         }
     }
