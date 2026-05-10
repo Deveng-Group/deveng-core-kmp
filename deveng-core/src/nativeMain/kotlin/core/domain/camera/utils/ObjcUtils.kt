@@ -15,8 +15,6 @@ import kotlinx.cinterop.useContents
 import kotlinx.cinterop.usePinned
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.Image
-import platform.CoreGraphics.CGImageGetHeight
-import platform.CoreGraphics.CGImageGetWidth
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSData
@@ -87,17 +85,12 @@ fun capNSDataJpegToMaxPhotoDimensions(data: NSData, capWidth: Int, capHeight: In
     val shortCap = min(capWidth, capHeight)
     val longCap = max(capWidth, capHeight)
     val uiImage = data.toUIImage()
-    val cg = uiImage.CGImage
-    val pixelW: Int
-    val pixelH: Int
-    if (cg != null) {
-        pixelW = CGImageGetWidth(cg).toInt()
-        pixelH = CGImageGetHeight(cg).toInt()
-    } else {
-        pixelW = (uiImage.size.useContents { width } * uiImage.scale).roundToInt()
-        pixelH = (uiImage.size.useContents { height } * uiImage.scale).roundToInt()
-    }
-    if (pixelW <= 0 || pixelH <= 0) return data
+    // Use oriented display pixel size, not CGImageGetWidth/Height. Raw CGImage dimensions ignore
+    // UIImage.imageOrientation; drawInRect applies orientation when drawing, so a target rect sized
+    // from CGImage would mismatch the drawn aspect and stretch/squash (e.g. portrait photo in a
+    // landscape-sized rect on review).
+    val pixelW = (uiImage.size.useContents { width } * uiImage.scale).roundToInt().coerceAtLeast(1)
+    val pixelH = (uiImage.size.useContents { height } * uiImage.scale).roundToInt().coerceAtLeast(1)
     val shortSide = min(pixelW, pixelH)
     val longSide = max(pixelW, pixelH)
     if (shortSide <= shortCap && longSide <= longCap) {
