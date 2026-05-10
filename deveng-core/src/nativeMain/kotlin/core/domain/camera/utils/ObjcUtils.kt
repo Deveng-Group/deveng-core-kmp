@@ -15,11 +15,21 @@ import kotlinx.cinterop.useContents
 import kotlinx.cinterop.usePinned
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.Image
+import platform.CoreGraphics.CGImageGetHeight
+import platform.CoreGraphics.CGImageGetWidth
+import platform.CoreGraphics.CGRectMake
+import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSData
 import platform.Foundation.create
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
+import platform.UIKit.UIGraphicsBeginImageContextWithOptions
+import platform.UIKit.UIGraphicsEndImageContext
+import platform.UIKit.UIGraphicsGetImageFromCurrentImageContext
 import platform.posix.memcpy
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 fun ImageBitmap.toByteArray(): ByteArray? {
     val skiaBitmap = this.asSkiaBitmap()
@@ -65,6 +75,46 @@ fun NSData.toByteArray(reuseBuffer: ByteArray? = null): ByteArray {
 fun NSData.toByteArray(): ByteArray = toByteArray(null)
 
 fun NSData.toUIImage() = UIImage(this)
+
+/**
+ * If the decoded JPEG exceeds [capWidth]×[capHeight] when measured as (min side, max side),
+ * downscales (aspect preserved) so both sides fit within that box and re-encodes as JPEG.
+ * Matches Android still-capture max short/long semantics for [Pair] caps like 1440×2560.
+ */
+@OptIn(ExperimentalForeignApi::class)
+fun capNSDataJpegToMaxPhotoDimensions(data: NSData, capWidth: Int, capHeight: Int): NSData {
+    if (capWidth <= 0 || capHeight <= 0) return data
+    val shortCap = min(capWidth, capHeight)
+    val longCap = max(capWidth, capHeight)
+    val uiImage = data.toUIImage()
+    val cg = uiImage.CGImage
+    val pixelW: Int
+    val pixelH: Int
+    if (cg != null) {
+        pixelW = CGImageGetWidth(cg).toInt()
+        pixelH = CGImageGetHeight(cg).toInt()
+    } else {
+        pixelW = (uiImage.size.useContents { width } * uiImage.scale).roundToInt()
+        pixelH = (uiImage.size.useContents { height } * uiImage.scale).roundToInt()
+    }
+    if (pixelW <= 0 || pixelH <= 0) return data
+    val shortSide = min(pixelW, pixelH)
+    val longSide = max(pixelW, pixelH)
+    if (shortSide <= shortCap && longSide <= longCap) {
+        return data
+    }
+    val scale = min(shortCap.toFloat() / shortSide, longCap.toFloat() / longSide).coerceAtMost(1f)
+    val newW = max(1, (pixelW * scale).roundToInt())
+    val newH = max(1, (pixelH * scale).roundToInt())
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(newW.toDouble(), newH.toDouble()), false, 1.0)
+    try {
+        uiImage.drawInRect(CGRectMake(0.0, 0.0, newW.toDouble(), newH.toDouble()))
+        val resized = UIGraphicsGetImageFromCurrentImageContext() ?: return data
+        return UIImageJPEGRepresentation(resized, 0.92) ?: data
+    } finally {
+        UIGraphicsEndImageContext()
+    }
+}
 
 /**
  * Redraws the UIImage with orientation transformations applied to the pixel data.

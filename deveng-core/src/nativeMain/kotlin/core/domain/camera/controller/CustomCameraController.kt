@@ -1,5 +1,6 @@
 package core.domain.camera.controller
 
+import core.domain.camera.utils.capNSDataJpegToMaxPhotoDimensions
 import core.domain.camera.enums.AspectRatio
 import core.domain.camera.enums.CameraDeviceType
 import core.domain.camera.enums.CameraLens
@@ -879,7 +880,13 @@ class CustomCameraController(
         }
 
         val imageData = didFinishProcessingPhoto.fileDataRepresentation()
-        onPhotoCapture?.invoke(imageData)
+        val tr = targetResolution
+        val cappedData = if (tr != null && imageData != null) {
+            capNSDataJpegToMaxPhotoDimensions(imageData, tr.first, tr.second)
+        } else {
+            imageData
+        }
+        onPhotoCapture?.invoke(cappedData)
     }
 
     private inline fun guard(condition: Boolean, crossinline block: () -> Unit) {
