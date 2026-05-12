@@ -20,7 +20,7 @@ import core.presentation.component.mediaviewer.zoom.rememberZoomableState
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 @Composable
-internal fun ViewerPage(
+fun ViewerPage(
     page: Int,
     imageModel: Any,
     isCurrentPage: Boolean,

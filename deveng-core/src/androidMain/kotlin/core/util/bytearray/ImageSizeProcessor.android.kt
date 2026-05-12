@@ -2,6 +2,9 @@ package core.util.bytearray
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
 
@@ -41,8 +44,10 @@ actual class ImageSizeProcessor {
             decodeOptions
         ) ?: return inputBytes
 
+        val rotatedBitmap = applyExifRotation(decodedBitmap, inputBytes)
+
         val resizedBitmap = scaleBitmapIfNeeded(
-            bitmap = decodedBitmap,
+            bitmap = rotatedBitmap,
             targetMaxSizePx = targetMaxSizePx
         )
 
@@ -51,10 +56,28 @@ actual class ImageSizeProcessor {
             quality = quality
         )
 
-        if (resizedBitmap !== decodedBitmap) resizedBitmap.recycle()
+        if (resizedBitmap !== rotatedBitmap) resizedBitmap.recycle()
+        if (rotatedBitmap !== decodedBitmap) rotatedBitmap.recycle()
         decodedBitmap.recycle()
 
         return jpegBytes
+    }
+
+    private fun applyExifRotation(bitmap: Bitmap, inputBytes: ByteArray): Bitmap {
+        val degrees = try {
+            val exif = ExifInterface(ByteArrayInputStream(inputBytes))
+            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+        } catch (_: Exception) {
+            0f
+        }
+        if (degrees == 0f) return bitmap
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun scaleBitmapIfNeeded(

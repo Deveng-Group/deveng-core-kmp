@@ -19,6 +19,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ fun OtpView(
     val otpViewTheme = componentTheme.otpView
 
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
         if (requestFocusOnFirstDisplay) {
             focusRequester.requestFocus()
@@ -75,6 +77,7 @@ fun OtpView(
                     isFocused = index == otpDigits.length,
                     onDigitClick = {
                         focusRequester.requestFocus()
+                        keyboardController?.show()
                     }
                 )
             }
