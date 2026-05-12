@@ -6,6 +6,7 @@ import core.domain.camera.controller.CameraController
 import core.domain.camera.result.ImageCaptureResult
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -399,8 +400,15 @@ class CameraKStateHolder(
     // Video Recording Operations
     // ═══════════════════════════════════════════════════════════════
 
-    private fun resetRecordingState() {
-        recordingTimerJob?.cancel()
+    /**
+     * @param cancelRecordingTimer When false, only clears the [recordingTimerJob] reference without
+     * [Job.cancel] — used when the timer coroutine itself finishes at max duration so it does not
+     * cancel before [CameraKEvent.RecordingStopped] is emitted.
+     */
+    private fun resetRecordingState(cancelRecordingTimer: Boolean = true) {
+        if (cancelRecordingTimer) {
+            recordingTimerJob?.cancel()
+        }
         recordingTimerJob = null
         recordingFilePath = null
         videoThumbnailBitmap = null
@@ -474,13 +482,17 @@ class CameraKStateHolder(
                             if (!_uiState.value.isRecording) break
                             val result = currentController.stopRecording()
                             val resultWithThumbnail = (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = videoThumbnailBitmap) ?: result
-                            resetRecordingState()
+                            // Do not cancel this timer job from inside itself — that prevented emits / finalize handling.
+                            resetRecordingState(cancelRecordingTimer = false)
                             _events.emit(CameraKEvent.RecordingMaxDurationReached(path, elapsed))
                             _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
                             break
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                resetRecordingState()
+                throw e
             } catch (e: Exception) {
                 resetRecordingState()
                 _uiState.value =
@@ -509,6 +521,9 @@ class CameraKStateHolder(
                 val resultWithThumbnail = (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = videoThumbnailBitmap) ?: result
                 resetRecordingState()
                 _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
+            } catch (e: CancellationException) {
+                resetRecordingState()
+                throw e
             } catch (e: Exception) {
                 resetRecordingState()
                 _uiState.value =
