@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @Composable
-internal fun SwipeToDismissBox(
+fun SwipeToDismissBox(
     enabled: Boolean,
     threshold: Float,
     velocityThreshold: Float,
