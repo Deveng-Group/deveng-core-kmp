@@ -14,6 +14,7 @@ import android.hardware.display.DisplayManager
 import android.media.ExifInterface
 import android.os.Environment
 import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.view.Display
 import android.view.Surface
@@ -103,6 +104,9 @@ actual class CameraController(
     private var previewView: PreviewView? = null
     var onDeviceTypeSwitchTransition: ((Boolean) -> Unit)? = null
     private var isSwitchingDeviceType = false
+
+    /** When true and the bound camera reports support, [Preview] is built with preview stabilization (EIS). */
+    private var previewStabilizationEnabled = false
 
     // Multiple analyzer support: plugins register their analyzers here
     private val registeredAnalyzers = mutableListOf<ImageAnalysis.Analyzer>()
@@ -224,6 +228,141 @@ actual class CameraController(
         return baseSelector
     }
 
+    /**
+     * AE [CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES] often caps at 30 even when the scaler map allows 60 fps
+     * video (typical on Samsung + CameraX extension paths). Uses [StreamConfigurationMap] min frame
+     * duration for camera outputs used by the video pipeline.
+     */
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun streamConfigurationMapSuggests60FpsVideo(
+        c2: Camera2CameraInfo,
+    ): Pair<Boolean, String> {
+        val map = c2.getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            ?: return false to "noScalerStreamConfigurationMap"
+        /** Max frame duration in ns still counted as "60 fps capable" (1/60 s, with small slack). */
+        val maxNsFor60 = 1_000_000_000L / 60L + 1L
+        val formats = listOf(
+            android.graphics.ImageFormat.PRIVATE,
+            android.graphics.ImageFormat.YUV_420_888,
+        )
+        var bestMinNs: Long = Long.MAX_VALUE
+        val examples = mutableListOf<String>()
+        for (format in formats) {
+            val sizes = try {
+                map.getOutputSizes(format)
+            } catch (_: Exception) {
+                null
+            } ?: continue
+            val sorted = sizes.sortedByDescending { sz -> sz.width.toLong() * sz.height }
+            for (size in sorted.take(48)) {
+                val minNs = try {
+                    map.getOutputMinFrameDuration(format, size)
+                } catch (_: Exception) {
+                    0L
+                }
+                if (minNs <= 0L) continue
+                if (minNs < bestMinNs) {
+                    bestMinNs = minNs
+                }
+                if (minNs <= maxNsFor60) {
+                    if (examples.size < 4) {
+                        examples += "f=$format ${size.width}x${size.height} minNs=$minNs"
+                    }
+                }
+            }
+        }
+        if (examples.isNotEmpty()) {
+            return true to "60capableStreams=${examples.joinToString("; ")}"
+        }
+        val implied = if (bestMinNs < Long.MAX_VALUE && bestMinNs > 0) {
+            (1_000_000_000.0 / bestMinNs.toDouble()).toInt()
+        } else {
+            0
+        }
+        val bestStr = if (bestMinNs < Long.MAX_VALUE) bestMinNs.toString() else "n/a"
+        return false to "no60Stream bestMinFrameDurationNs=$bestStr impliedMaxFps~$implied"
+    }
+
+    /**
+     * Prefer 60 fps when either AE ranges include 60, or the scaler stream map reports a video-class
+     * output that can sustain 60 fps (min frame duration ≤ 1/60 s). Otherwise 30.
+     */
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun pickVideoRecordingTargetFps(
+        provider: ProcessCameraProvider,
+        selector: CameraSelector,
+    ): Int = try {
+        val matching = provider.availableCameraInfos.filter { selector.filter(listOf(it)).isNotEmpty() }
+        if (matching.isEmpty()) {
+            Log.w("CameraK", "videoFpsProbe: no CameraInfo matched selector → chosenTargetFps=30")
+            return 30
+        }
+        var anyAe60 = false
+        var anyStream60 = false
+        val perCamera = mutableListOf<String>()
+        for (cameraInfo in matching) {
+            val c2 = Camera2CameraInfo.from(cameraInfo)
+            val cameraId = try {
+                c2.cameraId
+            } catch (_: Exception) {
+                "?"
+            }
+            val ranges = c2.getCameraCharacteristic(
+                CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES,
+            )
+            val aeRangeStr: String
+            val ae60: Boolean
+            if (ranges == null || ranges.isEmpty()) {
+                aeRangeStr = "nullOrEmpty"
+                ae60 = false
+            } else {
+                aeRangeStr = ranges.joinToString(separator = ", ") { "[${it.lower},${it.upper}]" }
+                ae60 = ranges.any { rng -> rng.contains(60) }
+            }
+            if (ae60) {
+                anyAe60 = true
+            }
+            val (stream60, streamDetail) = streamConfigurationMapSuggests60FpsVideo(c2)
+            if (stream60) {
+                anyStream60 = true
+            }
+            perCamera += "cameraId=$cameraId lens=${cameraInfo.lensFacing} aeSupports60=$ae60 " +
+                "streamSupports60=$stream60 streamDetail=$streamDetail aeTargetFpsRanges=$aeRangeStr"
+        }
+        Log.d("CameraK", "videoFpsProbe: ${perCamera.joinToString(" | ")}")
+        val chosen = if (anyAe60 || anyStream60) 60 else 30
+        Log.d(
+            "CameraK",
+            "videoFpsProbe: summary anyAe60=$anyAe60 anyStream60=$anyStream60 chosenTargetFps=$chosen",
+        )
+        chosen
+    } catch (e: Exception) {
+        Log.w("CameraK", "videoFpsProbe: exception (${e.message}) → chosenTargetFps=30")
+        30
+    }
+
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun checkPreviewStabilizationSupport(
+        provider: ProcessCameraProvider,
+        selector: CameraSelector,
+    ): Boolean = try {
+        val matching = provider.availableCameraInfos.filter { selector.filter(listOf(it)).isNotEmpty() }
+        val details = matching.map { cameraInfo ->
+            val supported = Preview.getPreviewCapabilities(cameraInfo).isStabilizationSupported
+            val cameraId = try {
+                Camera2CameraInfo.from(cameraInfo).cameraId
+            } catch (_: Exception) {
+                "?"
+            }
+            "cameraId=$cameraId lens=${cameraInfo.lensFacing} previewStabilizationSupported=$supported"
+        }
+        Log.d("CameraK", "previewStabProbe: ${details.joinToString(" | ")}")
+        matching.any { cameraInfo -> Preview.getPreviewCapabilities(cameraInfo).isStabilizationSupported }
+    } catch (e: Exception) {
+        Log.w("CameraK", "Preview stabilization check failed: ${e.message}")
+        false
+    }
+
     private fun completeBinding(
         previewView: PreviewView,
         onCameraReady: () -> Unit,
@@ -245,11 +384,39 @@ actual class CameraController(
 
             val cameraSelector = createCameraSelector()
             val bindSelector = extensionEnabledSelectorOrFallback(cameraSelector, extensionsManager)
-            Log.d("CameraK", "==> Camera selector: deviceType=$cameraDeviceType (extensions=${bindSelector != cameraSelector})")
+            val videoTargetFps = cameraProvider?.let { pickVideoRecordingTargetFps(it, bindSelector) } ?: 30
+            /**
+             * Samsung (and some OEMs): vendor extension + VideoCapture often muxes ~25fps in the MP4
+             * even when [VideoCapture.Builder.setTargetFrameRate] requests 60. Prefer a base
+             * (non-extension) bind for the lifecycle when we explicitly target 60 fps.
+             */
+            val lifecycleBindSelector = if (videoTargetFps == 60 && bindSelector != cameraSelector) {
+                Log.w(
+                    "CameraK",
+                    "videoFpsBind: chosenTargetFps=60 → binding WITHOUT vendor extension for this session " +
+                        "(retry with extension if bind fails — extension may limit mux fps).",
+                )
+                cameraSelector
+            } else {
+                bindSelector
+            }
+            val supportsPreviewStab = cameraProvider?.let { provider ->
+                checkPreviewStabilizationSupport(provider, lifecycleBindSelector)
+            } ?: false
+            Log.d(
+                "CameraK",
+                "==> Camera selector: deviceType=$cameraDeviceType " +
+                    "(extensions=${bindSelector != cameraSelector}) " +
+                    "lifecycleBindExtensions=${lifecycleBindSelector != cameraSelector} " +
+                    "previewStabSupported=$supportsPreviewStab previewStabOn=$previewStabilizationEnabled",
+            )
 
             val previewBuilder = Preview.Builder()
                 .setResolutionSelector(previewResolutionSelector)
                 .setTargetRotation(displayRotation)
+            if (previewStabilizationEnabled && supportsPreviewStab) {
+                previewBuilder.setPreviewStabilizationEnabled(true)
+            }
             applyWideSelfieInterop(previewBuilder)
             preview = previewBuilder
                 .build()
@@ -258,7 +425,7 @@ actual class CameraController(
                 }
 
             configureCaptureUseCase(imageCaptureResolutionSelector, displayRotation)
-            configureVideoCaptureUseCase()
+            configureVideoCaptureUseCase(targetFrameRateFps = videoTargetFps)
 
             val useCaseGroupBuilder = UseCaseGroup.Builder()
                 .addUseCase(preview!!)
@@ -276,23 +443,37 @@ actual class CameraController(
             camera = try {
                 cameraProvider?.bindToLifecycle(
                     lifecycleOwner,
-                    bindSelector,
+                    lifecycleBindSelector,
                     useCaseGroup,
                 )
             } catch (bindExc: Exception) {
-                if (bindSelector != cameraSelector) {
-                    Log.w(
-                        "CameraK",
-                        "bindToLifecycle with vendor extension failed (${bindExc.message}); retrying without extension",
-                    )
-                    cameraProvider?.unbindAll()
-                    cameraProvider?.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        useCaseGroup,
-                    )
-                } else {
-                    throw bindExc
+                when {
+                    lifecycleBindSelector != cameraSelector -> {
+                        Log.w(
+                            "CameraK",
+                            "bindToLifecycle with vendor extension failed (${bindExc.message}); retrying without extension",
+                        )
+                        cameraProvider?.unbindAll()
+                        cameraProvider?.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            useCaseGroup,
+                        )
+                    }
+                    videoTargetFps == 60 && bindSelector != cameraSelector && lifecycleBindSelector == cameraSelector -> {
+                        Log.w(
+                            "CameraK",
+                            "bindToLifecycle without extension failed for 60fps (${bindExc.message}); " +
+                                "retrying WITH vendor extension (mux fps may drop)",
+                        )
+                        cameraProvider?.unbindAll()
+                        cameraProvider?.bindToLifecycle(
+                            lifecycleOwner,
+                            bindSelector,
+                            useCaseGroup,
+                        )
+                    }
+                    else -> throw bindExc
                 }
             }
             Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
@@ -1032,7 +1213,11 @@ actual class CameraController(
         imageCaptureListeners.add(listener)
     }
 
-    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
+    actual fun setPreviewStabilizationEnabled(enabled: Boolean) {
+        if (previewStabilizationEnabled == enabled) return
+        previewStabilizationEnabled = enabled
+        previewView?.let { bindCamera(it) }
+    }
 
     actual fun isNightModeSupported(): Boolean = false
 
@@ -1118,7 +1303,10 @@ actual class CameraController(
     // Video Recording
     // ═══════════════════════════════════════════════════════════════
 
-    private fun configureVideoCaptureUseCase(quality: VideoQuality = VideoQuality.FHD) {
+    private fun configureVideoCaptureUseCase(
+        quality: VideoQuality = VideoQuality.FHD,
+        targetFrameRateFps: Int,
+    ) {
         try {
             val cameraXQuality = when (quality) {
                 VideoQuality.SD -> Quality.SD
@@ -1126,15 +1314,68 @@ actual class CameraController(
                 VideoQuality.FHD -> Quality.FHD
                 VideoQuality.UHD -> Quality.UHD
             }
-            val recorder = Recorder.Builder()
+            val recorderBuilder = Recorder.Builder()
                 .setQualitySelector(
                     QualitySelector.from(
                         cameraXQuality,
                         FallbackStrategy.higherQualityOrLowerThan(cameraXQuality),
                     ),
                 )
-                .build()
-            videoCapture = VideoCapture.withOutput(recorder)
+            val recorder = if (targetFrameRateFps == 60) {
+                recorderBuilder.setTargetVideoEncodingBitRate(22_000_000)
+            } else {
+                recorderBuilder
+            }.build()
+            /** Tight [60,60] is rejected or ignored on some Samsung builds; [30,60] lets the pipeline pick up to 60. */
+            val fpsRange = if (targetFrameRateFps == 60) {
+                Range.create(30, 60)
+            } else {
+                Range.create(targetFrameRateFps, targetFrameRateFps)
+            }
+            var appliedMode = "explicitFps"
+            videoCapture = try {
+                val built = VideoCapture.Builder(recorder)
+                    .setTargetFrameRate(fpsRange)
+                    .build()
+                Log.d(
+                    "CameraK",
+                    "videoCaptureBuild: success setTargetFrameRate requested=$targetFrameRateFps " +
+                        "cameraXQuality=$cameraXQuality " +
+                        "range=[${fpsRange.lower},${fpsRange.upper}] " +
+                        if (targetFrameRateFps == 60) "recorderBitrateBps=22000000 " else "",
+                )
+                built
+            } catch (e: Exception) {
+                if (targetFrameRateFps == 60) {
+                    Log.w("CameraK", "videoCaptureBuild: 60 fps failed (${e.message}) → trying 30 fps")
+                    try {
+                        val built30 = VideoCapture.Builder(recorder)
+                            .setTargetFrameRate(Range.create(30, 30))
+                            .build()
+                        appliedMode = "fallbackExplicit30After60Failed"
+                        Log.d("CameraK", "videoCaptureBuild: success setTargetFrameRate fps=30 (fallback after 60)")
+                        built30
+                    } catch (e2: Exception) {
+                        appliedMode = "defaultNoTargetFpsAfter30Failed"
+                        Log.w(
+                            "CameraK",
+                            "videoCaptureBuild: 30 fps failed (${e2.message}) → VideoCapture.withOutput (no fps hint)",
+                        )
+                        VideoCapture.withOutput(recorder)
+                    }
+                } else {
+                    appliedMode = "defaultNoTargetFps"
+                    Log.w(
+                        "CameraK",
+                        "videoCaptureBuild: ${targetFrameRateFps} fps failed (${e.message}) → VideoCapture.withOutput",
+                    )
+                    VideoCapture.withOutput(recorder)
+                }
+            }
+            Log.d(
+                "CameraK",
+                "videoCaptureBuild: summary requestedFps=$targetFrameRateFps appliedMode=$appliedMode",
+            )
         } catch (e: Exception) {
             Log.w("CameraK", "VideoCapture use case not supported: ${e.message}")
             videoCapture = null

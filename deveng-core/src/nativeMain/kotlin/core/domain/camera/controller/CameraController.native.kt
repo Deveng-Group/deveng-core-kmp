@@ -739,6 +739,7 @@ actual class CameraController(
         }
 
         dispatch_async(dispatch_get_main_queue()) {
+            customCameraController.applyPreferredVideoRecordingFrameRatePrefer60Else30()
             output.startRecordingToOutputFileURL(fileURL, recordingDelegate = delegate)
         }
 

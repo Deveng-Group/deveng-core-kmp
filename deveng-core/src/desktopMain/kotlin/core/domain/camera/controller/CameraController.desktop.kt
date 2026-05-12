@@ -283,6 +283,10 @@ actual class CameraController(
         val outputPath = createVideoOutputPath(configuration)
         recordingOutputPath = outputPath
 
+        System.err.println(
+            "CameraK: desktop videoFpsProbe: no hardware probe — using 60fps recorder timeline and ~16ms frame pacing",
+        )
+
         val recorder = FFmpegFrameRecorder(
             outputPath,
             configuration.quality.width,
@@ -291,7 +295,7 @@ actual class CameraController(
         ).apply {
             videoCodec = avcodec.AV_CODEC_ID_H264
             format = "mp4"
-            frameRate = 30.0
+            frameRate = 60.0
             videoBitrate = configuration.quality.bitrateBps
             if (configuration.enableAudio) {
                 audioCodec = avcodec.AV_CODEC_ID_AAC
@@ -321,7 +325,7 @@ actual class CameraController(
                             }
                         }
                     }
-                    delay(33) // ~30fps
+                    delay(16L) // ~60fps pacing (camera may deliver fewer frames on some hardware)
                 }
             } catch (e: Exception) {
                 System.err.println("CameraK recording loop error: ${e.message}")

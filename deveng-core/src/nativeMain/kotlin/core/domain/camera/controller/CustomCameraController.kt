@@ -8,6 +8,7 @@ import core.domain.camera.enums.QualityPrioritization
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import platform.AVFoundation.*
+import platform.Foundation.NSArray
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSLog
@@ -21,6 +22,7 @@ import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
 import platform.CoreGraphics.CGPointMake
+import platform.CoreMedia.CMTimeMake
 import kotlin.collections.emptyList
 import kotlin.concurrent.Volatile
 
@@ -569,6 +571,56 @@ class CustomCameraController(
         val minBias = maxOf(rawMin, clampMin)
         val maxBias = minOf(rawMax, clampMax)
         return if (minBias < maxBias) Pair(minBias, maxBias) else Pair(0, 0)
+    }
+
+    /**
+     * Locks the device and sets fixed video frame duration to **60 fps** when the active format
+     * reports support; otherwise **30 fps**. Call immediately before starting movie file recording.
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun applyPreferredVideoRecordingFrameRatePrefer60Else30() {
+        val camera = currentCamera ?: run {
+            NSLog("CameraK: videoFpsFormatProbe skipped (no currentCamera)")
+            return
+        }
+        camera.lockForConfiguration(null)
+        try {
+            val format = camera.activeFormat
+            val nsRanges = format.videoSupportedFrameRateRanges as? NSArray
+            val count = nsRanges?.count?.toInt() ?: 0
+            var supports60 = false
+            if (nsRanges != null && count > 0) {
+                for (i in 0 until count) {
+                    val r = nsRanges.objectAtIndex(i.toULong()) as? AVFrameRateRange ?: continue
+                    if (r.maxFrameRate >= 59.0) {
+                        supports60 = true
+                        break
+                    }
+                }
+            }
+            val fps = if (supports60) 60 else 30
+            val oneFrame = CMTimeMake(1, fps)
+            camera.activeVideoMinFrameDuration = oneFrame
+            camera.activeVideoMaxFrameDuration = oneFrame
+            val rangeLog = buildString {
+                if (nsRanges == null || count == 0) {
+                    append("noRangesOrEmpty")
+                } else {
+                    for (i in 0 until count) {
+                        val r = nsRanges.objectAtIndex(i.toULong()) as? AVFrameRateRange ?: continue
+                        if (isNotEmpty()) append(", ")
+                        append("[min=${r.minFrameRate},max=${r.maxFrameRate}]")
+                    }
+                }
+            }
+            NSLog(
+                "CameraK: videoFpsFormatProbe supports60=$supports60 videoSupportedFrameRateRanges=$rangeLog chosenFps=$fps",
+            )
+        } catch (e: Exception) {
+            NSLog("CameraK: applyPreferredVideoRecordingFrameRatePrefer60Else30 failed: ${e.message}")
+        } finally {
+            camera.unlockForConfiguration()
+        }
     }
 
     /**

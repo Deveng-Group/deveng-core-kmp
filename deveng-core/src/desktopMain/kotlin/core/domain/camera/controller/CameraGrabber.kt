@@ -113,7 +113,8 @@ class CameraGrabber(
             FFmpegFrameGrabber(videoDevice)
         }
     }.apply {
-        frameRate = 30.0
+        // Prefer 60 fps capture when the driver allows; recording pipeline falls back if the stream is slower.
+        frameRate = 60.0
         // Default to 720p (was 480p) to use higher resolution by default (#52)
         val (width, height) = targetResolution ?: (1280 to 720)
         imageWidth = width
