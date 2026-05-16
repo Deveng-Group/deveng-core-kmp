@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -199,10 +200,12 @@ fun <T> PaginatedListView(
 
     Box(
         modifier = modifier
+            .fillMaxWidth()
             .then(retryDragModifier)
             .padding(horizontal = horizontalPadding.dp)
     ) {
         LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
             state = listState,
             verticalArrangement = if (state.items.isEmpty()) {
                 Arrangement.Center
@@ -214,11 +217,25 @@ fun <T> PaginatedListView(
             // Helper function to add status items (loading, error, empty)
             fun addStatusItems() {
                 if (state.isInitialLoad && state.items.isEmpty()) {
-                    item { CircularProgressIndicator() }
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
 
                 if (state.isNextPageLoading && state.items.isNotEmpty()) {
-                    item { CircularProgressIndicator() }
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
 
                 if (
