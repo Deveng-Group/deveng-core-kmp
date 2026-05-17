@@ -26,15 +26,19 @@ internal fun Modifier.zoomGestures(
     val latestConfig by rememberUpdatedState(config)
     this
         .then(
-            if (config.enableDoubleTapZoom) {
-                Modifier.pointerInput(Unit) {
+            if (config.enableDoubleTapZoom || config.onSingleTap != null) {
+                Modifier.pointerInput(config.enableDoubleTapZoom, config.onSingleTap) {
                     detectTapGestures(
-                        onTap = {},
-                        onDoubleTap = { offset ->
-                            scope.launch {
-                                if (state.isZoomed) state.resetZoom()
-                                else state.zoomTo(latestConfig.doubleTapZoom, offset)
+                        onTap = { latestConfig.onSingleTap?.invoke() },
+                        onDoubleTap = if (config.enableDoubleTapZoom) {
+                            { offset ->
+                                scope.launch {
+                                    if (state.isZoomed) state.resetZoom()
+                                    else state.zoomTo(latestConfig.doubleTapZoom, offset)
+                                }
                             }
+                        } else {
+                            null
                         },
                     )
                 }

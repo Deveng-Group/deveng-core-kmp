@@ -8,4 +8,6 @@ data class ZoomableConfig(
     val maxZoom: Float = ZoomableDefaults.MaxZoom,
     val doubleTapZoom: Float = ZoomableDefaults.DoubleTapZoom,
     val enableDoubleTapZoom: Boolean = true,
+    /** Fired on a single tap (e.g. toggle chrome overlays). Not called for double-tap zoom. */
+    val onSingleTap: (() -> Unit)? = null,
 )
