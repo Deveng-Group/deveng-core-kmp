@@ -2,11 +2,13 @@ package core.presentation.pagination
 
 import core.presentation.pagination.model.PageResult
 import core.presentation.pagination.model.PaginatedListState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class PaginatedFlowLoader<Key, Item>(
@@ -85,9 +87,9 @@ class PaginatedFlowLoader<Key, Item>(
                     isError = false
                 )
             } catch (e: Throwable) {
+                if (e.shouldAbortPaginationLoad(coroutineContext)) return@launch
                 onError?.invoke(e)
                 _state.update { it.copy(isInitialLoad = false, isError = true) }
-                throw e
             } finally {
                 isLoading = false
             }
@@ -123,12 +125,35 @@ class PaginatedFlowLoader<Key, Item>(
                     )
                 }
             } catch (e: Throwable) {
+                if (e.shouldAbortPaginationLoad(coroutineContext)) return@launch
                 onError?.invoke(e)
                 _state.update { it.copy(isNextPageLoading = false, isError = true) }
-                throw e
             } finally {
                 isLoading = false
             }
         }
     }
+}
+
+/**
+ * Abort without surfacing an error when the load was cancelled or the owning [CoroutineScope] is
+ * no longer active (e.g. ViewModel cleared on navigate away). Networking may still report a
+ * generic network error instead of [CancellationException].
+ */
+private fun Throwable.shouldAbortPaginationLoad(
+    context: kotlin.coroutines.CoroutineContext,
+): Boolean {
+    cancellationCauseOrNull()?.let { throw it }
+    return !context.isActive
+}
+
+private fun Throwable.cancellationCauseOrNull(): CancellationException? {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is CancellationException) {
+            return current
+        }
+        current = current.cause
+    }
+    return null
 }
