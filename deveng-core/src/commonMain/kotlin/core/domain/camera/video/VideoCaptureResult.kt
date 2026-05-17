@@ -15,7 +15,7 @@ sealed class VideoCaptureResult {
      *
      * @property filePath Absolute path to the saved video file.
      * @property durationMs Actual recorded duration in milliseconds.
-     * @property thumbnailBitmap Optional thumbnail (e.g. frame captured before recording start). Use for preview without platform-specific extraction.
+     * @property thumbnailBitmap Optional thumbnail (e.g. preview frame captured after recording start). Use for preview without platform-specific extraction.
      */
     @Immutable
     data class Success(

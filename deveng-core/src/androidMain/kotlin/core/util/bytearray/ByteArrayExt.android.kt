@@ -26,3 +26,18 @@ actual fun ImageBitmap.toByteArray(): ByteArray? {
         null
     }
 }
+
+actual fun ImageBitmap.toVideoThumbnailByteArray(): ByteArray? {
+    return try {
+        val bitmap: Bitmap = this.asAndroidBitmap()
+        ByteArrayOutputStream().use { out ->
+            if (bitmap.compress(Bitmap.CompressFormat.JPEG, VIDEO_THUMBNAIL_JPEG_QUALITY, out)) {
+                out.toByteArray()
+            } else {
+                null
+            }
+        }
+    } catch (_: UnsupportedOperationException) {
+        null
+    }
+}

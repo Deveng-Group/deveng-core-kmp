@@ -6,6 +6,7 @@ import core.domain.camera.enums.FlashMode
 import core.domain.camera.enums.ImageFormat
 import core.domain.camera.enums.QualityPrioritization
 import core.domain.camera.enums.TorchMode
+import androidx.compose.ui.graphics.ImageBitmap
 import core.domain.camera.result.ImageCaptureResult
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
@@ -14,6 +15,12 @@ import core.domain.camera.video.VideoConfiguration
  * Interface defining the core functionalities of the CameraController.
  */
 expect class CameraController {
+
+    /**
+     * When true, a still photo must be taken before [startRecording] for the video thumbnail
+     * (iOS — preview snapshots are blank). When false, use [captureRecordingThumbnailFrame] after start.
+     */
+    val usesPhotoCaptureForVideoThumbnail: Boolean
 
     /**
      * Captures an image and returns it as a ByteArray.
@@ -281,6 +288,12 @@ expect class CameraController {
     // ═══════════════════════════════════════════════════════════════
     // Video Recording
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Captures a still frame for video thumbnails from the live preview (Android).
+     * Not used on iOS when [usesPhotoCaptureForVideoThumbnail] is true.
+     */
+    suspend fun captureRecordingThumbnailFrame(): ImageBitmap?
 
     /**
      * Starts video recording to a file.

@@ -10,3 +10,5 @@ actual fun ByteArray.toImageBitmap(): ImageBitmap {
 }
 
 actual fun ImageBitmap.toByteArray(): ByteArray? = null
+
+actual fun ImageBitmap.toVideoThumbnailByteArray(): ByteArray? = null

@@ -128,7 +128,7 @@ class CameraKStateHolder(
     private var isInitialized = false
     private var recordingTimerJob: Job? = null
     private var recordingFilePath: String? = null
-    /** Frame captured via takePicture() before startRecording; attached to VideoCaptureResult.Success when recording stops. */
+    /** Preview-frame thumbnail for the in-flight recording; attached when recording stops. */
     private var videoThumbnailBitmap: ImageBitmap? = null
 
     // ═══════════════════════════════════════════════════════════════
@@ -444,9 +444,16 @@ class CameraKStateHolder(
 
         coroutineScope.launch {
             try {
-                // Capture one frame before recording for video thumbnail (avoids platform-specific first-frame extraction)
-                val photoResult = currentController.takePicture()
-                videoThumbnailBitmap = (photoResult as? ImageCaptureResult.Success)?.bitmap
+                if (currentController.usesPhotoCaptureForVideoThumbnail) {
+                    when (val photoResult = currentController.takePictureToFile()) {
+                        is ImageCaptureResult.Success -> {
+                            videoThumbnailBitmap = photoResult.bitmap
+                        }
+                        is ImageCaptureResult.Error -> {
+                            videoThumbnailBitmap = null
+                        }
+                    }
+                }
 
                 val path = currentController.startRecording(configuration)
                 recordingFilePath = path
@@ -457,6 +464,14 @@ class CameraKStateHolder(
                         recordingDurationMs = 0L,
                     )
                 _events.emit(CameraKEvent.RecordingStarted(path))
+
+                if (!currentController.usesPhotoCaptureForVideoThumbnail) {
+                    coroutineScope.launch {
+                        videoThumbnailBitmap = runCatching {
+                            currentController.captureRecordingThumbnailFrame()
+                        }.getOrNull()
+                    }
+                }
 
                 // Start duration ticker with pause-aware elapsed tracking
                 recordingTimerJob = coroutineScope.launch {
@@ -480,10 +495,12 @@ class CameraKStateHolder(
                         if (configuration.maxDurationMs > 0 && elapsed >= configuration.maxDurationMs) {
                             // Auto-stop — guard against race with manual stopRecording()
                             if (!_uiState.value.isRecording) break
-                            val result = currentController.stopRecording()
-                            val resultWithThumbnail = (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = videoThumbnailBitmap) ?: result
-                            // Do not cancel this timer job from inside itself — that prevented emits / finalize handling.
+                            val savedThumbnail = videoThumbnailBitmap
                             resetRecordingState(cancelRecordingTimer = false)
+                            val result = currentController.stopRecording()
+                            val resultWithThumbnail =
+                                (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = savedThumbnail)
+                                    ?: result
                             _events.emit(CameraKEvent.RecordingMaxDurationReached(path, elapsed))
                             _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
                             break
@@ -514,12 +531,13 @@ class CameraKStateHolder(
 
         coroutineScope.launch {
             try {
-                // Cancel timer first to prevent auto-stop race
                 recordingTimerJob?.cancel()
                 recordingTimerJob = null
-                val result = currentController.stopRecording()
-                val resultWithThumbnail = (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = videoThumbnailBitmap) ?: result
+                val savedThumbnail = videoThumbnailBitmap
                 resetRecordingState()
+                val result = currentController.stopRecording()
+                val resultWithThumbnail =
+                    (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = savedThumbnail) ?: result
                 _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
             } catch (e: CancellationException) {
                 resetRecordingState()

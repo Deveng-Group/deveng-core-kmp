@@ -1,5 +1,7 @@
 package core.domain.camera.controller
 
+import androidx.compose.ui.graphics.ImageBitmap
+import core.domain.camera.SharedImage
 import core.domain.camera.enums.AspectRatio
 import core.domain.camera.enums.CameraDeviceType
 import core.domain.camera.enums.CameraLens
@@ -95,6 +97,8 @@ actual class CameraController(
     internal var plugins: MutableList<CameraPlugin>,
     internal var targetResolution: Pair<Int, Int>? = null,
 ) : UIViewController(null, null) {
+    actual val usesPhotoCaptureForVideoThumbnail: Boolean = true
+
     private var isCapturing = atomic(false)
     private val customCameraController = CustomCameraController(
         qualityPrioritization = qualityPriority,
@@ -703,6 +707,12 @@ actual class CameraController(
         memoryManager.clearBufferPools()
     }
 
+    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? {
+        return when (val result = takePictureToFile()) {
+            is ImageCaptureResult.Success -> result.bitmap
+            is ImageCaptureResult.Error -> null
+        }
+    }
 
     @OptIn(ExperimentalForeignApi::class)
     actual suspend fun startRecording(configuration: VideoConfiguration): String = suspendCancellableCoroutine { cont ->

@@ -15,3 +15,9 @@ actual fun ImageBitmap.toByteArray(): ByteArray? {
     val skiaImage = Image.makeFromBitmap(skiaBitmap)
     return skiaImage.encodeToData(quality = 100)?.bytes
 }
+
+actual fun ImageBitmap.toVideoThumbnailByteArray(): ByteArray? {
+    val skiaBitmap = asSkiaBitmap()
+    val skiaImage = Image.makeFromBitmap(skiaBitmap)
+    return skiaImage.encodeToData(quality = VIDEO_THUMBNAIL_JPEG_QUALITY)?.bytes
+}

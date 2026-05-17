@@ -691,6 +691,8 @@ class CustomCameraController(
             settings.setAutoStillImageStabilizationEnabled(false)
         }
 
+        applyShutterSoundSuppression(settings)
+
         // Set the photo output connection orientation to match current device orientation
         // This ensures the captured photo has the correct orientation metadata
         photoOutput?.connectionWithMediaType(AVMediaTypeVideo)?.let { connection ->
@@ -710,6 +712,18 @@ class CustomCameraController(
 
     fun captureImage() {
         captureImage(quality = 1.0)
+    }
+
+    /**
+     * Suppresses the system shutter click when the device/region allows it (see
+     * [AVCapturePhotoOutput.isShutterSoundSuppressionSupported]).
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    private fun applyShutterSoundSuppression(settings: AVCapturePhotoSettings) {
+        val output = photoOutput ?: return
+        if (output.isShutterSoundSuppressionSupported()) {
+            settings.setShutterSoundSuppressionEnabled(true)
+        }
     }
 
     /**

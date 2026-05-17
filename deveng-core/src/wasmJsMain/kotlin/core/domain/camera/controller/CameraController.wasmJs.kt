@@ -51,6 +51,8 @@ actual class CameraController internal constructor(
     private val qualityPriority: QualityPrioritization,
     initialLens: CameraLens,
 ) {
+    actual val usesPhotoCaptureForVideoThumbnail: Boolean = false
+
     private var currentLens: CameraLens = initialLens
     private var mediaStream: JsAny? = null
 
@@ -187,6 +189,8 @@ actual class CameraController internal constructor(
         }
         scope.cancel()
     }
+
+    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? = null
 
     actual suspend fun startRecording(configuration: VideoConfiguration): String {
         throw UnsupportedOperationException(

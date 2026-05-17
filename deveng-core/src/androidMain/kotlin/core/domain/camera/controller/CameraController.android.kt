@@ -10,6 +10,7 @@ import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.media.ExifInterface
 import android.os.Environment
@@ -20,6 +21,7 @@ import android.view.Display
 import android.view.Surface
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -96,6 +98,8 @@ actual class CameraController(
     internal var plugins: MutableList<CameraPlugin>,
     internal var targetResolution: Pair<Int, Int>? = null,
 ) {
+    actual val usesPhotoCaptureForVideoThumbnail: Boolean = false
+
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
     private var preview: Preview? = null
@@ -628,7 +632,7 @@ actual class CameraController(
         // Intentionally left blank.
     }
 
-    @OptIn(ExperimentalZeroShutterLag::class)
+    @OptIn(ExperimentalZeroShutterLag::class, ExperimentalCamera2Interop::class)
     private fun configureCaptureUseCase(
         resolutionSelector: ResolutionSelector,
         displayRotation: Int,
@@ -646,7 +650,27 @@ actual class CameraController(
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(displayRotation)
         applyWideSelfieInterop(builder)
+        applySilentStillCaptureRequestOptions(builder)
         imageCapture = builder.build()
+    }
+
+    /**
+     * Best-effort shutter mute for still capture (Camera2 vendor/HAL keys; not guaranteed on all OEMs).
+     */
+    @OptIn(ExperimentalCamera2Interop::class)
+    private fun applySilentStillCaptureRequestOptions(builder: ImageCapture.Builder) {
+        runCatching {
+            Camera2Interop.Extender(builder)
+                .setCaptureRequestOption(CAPTURE_REQUEST_PLAY_SHUTTER_SOUND, 0)
+        }.onFailure { e ->
+            Log.w("CameraK", "Silent still capture request options not applied: ${e.message}")
+        }
+    }
+
+    private companion object {
+        /** Used on some Android builds (AOSP / OEM) to disable the still-capture shutter click. */
+        private val CAPTURE_REQUEST_PLAY_SHUTTER_SOUND: CaptureRequest.Key<Int> =
+            CaptureRequest.Key("android.playShutterSound", Int::class.java)
     }
 
     /** Syncs still-capture flash on [imageCapture] and preview torch from [torchMode] only. */
@@ -1381,6 +1405,14 @@ actual class CameraController(
             videoCapture = null
         }
     }
+
+    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? =
+        suspendCancellableCoroutine { continuation ->
+            Handler(Looper.getMainLooper()).post {
+                val bitmap = previewView?.bitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                continuation.resume(bitmap?.asImageBitmap())
+            }
+        }
 
     @android.annotation.SuppressLint("MissingPermission")
     actual suspend fun startRecording(configuration: VideoConfiguration): String = suspendCancellableCoroutine { cont ->

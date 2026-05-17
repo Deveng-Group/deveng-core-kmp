@@ -98,6 +98,20 @@ private const val ExposureBoostSteps = 6
 /** Half of [debouncedCombinedClickable] default (600ms) — top camera chrome (flash / moon) feels more responsive. */
 private const val CameraChromeClickDebounceMillis = 300L
 
+private fun computeTopChromeIconCount(
+    cameraLens: CameraLens,
+    showMoonButton: Boolean,
+): Int {
+    var count = 2 // composition grid + switch camera (always)
+    if (cameraLens != CameraLens.FRONT) {
+        count += 1 // flash
+    }
+    if (showMoonButton) {
+        count += 1
+    }
+    return count
+}
+
 /**
  * When false, the flash / low-light / switch row is not composed (hidden from UI only).
  * When true, that row is composed next to [DefaultCameraPreviewContent] in the root [Box] (not inside the clipped preview stack).
@@ -122,7 +136,7 @@ private fun buildTapToFocusExclusionRects(
     overlayH: Int,
     density: Density,
     topChromeRowPaddingTop: Dp,
-    cameraLens: CameraLens,
+    topChromeIconCount: Int,
     iconButtonDp: Dp,
     includeTopTrailingChromeExclusion: Boolean = true,
 ): List<Rect> {
@@ -136,8 +150,7 @@ private fun buildTapToFocusExclusionRects(
         val topPad = with(density) { topChromeRowPaddingTop.toPx() }
         val btn = with(density) { iconButtonDp.toPx() }
         val gap = with(density) { 8.dp.toPx() }
-        val iconCount = if (cameraLens == CameraLens.FRONT) 2 else 3
-        val rowW = iconCount * btn + max(0, iconCount - 1) * gap
+        val rowW = topChromeIconCount * btn + max(0, topChromeIconCount - 1) * gap
         Rect(
             left = w - endPad - rowW - c,
             top = topPad - c,
@@ -205,7 +218,7 @@ private fun suppressTapToFocusNearDefaultCameraChrome(
     overlayH: Int,
     density: Density,
     topChromeRowPaddingTop: Dp,
-    cameraLens: CameraLens,
+    topChromeIconCount: Int,
     iconButtonDp: Dp,
     includeTopTrailingChromeExclusion: Boolean = true,
 ): Boolean {
@@ -216,7 +229,7 @@ private fun suppressTapToFocusNearDefaultCameraChrome(
         overlayH = overlayH,
         density = density,
         topChromeRowPaddingTop = topChromeRowPaddingTop,
-        cameraLens = cameraLens,
+        topChromeIconCount = topChromeIconCount,
         iconButtonDp = iconButtonDp,
         includeTopTrailingChromeExclusion = includeTopTrailingChromeExclusion,
     ).any { it.contains(p) }
@@ -228,7 +241,7 @@ private fun TapToFocusExclusionDebugOverlay(
     overlayH: Int,
     density: Density,
     topChromeRowPaddingTop: Dp,
-    cameraLens: CameraLens,
+    topChromeIconCount: Int,
     iconButtonDp: Dp,
     includeTopTrailingChromeExclusion: Boolean,
     fillAlpha: Float,
@@ -238,7 +251,7 @@ private fun TapToFocusExclusionDebugOverlay(
         overlayW,
         overlayH,
         topChromeRowPaddingTop,
-        cameraLens,
+        topChromeIconCount,
         iconButtonDp,
         density,
         includeTopTrailingChromeExclusion,
@@ -248,7 +261,7 @@ private fun TapToFocusExclusionDebugOverlay(
             overlayH = overlayH,
             density = density,
             topChromeRowPaddingTop = topChromeRowPaddingTop,
-            cameraLens = cameraLens,
+            topChromeIconCount = topChromeIconCount,
             iconButtonDp = iconButtonDp,
             includeTopTrailingChromeExclusion = includeTopTrailingChromeExclusion,
         )
@@ -315,6 +328,7 @@ fun DefaultCameraPreview(
     thumbnailTopEndContent: @Composable () -> Unit = {},
     stateHolder: CameraKStateHolder? = null,
     maxVideoRecordingDurationMs: Long = 0L,
+    onRecordingStarted: (() -> Unit)? = null,
     onRecordingStopped: ((VideoCaptureResult) -> Unit)? = null,
     lastRecordedVideoThumbnail: ImageBitmap? = null,
     showTapToFocusExclusionDebugOverlay: Boolean = false,
@@ -352,6 +366,7 @@ fun DefaultCameraPreview(
     var isWideSelfie by remember { mutableStateOf(true) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }
     var showShutterFlash by remember { mutableStateOf(false) }
+    var isCompositionGridVisible by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val iconButtonDp = LocalComponentTheme.current.iconButton.buttonSize
     val letterboxTopInsetDp = computeCameraLetterboxTopInsetDp(
@@ -362,6 +377,10 @@ fun DefaultCameraPreview(
     val topChromeRowPaddingTop = computeCameraTopChromeRowPaddingTop(
         letterboxTopInset = letterboxTopInsetDp,
         iconRowHeight = iconButtonDp,
+    )
+    val topChromeIconCount = computeTopChromeIconCount(
+        cameraLens = currentCameraLens,
+        showMoonButton = nightModeSupported,
     )
 
     val onTopChromeToggleFlash: () -> Unit = {
@@ -409,6 +428,9 @@ fun DefaultCameraPreview(
     LaunchedEffect(stateHolder) {
         stateHolder?.events?.collect { event ->
             when (event) {
+                is CameraKEvent.RecordingStarted -> {
+                    onRecordingStarted?.invoke()
+                }
                 is CameraKEvent.RecordingStopped -> {
                     lastCapturedBitmap = null
                     lastCapturedWithFrontLens = false
@@ -436,7 +458,7 @@ fun DefaultCameraPreview(
     DisposableEffect(
         controller,
         overlaySizePx,
-        currentCameraLens,
+        topChromeIconCount,
         iconButtonDp,
         topChromeRowPaddingTop,
         density,
@@ -449,7 +471,7 @@ fun DefaultCameraPreview(
                 overlayH = overlaySizePx.height,
                 density = density,
                 topChromeRowPaddingTop = topChromeRowPaddingTop,
-                cameraLens = currentCameraLens,
+                topChromeIconCount = topChromeIconCount,
                 iconButtonDp = iconButtonDp,
                 includeTopTrailingChromeExclusion = ShowCameraPreviewTopLensChromeUi,
             )
@@ -577,6 +599,11 @@ fun DefaultCameraPreview(
                 controller = controller,
                 modifier = Modifier.fillMaxSize(),
             )
+            if (isCompositionGridVisible) {
+                CameraCompositionGridOverlay(
+                    modifier = Modifier.fillMaxSize().zIndex(0.5f),
+                )
+            }
         }
         if (showTapToFocusExclusionDebugOverlay &&
             overlaySizePx.width > 0 &&
@@ -587,7 +614,7 @@ fun DefaultCameraPreview(
                 overlayH = overlaySizePx.height,
                 density = density,
                 topChromeRowPaddingTop = topChromeRowPaddingTop,
-                cameraLens = currentCameraLens,
+                topChromeIconCount = topChromeIconCount,
                 iconButtonDp = iconButtonDp,
                 includeTopTrailingChromeExclusion = ShowCameraPreviewTopLensChromeUi,
                 fillAlpha = TapToFocusExclusionDebugOverlayAlpha,
@@ -1083,8 +1110,10 @@ fun DefaultCameraPreview(
                 currentCameraLens = currentCameraLens,
                 currentFlashMode = currentFlashMode,
                 isLowLightBoostOn = isLowLightBoostOn,
+                isCompositionGridVisible = isCompositionGridVisible,
                 showMoonButton = nightModeSupported,
                 onToggleFlash = onTopChromeToggleFlash,
+                onToggleCompositionGrid = { isCompositionGridVisible = !isCompositionGridVisible },
                 onMoonClick = onTopChromeMoonClick,
                 onSwitchCamera = onTopChromeSwitchCamera,
             )
@@ -1104,8 +1133,10 @@ private fun DefaultCameraPreviewTopLensChromeRow(
     currentCameraLens: CameraLens,
     currentFlashMode: FlashMode,
     isLowLightBoostOn: Boolean,
+    isCompositionGridVisible: Boolean,
     showMoonButton: Boolean,
     onToggleFlash: () -> Unit,
+    onToggleCompositionGrid: () -> Unit,
     onMoonClick: () -> Unit,
     onSwitchCamera: () -> Unit,
 ) {
@@ -1128,6 +1159,19 @@ private fun DefaultCameraPreviewTopLensChromeRow(
                 onClick = onToggleFlash,
             )
         }
+        CustomIconButton(
+            icon = CameraIcons.grid,
+            iconDescription = "Composition grid",
+            iconTint = if (isCompositionGridVisible) {
+                Color.White
+            } else {
+                Color.White.copy(alpha = 0.5f)
+            },
+            backgroundColor = Color.Transparent,
+            shadowElevation = 0.dp,
+            clickDebounceMillis = CameraChromeClickDebounceMillis,
+            onClick = onToggleCompositionGrid,
+        )
         if (showMoonButton) {
             CustomIconButton(
                 icon = CameraIcons.moon,

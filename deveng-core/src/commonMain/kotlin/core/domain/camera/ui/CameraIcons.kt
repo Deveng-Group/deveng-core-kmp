@@ -18,6 +18,8 @@ import global.deveng.deveng_core.generated.resources.shared_ic_person
 
 import global.deveng.deveng_core.generated.resources.shared_ic_group
 
+import global.deveng.deveng_core.generated.resources.shared_ic_grid
+
 import org.jetbrains.compose.resources.DrawableResource
 
 
@@ -35,6 +37,8 @@ object CameraIcons {
     val galleryPhotoLibrary: DrawableResource get() = Res.drawable.shared_ic_photo_library
 
     val flash: DrawableResource get() = Res.drawable.shared_ic_flash
+
+    val grid: DrawableResource get() = Res.drawable.shared_ic_grid
 
     val switchCamera: DrawableResource get() = Res.drawable.shared_ic_cameraswitch
 

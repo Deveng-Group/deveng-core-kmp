@@ -1,5 +1,6 @@
 package core.domain.camera.controller
 
+import androidx.compose.ui.graphics.ImageBitmap
 import core.domain.camera.enums.CameraDeviceType
 import core.domain.camera.enums.CameraLens
 import core.domain.camera.enums.Directory
@@ -41,6 +42,8 @@ actual class CameraController(
     private val customGrabber: FrameGrabber? = null,
     private val targetResolution: Pair<Int, Int>? = null,
 ) {
+    actual val usesPhotoCaptureForVideoThumbnail: Boolean = false
+
     private var cameraGrabber: CameraGrabber? = null
     private val frameChannel = Channel<BufferedImage>(Channel.CONFLATED)
     private val qualityPriority: QualityPrioritization = QualityPrioritization.QUALITY
@@ -278,6 +281,8 @@ actual class CameraController(
 
     fun getFrameChannel() = frameChannel
 
+
+    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? = null
 
     actual suspend fun startRecording(configuration: VideoConfiguration): String = withContext(Dispatchers.IO) {
         val outputPath = createVideoOutputPath(configuration)
