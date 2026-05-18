@@ -340,6 +340,8 @@ fun DefaultCameraPreview(
     val thumbnailBusy = thumbnailSaveInProgress || awaitingThumbnailUnlockAfterCapture
     val recordingUiState by (stateHolder?.uiState?.collectAsState(CameraUIState())
         ?: remember { mutableStateOf(CameraUIState()) })
+    val isRecordingVideo = recordingUiState.isRecording
+    val lensAndZoomControlsEnabled = !isRecordingVideo
     val zoomLevelState = remember { mutableStateOf(1f) }
     var zoomLevel by zoomLevelState
     val maxZoomState = remember { mutableStateOf(1f) }
@@ -411,19 +413,21 @@ fun DefaultCameraPreview(
         }
     }
     val onTopChromeSwitchCamera: () -> Unit = {
-        if (stateHolder != null) stateHolder.toggleCameraLens()
-        else controller.toggleCameraLens()
-        currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-        currentCameraDeviceType = controller.getPreferredCameraDeviceType()
-        currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-        isLowLightBoostOn = false
-        if (currentCameraLens == CameraLens.FRONT) {
-            isWideSelfie = true
-            controller.setWideSelfieMode(true)
-            controller.setZoom(1f)
+        if (lensAndZoomControlsEnabled) {
+            if (stateHolder != null) stateHolder.toggleCameraLens()
+            else controller.toggleCameraLens()
+            currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+            currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+            currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+            isLowLightBoostOn = false
+            if (currentCameraLens == CameraLens.FRONT) {
+                isWideSelfie = true
+                controller.setWideSelfieMode(true)
+                controller.setZoom(1f)
+            }
+            maxZoomState.value = controller.getMaxZoom()
+            zoomLevelState.value = controller.getZoom()
         }
-        maxZoomState.value = controller.getMaxZoom()
-        zoomLevelState.value = controller.getZoom()
     }
 
     LaunchedEffect(stateHolder) {
@@ -456,6 +460,7 @@ fun DefaultCameraPreview(
 
     // iOS: native UIKit gesture recognizers handle taps because the first Compose touch
     // is lost to UIKit interop routing. Wire callbacks to update Compose state.
+    val isRecordingVideoState = rememberUpdatedState(isRecordingVideo)
     DisposableEffect(
         controller,
         overlaySizePx,
@@ -463,6 +468,7 @@ fun DefaultCameraPreview(
         iconButtonDp,
         topChromeRowPaddingTop,
         density,
+        isRecordingVideo,
     ) {
         controller.shouldSuppressTapToFocus = { nx, ny ->
             suppressTapToFocusNearDefaultCameraChrome(
@@ -485,19 +491,21 @@ fun DefaultCameraPreview(
             }
         }
         controller.onPreviewDoubleTapListener = {
-            if (stateHolder != null) stateHolder.toggleCameraLens()
-            else controller.toggleCameraLens()
-            currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-            currentCameraDeviceType = controller.getPreferredCameraDeviceType()
-            currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-            isLowLightBoostOn = false
-            if (currentCameraLens == CameraLens.FRONT) {
-                isWideSelfie = true
-                controller.setWideSelfieMode(true)
-                controller.setZoom(1f)
+            if (!isRecordingVideoState.value) {
+                if (stateHolder != null) stateHolder.toggleCameraLens()
+                else controller.toggleCameraLens()
+                currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+                currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+                isLowLightBoostOn = false
+                if (currentCameraLens == CameraLens.FRONT) {
+                    isWideSelfie = true
+                    controller.setWideSelfieMode(true)
+                    controller.setZoom(1f)
+                }
+                maxZoomState.value = controller.getMaxZoom()
+                zoomLevelState.value = controller.getZoom()
             }
-            maxZoomState.value = controller.getMaxZoom()
-            zoomLevelState.value = controller.getZoom()
         }
         onDispose {
             controller.shouldSuppressTapToFocus = null
@@ -631,19 +639,21 @@ fun DefaultCameraPreview(
             modifier = Modifier.fillMaxSize().zIndex(gestureOverlayZIndex),
             onZoomChange = { zoomLevelState.value = it },
             onDoubleTap = {
-                if (stateHolder != null) stateHolder.toggleCameraLens()
-                else controller.toggleCameraLens()
-                currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
-                currentCameraDeviceType = controller.getPreferredCameraDeviceType()
-                currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
-                isLowLightBoostOn = false
-                if (currentCameraLens == CameraLens.FRONT) {
-                    isWideSelfie = true
-                    controller.setWideSelfieMode(true)
-                    controller.setZoom(1f)
+                if (lensAndZoomControlsEnabled) {
+                    if (stateHolder != null) stateHolder.toggleCameraLens()
+                    else controller.toggleCameraLens()
+                    currentCameraLens = controller.getCameraLens() ?: CameraLens.BACK
+                    currentCameraDeviceType = controller.getPreferredCameraDeviceType()
+                    currentFlashMode = controller.getFlashMode() ?: FlashMode.OFF
+                    isLowLightBoostOn = false
+                    if (currentCameraLens == CameraLens.FRONT) {
+                        isWideSelfie = true
+                        controller.setWideSelfieMode(true)
+                        controller.setZoom(1f)
+                    }
+                    maxZoomState.value = controller.getMaxZoom()
+                    zoomLevelState.value = controller.getZoom()
                 }
-                maxZoomState.value = controller.getMaxZoom()
-                zoomLevelState.value = controller.getZoom()
             },
             onFocusPointTapped = { nx, ny ->
                 val w = overlaySizePx.width
@@ -849,6 +859,7 @@ fun DefaultCameraPreview(
         ) {
             if (currentCameraLens == CameraLens.FRONT) {
                 FrontCameraModeChips(
+                    enabled = lensAndZoomControlsEnabled,
                     isWideSelfie = isWideSelfie,
                     onSelect = { wide ->
                         if (wide == isWideSelfie) return@FrontCameraModeChips
@@ -862,6 +873,7 @@ fun DefaultCameraPreview(
                 )
             } else {
                 BackCameraZoomChips(
+                    enabled = lensAndZoomControlsEnabled,
                     zoomLevel = zoomLevel,
                     cameraDeviceType = currentCameraDeviceType,
                     maxZoom = maxZoom,
@@ -1318,6 +1330,7 @@ private fun ShutterButton(
 private fun FrontCameraModeChips(
     isWideSelfie: Boolean,
     onSelect: (Boolean) -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -1326,7 +1339,9 @@ private fun FrontCameraModeChips(
             .background(Color.Black.copy(alpha = 0.5f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+            modifier = Modifier
+                .alpha(if (enabled) 1f else 0.45f)
+                .padding(horizontal = 3.dp, vertical = 3.dp),
             horizontalArrangement = Arrangement.spacedBy(1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1337,7 +1352,10 @@ private fun FrontCameraModeChips(
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(if (active) Color.White.copy(alpha = 0.25f) else Color.Transparent)
-                        .clickable { onSelect(wide) },
+                        .clickable(
+                            enabled = enabled,
+                            onClick = { onSelect(wide) },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -1440,6 +1458,7 @@ private fun FocusRingExposureDragOverlay(
 @Composable
 private fun BackCameraZoomChips(
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     zoomLevel: Float,
     cameraDeviceType: CameraDeviceType,
     maxZoom: Float,
@@ -1460,7 +1479,9 @@ private fun BackCameraZoomChips(
             .background(Color.Black.copy(alpha = 0.5f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+            modifier = Modifier
+                .alpha(if (enabled) 1f else 0.45f)
+                .padding(horizontal = 3.dp, vertical = 3.dp),
             horizontalArrangement = Arrangement.spacedBy(1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1476,7 +1497,10 @@ private fun BackCameraZoomChips(
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(if (isActive) Color.White.copy(alpha = 0.25f) else Color.Transparent)
-                        .clickable { onZoomChange(stop) },
+                        .clickable(
+                            enabled = enabled,
+                            onClick = { onZoomChange(stop) },
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
