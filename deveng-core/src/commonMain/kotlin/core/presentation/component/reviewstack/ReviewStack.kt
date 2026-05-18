@@ -232,6 +232,8 @@ fun <T> ReviewStack(
     // Animation state. `pendingDecision` is non-null while the exit animation runs.
     var pendingDecision by remember { mutableStateOf<ReviewDecision?>(null) }
     var pendingItem by remember { mutableStateOf<T?>(null) }
+    /** Keeps exit transform on the card until the host removes it from [items] (avoids a rest-pose flash). */
+    var exitingItemKey by remember { mutableStateOf<Any?>(null) }
 
     val scaleAnim = remember { Animatable(1f) }
     val rotationAnim = remember { Animatable(0f) }
@@ -288,14 +290,12 @@ fun <T> ReviewStack(
                 "stateIndex=${state.currentIndex} itemCount=$itemCount",
         )
         state.setDecision(key(committedItem), committedDecision)
+        val committedKey = key(committedItem)
+        exitingItemKey = committedKey
+        overlayAlphaAnim.snapTo(0f)
         onDecisionRef.value?.invoke(committedItem, committedDecision)
         if (autoAdvanceOnDecision) state.goNext(itemCount)
-        translationXAnim.snapTo(0f)
-        translationYAnim.snapTo(0f)
-        scaleAnim.snapTo(1f)
-        rotationAnim.snapTo(0f)
-        overlayAlphaAnim.snapTo(0f)
-        // Clear pending first so next decision can start immediately.
+        // Do not snap translation/scale here — the item may still be in [items] for a frame.
         pendingItem = null
         pendingDecision = null
         // In-stack undo banner(s) for negative decisions (when undo UI is configured); unlimited stack,
@@ -313,6 +313,19 @@ fun <T> ReviewStack(
                 "ReviewStackRevert where=undoBannerPushed sessionId=${newSession.id} itemKey=${key(committedItem)}",
             )
             undoBannerStack = undoBannerStack + (newSession as ReviewStackUndoSession<T>)
+        }
+    }
+
+    val itemKeys = items.map { key(it) }
+    LaunchedEffect(itemKeys, exitingItemKey) {
+        val exitKey = exitingItemKey ?: return@LaunchedEffect
+        if (itemKeys.none { it == exitKey }) {
+            translationXAnim.snapTo(0f)
+            translationYAnim.snapTo(0f)
+            scaleAnim.snapTo(1f)
+            rotationAnim.snapTo(0f)
+            overlayAlphaAnim.snapTo(0f)
+            exitingItemKey = null
         }
     }
 
@@ -379,17 +392,30 @@ fun <T> ReviewStack(
                     // is intentionally not used here: it only appeared on earlier indices (several items
                     // still "ahead") and made the front photo look inset vs the last item where depth was 1.
                     val item = items[page]
+                    val itemKey = key(item)
+                    val animatingItem = pendingItem
+                    val isExitAnimatedPage = when {
+                        animatingItem != null && itemKey == key(animatingItem) -> true
+                        exitingItemKey != null && itemKey == exitingItemKey -> true
+                        else -> false
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .graphicsLayer {
-                                val s = scaleAnim.value
-                                scaleX = s
-                                scaleY = s
-                                translationX = translationXAnim.value
-                                translationY = translationYAnim.value
-                                rotationZ = rotationAnim.value
-                            }
+                            .then(
+                                if (isExitAnimatedPage) {
+                                    Modifier.graphicsLayer {
+                                        val s = scaleAnim.value
+                                        scaleX = s
+                                        scaleY = s
+                                        translationX = translationXAnim.value
+                                        translationY = translationYAnim.value
+                                        rotationZ = rotationAnim.value
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .then(
                                 if (theme.cardShadowElevation > 0.dp) {
                                     Modifier.shadow(theme.cardShadowElevation, cardShape)
@@ -440,7 +466,7 @@ fun <T> ReviewStack(
                             ReviewDecision.NEGATIVE -> theme.negativeOverlayColor
                             null -> theme.negativeOverlayColor
                         }
-                        if (overlayAlphaAnim.value > 0f) {
+                        if (isExitAnimatedPage && pendingDecision != null && overlayAlphaAnim.value > 0f) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
