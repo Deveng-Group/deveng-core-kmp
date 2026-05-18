@@ -20,6 +20,7 @@ import platform.UIKit.UIDeviceOrientationDidChangeNotification
 actual fun CameraPreviewView(controller: CameraController, modifier: Modifier) {
     key(controller) {
         DisposableEffect(controller) {
+            controller.logPreviewDebug("COMPOSE_UIKitView_MOUNT")
             val notificationCenter = NSNotificationCenter.defaultCenter
             val observer = notificationCenter.addObserverForName(
                 UIDeviceOrientationDidChangeNotification,
@@ -31,6 +32,7 @@ actual fun CameraPreviewView(controller: CameraController, modifier: Modifier) {
             }
 
             onDispose {
+                controller.logPreviewDebug("COMPOSE_UIKitView_DISPOSE")
                 notificationCenter.removeObserver(observer)
             }
         }

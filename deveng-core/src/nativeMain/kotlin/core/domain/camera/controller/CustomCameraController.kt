@@ -21,9 +21,13 @@ import platform.darwin.DISPATCH_QUEUE_PRIORITY_HIGH
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_global_queue
+import core.domain.camera.ios.IosPreviewDbgLog
+import core.domain.camera.ios.applyClampedPreviewLayerFrame
+import core.domain.camera.ios.clampedPreviewLayerFrameForView
 import platform.darwin.dispatch_get_main_queue
 import platform.CoreGraphics.CGPointMake
 import platform.CoreMedia.CMTimeMake
+import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import kotlin.collections.emptyList
 import kotlin.concurrent.Volatile
 
@@ -186,11 +190,25 @@ class CustomCameraController(
      * Video: 1080p (~1080×1920 portrait). Photo: device best still preset under cap.
      */
     fun applySessionPresetForCaptureMode(isVideoMode: Boolean) {
+        IosPreviewDbgLog.logSafe {
+            describePreviewPipeline(
+                "SESSION_applyCaptureMode_BEFORE",
+                view = null,
+                extra = "isVideoMode=$isVideoMode previous=$captureModeIsVideo",
+            )
+        }
         captureModeIsVideo = isVideoMode
         if (isVideoMode) {
             applySessionPresetForVideoMode()
         } else {
             applySessionPresetForPhotoMode()
+        }
+        IosPreviewDbgLog.logSafe {
+            describePreviewPipeline(
+                "SESSION_applyCaptureMode_AFTER",
+                view = null,
+                extra = "isVideoMode=$isVideoMode",
+            )
         }
     }
 
@@ -223,6 +241,13 @@ class CustomCameraController(
         }
         session.commitConfiguration()
         onMovieOutputConfigurationNeeded?.invoke()
+        IosPreviewDbgLog.logSafe {
+            describePreviewPipeline(
+                "SESSION_applySessionPreset",
+                view = null,
+                extra = "preset=$preset reason=$reason applied=${session.sessionPreset}",
+            )
+        }
     }
 
     private fun setupPhotoOutput() {
@@ -426,6 +451,7 @@ class CustomCameraController(
     }
 
     fun cleanupSession() {
+        IosPreviewDbgLog.logSafe { describePreviewPipeline("SESSION_cleanupSession_BEFORE", view = null) }
         stopSession()
         cameraPreviewLayer?.removeFromSuperlayer()
         cameraPreviewLayer = null
@@ -439,17 +465,30 @@ class CustomCameraController(
     @OptIn(ExperimentalForeignApi::class)
     fun setupPreviewLayer(view: UIView) {
         val session = captureSession ?: return
+        val existing = cameraPreviewLayer
+        if (existing != null) {
+            IosPreviewDbgLog.logSafe {
+                describePreviewPipeline("PREVIEW_setupPreviewLayer_REMOVE_OLD", view)
+            }
+            existing.removeFromSuperlayer()
+        }
 
         val newPreviewLayer = AVCaptureVideoPreviewLayer(session = session).apply {
             videoGravity = AVLayerVideoGravityResizeAspectFill
-            // Match screen pixel density so preview is not upscaled soft on Retina.
-            contentsScale = UIScreen.mainScreen.scale
-            setFrame(view.bounds)
             connection?.videoOrientation = currentVideoOrientation()
         }
 
         view.layer.addSublayer(newPreviewLayer)
         cameraPreviewLayer = newPreviewLayer
+        applyClampedPreviewLayerFrame(view, newPreviewLayer)
+        val applied = clampedPreviewLayerFrameForView(view)
+        IosPreviewDbgLog.logSafe {
+            describePreviewPipeline(
+                "PREVIEW_setupPreviewLayer_DONE",
+                view,
+                "appliedFrame=${applied.key} clampedWidth=${applied.clampedWidth}",
+            )
+        }
     }
 
     fun currentVideoOrientation(): AVCaptureVideoOrientation {
@@ -503,6 +542,13 @@ class CustomCameraController(
                 camera.lockForConfiguration(null)
                 camera.videoZoomFactor = clampedZoom.toDouble()
                 camera.unlockForConfiguration()
+                IosPreviewDbgLog.logSafe {
+                    describePreviewPipeline(
+                        "DEVICE_setZoom",
+                        view = null,
+                        extra = "requested=$zoomFactor applied=$clampedZoom",
+                    )
+                }
             } catch (e: Exception) {
                 NSLog("CameraK Error: setZoom exception: ${e.message}")
                 onError?.invoke(CameraException.ConfigurationError("Failed to set zoom: ${e.message}"))
@@ -994,6 +1040,9 @@ class CustomCameraController(
                     layer.session = null
                     layer.session = session
                 }
+                IosPreviewDbgLog.logSafe {
+                    describePreviewPipeline("UI_switchCamera_SUCCESS", view = null)
+                }
                 processPendingConfigurations()
                 // Re-apply torch after camera switch (back has torch, front does not)
                 setTorchMode(torchMode)
@@ -1064,6 +1113,67 @@ class CustomCameraController(
             imageData
         }
         onPhotoCapture?.invoke(cappedData)
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    fun describePreviewPipeline(phase: String, view: UIView?, extra: String = ""): String =
+        runCatching { describePreviewPipelineUnsafe(phase, view, extra) }
+            .getOrElse { error -> "phase=$phase | probeError=${error.message ?: error::class.simpleName}" }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun describePreviewPipelineUnsafe(
+        phase: String,
+        view: UIView?,
+        extra: String,
+    ): String = buildString {
+        append("phase=$phase ")
+        if (view != null) {
+            val bounds = view.bounds.useContents { "${size.width.toInt()}x${size.height.toInt()}" }
+            val frame = view.frame.useContents {
+                "origin=(${origin.x.toInt()},${origin.y.toInt()}) size=${size.width.toInt()}x${size.height.toInt()}"
+            }
+            val safe = view.safeAreaInsets.useContents {
+                "safe(t=${top.toInt()},b=${bottom.toInt()},l=${left.toInt()},r=${right.toInt()})"
+            }
+            val sublayerCount = view.layer.sublayers?.size ?: 0
+            append(
+                "view(bounds=$bounds frame=$frame $safe sublayerCount=$sublayerCount " +
+                    "window=${view.window != null}) ",
+            )
+        } else {
+            append("view=null ")
+        }
+        cameraPreviewLayer?.let { layer ->
+            val frame = layer.frame.useContents { "${size.width.toInt()}x${size.height.toInt()}" }
+            val bounds = layer.bounds.useContents { "${size.width.toInt()}x${size.height.toInt()}" }
+            val pos = layer.position.useContents { "(${x.toInt()},${y.toInt()})" }
+            val conn = layer.connection
+            append(
+                "previewLayer(frame=$frame bounds=$bounds pos=$pos gravity=${layer.videoGravity} " +
+                    "scale=${layer.contentsScale} hidden=${layer.hidden} opacity=${layer.opacity} " +
+                    "sessionAttached=${layer.session != null} " +
+                    "conn(orientation=${conn?.videoOrientation})) ",
+            )
+        } ?: append("previewLayer=null ")
+        val session = captureSession
+        val running = session?.let { runCatching { if (it.isRunning()) "true" else "false" }.getOrNull() }
+        append(
+            "session(preset=${session?.sessionPreset ?: "null"} running=$running " +
+                "lens=${if (isUsingFrontCamera) "front" else "back"} captureModeIsVideo=$captureModeIsVideo) ",
+        )
+        append("zoom=${getZoom()} maxZoom=${getMaxZoom()} ")
+        currentCamera?.activeFormat?.let { format ->
+            val dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            val dimStr = dims.useContents { "${width}x${height}" }
+            append("deviceFormat=$dimStr ")
+        }
+        val screen = UIScreen.mainScreen
+        val screenBounds = screen.bounds.useContents { "${size.width.toInt()}x${size.height.toInt()}" }
+        append(
+            "screen(bounds=$screenBounds scale=${screen.scale} " +
+                "deviceOrientation=${UIDevice.currentDevice.orientation})",
+        )
+        if (extra.isNotEmpty()) append(" | $extra")
     }
 
     private inline fun guard(condition: Boolean, crossinline block: () -> Unit) {

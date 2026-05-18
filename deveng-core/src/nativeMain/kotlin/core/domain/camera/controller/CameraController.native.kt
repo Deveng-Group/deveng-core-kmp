@@ -18,6 +18,9 @@ import core.domain.camera.utils.toByteArray
 import core.domain.camera.utils.toUIImage
 import core.util.bytearray.toImageBitmap
 import core.domain.camera.ios.IosFrontCameraVideoBridge
+import core.domain.camera.ios.IosPreviewDbgLog
+import core.domain.camera.ios.applyClampedPreviewLayerFrame
+import core.domain.camera.ios.clampedPreviewLayerFrameForView
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
 import core.domain.camera.video.VideoQuality
@@ -137,11 +140,15 @@ actual class CameraController(
     private var lastPreviewTapTimeSec = 0.0
     private var lastPreviewTapNx = 0f
     private var lastPreviewTapNy = 0f
+    private var lastPreviewDebugLayoutKey: String? = null
 
     override fun viewDidLoad() {
         super.viewDidLoad()
 
         memoryManager.initialize()
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("VC_viewDidLoad", view)
+        }
         setupCamera()
         setupNativeGestureRecognizers()
     }
@@ -213,15 +220,40 @@ actual class CameraController(
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
         memoryManager.updateMemoryStatus()
+        customCameraController.setZoom(1f)
+        applyClampedPreviewLayerFrameIfNeeded(reason = "viewWillAppear")
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("VC_viewWillAppear", view, "animated=$animated")
+        }
+    }
+
+    override fun viewDidAppear(animated: Boolean) {
+        super.viewDidAppear(animated)
+        dispatch_async(dispatch_get_main_queue()) {
+            applyClampedPreviewLayerFrameIfNeeded(reason = "viewDidAppear_deferred")
+        }
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("VC_viewDidAppear", view, "animated=$animated")
+        }
     }
 
     override fun viewDidDisappear(animated: Boolean) {
         super.viewDidDisappear(animated)
-
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("VC_viewDidDisappear", view, "animated=$animated")
+        }
+        lastPreviewDebugLayoutKey = null
         memoryManager.clearBufferPools()
     }
 
     fun getCameraPreviewLayer() = customCameraController.cameraPreviewLayer
+
+    /** Preview diagnostics for Compose interop lifecycle ([CameraPreviewView]). */
+    fun logPreviewDebug(phase: String, extra: String = "") {
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline(phase, view, extra)
+        }
+    }
 
     /**
      * Returns whether the capture session is ready for use.
@@ -279,8 +311,14 @@ actual class CameraController(
 
     private fun setupCamera() {
         customCameraController.onSessionReady = {
+            IosPreviewDbgLog.logSafe {
+                customCameraController.describePreviewPipeline("SESSION_onSessionReady_BEFORE_SETUP", view)
+            }
             try {
                 customCameraController.setupPreviewLayer(view)
+                IosPreviewDbgLog.logSafe {
+                    customCameraController.describePreviewPipeline("SESSION_onSessionReady_AFTER_SETUP", view)
+                }
             } catch (e: Exception) {
                 platform.Foundation.NSLog("CameraK Error: setupPreviewLayer - ${e.message}")
             }
@@ -386,12 +424,28 @@ actual class CameraController(
     }
 
     @OptIn(ExperimentalForeignApi::class)
+    private fun applyClampedPreviewLayerFrameIfNeeded(reason: String) {
+        val layer = customCameraController.cameraPreviewLayer ?: return
+        val rawBounds = view.bounds.useContents { "${size.width.toInt()}x${size.height.toInt()}" }
+        val applied = clampedPreviewLayerFrameForView(view)
+        applyClampedPreviewLayerFrame(view, layer)
+        if (applied.key != lastPreviewDebugLayoutKey) {
+            lastPreviewDebugLayoutKey = applied.key
+            IosPreviewDbgLog.logSafe {
+                customCameraController.describePreviewPipeline(
+                    "VC_previewLayerFrame",
+                    view,
+                    "reason=$reason rawBounds=$rawBounds applied=${applied.key} " +
+                        "clampedWidth=${applied.clampedWidth}",
+                )
+            }
+        }
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
     override fun viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        customCameraController.cameraPreviewLayer?.let { layer ->
-            layer.setFrame(view.bounds)
-            layer.contentsScale = UIScreen.mainScreen.scale
-        }
+        applyClampedPreviewLayerFrameIfNeeded(reason = "viewDidLayoutSubviews")
     }
 
     @Deprecated(
@@ -672,6 +726,9 @@ actual class CameraController(
 
         customCameraController.switchCamera()
         configureMovieFileOutputVideoConnection()
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("UI_toggleCameraLens_AFTER", view)
+        }
         // Sync with actual state (controller may have restored previous lens or succeeded on retry)
         cameraLens = customCameraController.getCurrentLens()
         if (cameraLens == CameraLens.FRONT) {
@@ -706,6 +763,9 @@ actual class CameraController(
     }
 
     actual fun stopSession() {
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("SESSION_stopSession", view)
+        }
         customCameraController.stopSession()
     }
 
@@ -716,6 +776,13 @@ actual class CameraController(
     actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
 
     actual fun applyCaptureModeSessionPreset(isVideoMode: Boolean) {
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline(
+                "UI_applyCaptureModeSessionPreset",
+                view,
+                "isVideoMode=$isVideoMode",
+            )
+        }
         customCameraController.applySessionPresetForCaptureMode(isVideoMode)
     }
 
@@ -737,6 +804,9 @@ actual class CameraController(
     }
 
     actual fun cleanup() {
+        IosPreviewDbgLog.logSafe {
+            customCameraController.describePreviewPipeline("SESSION_cleanup", view)
+        }
         movieFileOutput = null
         videoRecordingDelegate = null
         customCameraController.cleanupSession()
