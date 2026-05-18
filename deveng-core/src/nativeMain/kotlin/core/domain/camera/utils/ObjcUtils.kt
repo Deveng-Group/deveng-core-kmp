@@ -77,7 +77,7 @@ fun NSData.toUIImage() = UIImage(this)
 /**
  * If the decoded JPEG exceeds [capWidth]×[capHeight] when measured as (min side, max side),
  * downscales (aspect preserved) so both sides fit within that box and re-encodes as JPEG.
- * Matches Android still-capture max short/long semantics for [Pair] caps like 1440×2560.
+ * Matches Android still-capture max short/long semantics for [Pair] caps like 2160×3840.
  */
 @OptIn(ExperimentalForeignApi::class)
 fun capNSDataJpegToMaxPhotoDimensions(data: NSData, capWidth: Int, capHeight: Int): NSData {

@@ -169,6 +169,8 @@ actual class CameraController internal constructor(
 
     actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
 
+    actual fun applyCaptureModeSessionPreset(isVideoMode: Boolean) {}
+
     actual fun isNightModeSupported(): Boolean = false
 
     actual fun setNightMode(enabled: Boolean) {}
@@ -191,6 +193,8 @@ actual class CameraController internal constructor(
     }
 
     actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? = null
+
+    actual suspend fun extractVideoThumbnailFromFile(filePath: String, isFrontCamera: Boolean): ImageBitmap? = null
 
     actual suspend fun startRecording(configuration: VideoConfiguration): String {
         throw UnsupportedOperationException(

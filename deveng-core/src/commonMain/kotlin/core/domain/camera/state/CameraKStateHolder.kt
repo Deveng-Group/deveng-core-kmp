@@ -405,6 +405,23 @@ class CameraKStateHolder(
      * [Job.cancel] — used when the timer coroutine itself finishes at max duration so it does not
      * cancel before [CameraKEvent.RecordingStopped] is emitted.
      */
+    private suspend fun withVideoThumbnail(
+        controller: CameraController,
+        result: VideoCaptureResult,
+        savedThumbnail: ImageBitmap?,
+    ): VideoCaptureResult {
+        if (result !is VideoCaptureResult.Success) return result
+        savedThumbnail?.let { return result.copy(thumbnailBitmap = it) }
+        if (result.thumbnailBitmap != null) return result
+        val isFrontCamera = controller.getCameraLens() == core.domain.camera.enums.CameraLens.FRONT
+        val extracted =
+            controller.extractVideoThumbnailFromFile(
+                filePath = result.filePath,
+                isFrontCamera = isFrontCamera,
+            ) ?: return result
+        return result.copy(thumbnailBitmap = extracted)
+    }
+
     private fun resetRecordingState(cancelRecordingTimer: Boolean = true) {
         if (cancelRecordingTimer) {
             recordingTimerJob?.cancel()
@@ -499,8 +516,7 @@ class CameraKStateHolder(
                             resetRecordingState(cancelRecordingTimer = false)
                             val result = currentController.stopRecording()
                             val resultWithThumbnail =
-                                (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = savedThumbnail)
-                                    ?: result
+                                withVideoThumbnail(currentController, result, savedThumbnail)
                             _events.emit(CameraKEvent.RecordingMaxDurationReached(path, elapsed))
                             _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
                             break
@@ -537,7 +553,7 @@ class CameraKStateHolder(
                 resetRecordingState()
                 val result = currentController.stopRecording()
                 val resultWithThumbnail =
-                    (result as? VideoCaptureResult.Success)?.copy(thumbnailBitmap = savedThumbnail) ?: result
+                    withVideoThumbnail(currentController, result, savedThumbnail)
                 _events.emit(CameraKEvent.RecordingStopped(resultWithThumbnail))
             } catch (e: CancellationException) {
                 resetRecordingState()

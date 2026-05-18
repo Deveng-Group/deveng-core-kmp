@@ -27,6 +27,7 @@ class IOSCameraControllerBuilder : CameraControllerBuilder {
     private var returnFilePath: Boolean = false
     private var aspectRatio: AspectRatio = AspectRatio.RATIO_9_16
     private var targetResolution: Pair<Int, Int>? = null
+    private var targetResolutionFront: Pair<Int, Int>? = null
     private val plugins = mutableListOf<CameraPlugin>()
 
     override fun setFlashMode(flashMode: FlashMode): CameraControllerBuilder {
@@ -66,6 +67,11 @@ class IOSCameraControllerBuilder : CameraControllerBuilder {
 
     override fun setResolution(width: Int, height: Int): CameraControllerBuilder {
         this.targetResolution = width to height
+        return this
+    }
+
+    override fun setResolutionFront(width: Int, height: Int): CameraControllerBuilder {
+        this.targetResolutionFront = width to height
         return this
     }
 
@@ -113,6 +119,7 @@ class IOSCameraControllerBuilder : CameraControllerBuilder {
             returnFilePath = returnFilePath,
             aspectRatio = aspectRatio,
             targetResolution = targetResolution,
+            targetResolutionFront = targetResolutionFront,
         )
 
         return cameraController

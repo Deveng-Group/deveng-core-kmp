@@ -78,6 +78,8 @@ class DesktopCameraControllerBuilder : CameraControllerBuilder {
         return this
     }
 
+    override fun setResolutionFront(width: Int, height: Int): CameraControllerBuilder = this
+
     override fun setQualityPrioritization(prioritization: QualityPrioritization): CameraControllerBuilder {
         this.qualityPriority = prioritization
         return this

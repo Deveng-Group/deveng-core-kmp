@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.media.MediaScannerConnection
+import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -18,7 +19,27 @@ actual object PhotoSaveUtils {
         appContext = (context as? Context)?.applicationContext
     }
 
-    actual fun imageBytesWithNormalOrientation(imageBytes: ByteArray): ByteArray = try {
+    actual fun imageBytesWithNormalOrientation(imageBytes: ByteArray): ByteArray {
+        Log.d(
+            ExifExportDiagnostics.LOG_TAG,
+            "orientationNormalize START ${JpegDebugProbe.describe(imageBytes)} " +
+                ExifExportDiagnostics.describeExif(imageBytes),
+        )
+        return try {
+            normalizeOrientationInternal(imageBytes)
+        } catch (e: Exception) {
+            Log.w(ExifExportDiagnostics.LOG_TAG, "orientationNormalize FAILED ${e.message}", e)
+            imageBytes
+        }.also { result ->
+            Log.d(
+                ExifExportDiagnostics.LOG_TAG,
+                "orientationNormalize END ${ExifExportDiagnostics.bytesChanged(imageBytes, result)} " +
+                    "${JpegDebugProbe.describe(result)} ${ExifExportDiagnostics.describeExif(result)}",
+            )
+        }
+    }
+
+    private fun normalizeOrientationInternal(imageBytes: ByteArray): ByteArray {
         val tempFile = File.createTempFile("exif_orient", ".jpg")
         try {
             tempFile.writeBytes(imageBytes)
@@ -30,36 +51,47 @@ actual object PhotoSaveUtils {
             if (orientation == ExifInterface.ORIENTATION_NORMAL ||
                 orientation == ExifInterface.ORIENTATION_UNDEFINED
             ) {
+                Log.d(
+                    ExifExportDiagnostics.LOG_TAG,
+                    "orientationNormalize SKIP alreadyNormal orientation=$orientation",
+                )
                 return imageBytes
             }
-            val rotationAngle = when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                else -> 0f
-            }
-            if (rotationAngle == 0f) {
-                return imageBytes
-            }
+            Log.d(
+                ExifExportDiagnostics.LOG_TAG,
+                "orientationNormalize APPLY orientation=$orientation",
+            )
+            val gps = readLocationFromExif(imageBytes)
             var bitmap = BitmapFactory.decodeFile(tempFile.absolutePath, null) ?: return imageBytes
             try {
-                val matrix = Matrix().apply { postRotate(rotationAngle) }
-                val rotated = Bitmap.createBitmap(
-                    bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
-                )
-                bitmap.recycle()
-                bitmap = rotated
+                bitmap = applyExifOrientationToBitmap(bitmap, orientation)
                 val out = ByteArrayOutputStream()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-                out.toByteArray()
+                var result = out.toByteArray()
+                val normalizedFile = File.createTempFile("exif_orient_out", ".jpg")
+                try {
+                    normalizedFile.writeBytes(result)
+                    val outExif = ExifInterface(normalizedFile.absolutePath)
+                    outExif.setAttribute(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL.toString(),
+                    )
+                    outExif.saveAttributes()
+                    result = normalizedFile.readBytes()
+                } finally {
+                    normalizedFile.delete()
+                }
+                if (gps != null) {
+                    result = addLocationExif(result, gps.first, gps.second)
+                }
+                return result
             } finally {
                 if (!bitmap.isRecycled) bitmap.recycle()
             }
         } finally {
             tempFile.delete()
         }
-    } catch (_: Exception) {
-        imageBytes
+        return imageBytes
     }
 
     actual fun savePhoto(imageBytes: ByteArray, targetPath: String): SavePhotoResult = try {
@@ -117,6 +149,36 @@ actual object PhotoSaveUtils {
         }
     } catch (_: Exception) {
         null
+    }
+
+    private fun applyExifOrientationToBitmap(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(-1f, 1f)
+            }
+            else -> return bitmap
+        }
+        if (matrix.isIdentity) {
+            return bitmap
+        }
+        val transformed = Bitmap.createBitmap(
+            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true,
+        )
+        if (transformed !== bitmap) {
+            bitmap.recycle()
+        }
+        return transformed
     }
 
     /**

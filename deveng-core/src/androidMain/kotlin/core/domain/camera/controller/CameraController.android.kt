@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageFormat as AndroidImageFormat
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
@@ -13,6 +14,7 @@ import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.media.ExifInterface
+import android.os.Build
 import android.os.Environment
 import android.util.Log
 import android.util.Range
@@ -31,6 +33,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
+import core.domain.camera.android.FrontCameraVideoExportHelper
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.extensions.ExtensionMode
@@ -69,10 +72,14 @@ import core.domain.camera.utils.compressToByteArray
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
 import core.domain.camera.video.VideoQuality
+import core.util.image.JpegDebugProbe
+import core.util.video.VideoFileDbgProbe
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -97,6 +104,7 @@ actual class CameraController(
     internal var aspectRatio: AspectRatio,
     internal var plugins: MutableList<CameraPlugin>,
     internal var targetResolution: Pair<Int, Int>? = null,
+    internal var targetResolutionFront: Pair<Int, Int>? = null,
 ) {
     actual val usesPhotoCaptureForVideoThumbnail: Boolean = false
 
@@ -119,7 +127,19 @@ actual class CameraController(
     private var videoCapture: VideoCapture<Recorder>? = null
     private var activeRecording: Recording? = null
     private var recordingOutputFile: File? = null
+    private var recordingUsedFrontLens: Boolean = false
     private val recordingFinalizeChannel = Channel<VideoCaptureResult>(Channel.CONFLATED)
+
+    /**
+     * Omit [VideoCapture] in photo mode so [ImageCapture] is not capped at ~1080p by the
+     * preview+video+still use-case intersection. Video mode keeps video attached.
+     */
+    private var attachVideoToCameraSession: Boolean = false
+
+    /** Mirrors Photo / Video tab; drives [attachVideoToCameraSession] for both lenses. */
+    private var captureModeIsVideo: Boolean = false
+
+    private var bindAwaitContinuation: CancellableContinuation<Unit>? = null
 
     actual var onPreviewTapListener: ((Float, Float) -> Unit)? = null
     actual var onPreviewDoubleTapListener: (() -> Unit)? = null
@@ -379,7 +399,7 @@ actual class CameraController(
             // Preview: always follow [aspectRatio] so PreviewView fills the UI (portrait still-capture
             // bounds must not constrain the viewfinder stream — that caused a large top letterbox).
             val previewResolutionSelector = createPreviewResolutionSelector()
-            val imageCaptureResolutionSelector = createImageCaptureResolutionSelector()
+            var imageCaptureResolutionSelector = createImageCaptureResolutionSelector()
 
             val displayRotation = (context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager)
                 ?.getDisplay(Display.DEFAULT_DISPLAY)
@@ -388,7 +408,8 @@ actual class CameraController(
 
             val cameraSelector = createCameraSelector()
             val bindSelector = extensionEnabledSelectorOrFallback(cameraSelector, extensionsManager)
-            val videoTargetFps = cameraProvider?.let { pickVideoRecordingTargetFps(it, bindSelector) } ?: 30
+            // Probe with the base selector — extension filters can hide 60 fps AE/stream capabilities.
+            val videoTargetFps = cameraProvider?.let { pickVideoRecordingTargetFps(it, cameraSelector) } ?: 30
             /**
              * Samsung (and some OEMs): vendor extension + VideoCapture often muxes ~25fps in the MP4
              * even when [VideoCapture.Builder.setTargetFrameRate] requests 60. Prefer a base
@@ -429,23 +450,39 @@ actual class CameraController(
                 }
 
             configureCaptureUseCase(imageCaptureResolutionSelector, displayRotation)
+            val videoQuality = when (cameraLens) {
+                CameraLens.FRONT -> VideoQuality.FHD
+                CameraLens.BACK -> VideoQuality.FHD
+            }
             configureVideoCaptureUseCase(
+                quality = videoQuality,
                 targetFrameRateFps = videoTargetFps,
                 bindSelector = lifecycleBindSelector,
             )
-
-            val useCaseGroupBuilder = UseCaseGroup.Builder()
-                .addUseCase(preview!!)
-                .addUseCase(imageCapture!!)
-
-            videoCapture?.let { useCaseGroupBuilder.addUseCase(it) }
-            imageAnalyzer?.let { useCaseGroupBuilder.addUseCase(it) }
+            val includeVideo = shouldIncludeVideoInCameraSession()
+            Log.d(
+                "CameraK",
+                "[RindleVideoDbg] bind session lens=$cameraLens includeVideo=$includeVideo " +
+                    "videoQuality=$videoQuality (${videoQuality.width}x${videoQuality.height} cap) " +
+                    "captureModeIsVideo=$captureModeIsVideo targetFps=$videoTargetFps",
+            )
 
             // Do not force a ViewPort crop rect here.
             // On tall displays this can crop left/right aggressively; keeping use cases uncropped
             // and letting PreviewView FIT_END handle layout preserves more horizontal FoV.
 
-            val useCaseGroup = useCaseGroupBuilder.build()
+            fun buildUseCaseGroup(): UseCaseGroup {
+                val builder = UseCaseGroup.Builder()
+                    .addUseCase(preview!!)
+                    .addUseCase(imageCapture!!)
+                if (includeVideo) {
+                    videoCapture?.let { builder.addUseCase(it) }
+                }
+                imageAnalyzer?.let { builder.addUseCase(it) }
+                return builder.build()
+            }
+
+            var useCaseGroup = buildUseCaseGroup()
 
             camera = try {
                 cameraProvider?.bindToLifecycle(
@@ -480,14 +517,29 @@ actual class CameraController(
                             useCaseGroup,
                         )
                     }
-                    else -> throw bindExc
+                    else -> {
+                        Log.w(
+                            "CameraK",
+                            "bindToLifecycle failed for lens=$cameraLens (${bindExc.message}); " +
+                                "retrying with safe still-capture resolution",
+                        )
+                        cameraProvider?.unbindAll()
+                        imageCaptureResolutionSelector = createSafeImageCaptureResolutionSelector()
+                        configureCaptureUseCase(imageCaptureResolutionSelector, displayRotation)
+                        useCaseGroup = buildUseCaseGroup()
+                        cameraProvider?.bindToLifecycle(
+                            lifecycleOwner,
+                            lifecycleBindSelector,
+                            useCaseGroup,
+                        ) ?: throw bindExc
+                    }
                 }
             }
             Log.d("CameraK", "==> Camera successfully bound with deviceType: $cameraDeviceType")
 
             applyImageCaptureFlashAndTorchForCurrentState()
 
-            onCameraReady()
+            finishCameraReady(onCameraReady)
             if (isSwitchingDeviceType) {
                 isSwitchingDeviceType = false
                 onDeviceTypeSwitchTransition?.invoke(false)
@@ -495,49 +547,191 @@ actual class CameraController(
         } catch (exc: Exception) {
             Log.e("CameraK", "==> Use case binding failed for $cameraDeviceType: ${exc.message}")
             exc.printStackTrace()
+            camera = null
             if (isSwitchingDeviceType) {
                 isSwitchingDeviceType = false
                 onDeviceTypeSwitchTransition?.invoke(false)
             }
+            finishCameraReady(onCameraReady)
+        }
+    }
+
+    private fun shouldIncludeVideoInCameraSession(): Boolean = attachVideoToCameraSession
+
+    private fun updateVideoAttachmentForCaptureMode() {
+        attachVideoToCameraSession = captureModeIsVideo
+    }
+
+    private fun finishCameraReady(onCameraReady: () -> Unit) {
+        onCameraReady()
+        bindAwaitContinuation?.let { cont ->
+            if (cont.isActive) {
+                cont.resume(Unit)
+            }
+            bindAwaitContinuation = null
+        }
+    }
+
+    private suspend fun rebindCameraSession() {
+        val view = previewView ?: return
+        suspendCancellableCoroutine { cont ->
+            bindAwaitContinuation = cont
+            cont.invokeOnCancellation {
+                if (bindAwaitContinuation === cont) {
+                    bindAwaitContinuation = null
+                }
+            }
+            bindCamera(view)
         }
     }
 
     /** Preview stream: [aspectRatio] only so the viewfinder matches the screen layout. */
     private fun createPreviewResolutionSelector(): ResolutionSelector {
         memoryManager.updateMemoryStatus()
+        if (!attachVideoToCameraSession) {
+            // Photo-only session: lower preview bandwidth so still capture can exceed 1080p.
+            return ResolutionSelector.Builder()
+                .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+                .setResolutionStrategy(
+                    ResolutionStrategy(
+                        Size(1280, 720),
+                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
+                    ),
+                )
+                .build()
+        }
         return ResolutionSelector.Builder()
             .setAspectRatioStrategy(aspectRatio.toCameraXAspectRatioStrategy())
             .build()
     }
 
+    /** Per-lens still-capture cap; front falls back to back when [targetResolutionFront] is unset. */
+    private fun stillCaptureResolutionCap(): Pair<Int, Int>? =
+        when (cameraLens) {
+            CameraLens.FRONT -> targetResolutionFront ?: targetResolution
+            CameraLens.BACK -> targetResolution
+        }
+
     /**
-     * Still capture: when [targetResolution] is set, it is a per-axis upper bound on the
-     * **stored** size (min side ≤ min(cap), max side ≤ max(cap)). Among all supported sizes that
-     * fit, we prefer the **largest pixel count** so devices like Samsung can reach 1440×2560 when
-     * listed, instead of a smaller 16:9-compatible size such as 1440×1080.
+     * Still capture: when a lens cap is set, it is a per-axis upper bound on the **stored** size.
+     * Only [supportedSizes] from CameraX may be returned — merging Camera2-only sizes breaks
+     * bindToLifecycle when switching to the front camera (preview + video + still intersection).
      */
-    private fun createImageCaptureResolutionSelector(): ResolutionSelector {
+    private fun createImageCaptureResolutionSelector(): ResolutionSelector =
+        createImageCaptureResolutionSelector(preferQualityRanking = true)
+
+    /** Guaranteed bindable: highest resolution CameraX allows for this use-case group. */
+    private fun createSafeImageCaptureResolutionSelector(): ResolutionSelector {
         memoryManager.updateMemoryStatus()
-        return if (targetResolution != null) {
-            val capW = targetResolution!!.first
-            val capH = targetResolution!!.second
-            val shortCap = minOf(capW, capH)
-            val longCap = maxOf(capW, capH)
-            ResolutionSelector.Builder()
-                .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
-                .setResolutionFilter { supportedSizes, _ ->
-                    val filtered = supportedSizes.filter { size ->
-                        minOf(size.width, size.height) <= shortCap &&
-                            maxOf(size.width, size.height) <= longCap
-                    }.sortedWith(compareByDescending<Size> { sz -> sz.width.toLong() * sz.height })
-                    if (filtered.isNotEmpty()) filtered else supportedSizes
-                }
-                .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
-                .build()
+        return ResolutionSelector.Builder()
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+            .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
+            .build()
+    }
+
+    private fun createImageCaptureResolutionSelector(preferQualityRanking: Boolean): ResolutionSelector {
+        memoryManager.updateMemoryStatus()
+        val cap = stillCaptureResolutionCap()
+        if (cap == null || !preferQualityRanking) {
+            return createSafeImageCaptureResolutionSelector()
+        }
+        val shortCap = minOf(cap.first, cap.second)
+        val longCap = maxOf(cap.first, cap.second)
+        val targetAspect = 9.0 / 16.0
+        val lensLabel = cameraLens.name.lowercase()
+        val photoOnlySession = !attachVideoToCameraSession
+        val resolutionStrategy = if (photoOnlySession) {
+            ResolutionStrategy(
+                Size(shortCap, longCap),
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+            )
         } else {
-            ResolutionSelector.Builder()
-                .setAspectRatioStrategy(aspectRatio.toCameraXAspectRatioStrategy())
-                .build()
+            ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY
+        }
+        return ResolutionSelector.Builder()
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+            .setResolutionFilter { supportedSizes, _ ->
+                val camera2Sizes = queryCamera2StillJpegSizesForCurrentLens()
+                val ranked = rankStillCaptureSizes(supportedSizes, shortCap, longCap, targetAspect)
+                if (ranked.isNotEmpty()) {
+                    val picked = ranked.first()
+                    val camera2Best = camera2Sizes.maxByOrNull { it.width.toLong() * it.height }
+                    Log.d(
+                        "CameraK",
+                        "imageCaptureResolution: lens=$lensLabel photoOnlySession=$photoOnlySession " +
+                            "cap=${shortCap}x${longCap} target9:16 " +
+                            "cameraX=${supportedSizes.size} camera2=${camera2Sizes.size} " +
+                            "camera2Best=${camera2Best?.width}x${camera2Best?.height} " +
+                            "picked=${picked.width}x${picked.height} " +
+                            "supported=${supportedSizes.sortedByDescending { it.width * it.height }.take(12).joinToString { "${it.width}x${it.height}" }} " +
+                            "candidates=${ranked.take(8).joinToString { "${it.width}x${it.height}" }}",
+                    )
+                    ranked
+                } else {
+                    Log.w(
+                        "CameraK",
+                        "imageCaptureResolution: lens=$lensLabel no ranked sizes; using cameraX list " +
+                            "(cameraX=${supportedSizes.size})",
+                    )
+                    supportedSizes
+                }
+            }
+            .setResolutionStrategy(resolutionStrategy)
+            .build()
+    }
+
+    private fun rankStillCaptureSizes(
+        sizes: List<Size>,
+        shortCap: Int,
+        longCap: Int,
+        targetAspect: Double,
+    ): List<Size> {
+        val filtered = sizes.filter { size ->
+            minOf(size.width, size.height) <= shortCap &&
+                maxOf(size.width, size.height) <= longCap
+        }
+        return filtered.sortedWith(
+            compareBy<Size> { size ->
+                val shortSide = minOf(size.width, size.height).toDouble()
+                val longSide = maxOf(size.width, size.height).toDouble()
+                kotlin.math.abs((shortSide / longSide) - targetAspect)
+            }.thenByDescending { size ->
+                size.width.toLong() * size.height
+            }.thenByDescending { size ->
+                // Prefer portrait storage (height ≥ width) over 1920×1080 + EXIF rotate.
+                if (size.height >= size.width) 1 else 0
+            }.thenByDescending { size ->
+                maxOf(size.width, size.height).toLong()
+            },
+        )
+    }
+
+    /**
+     * All JPEG still sizes for the active lens from Camera2 (not limited to CameraX use-case
+     * intersection). Includes [StreamConfigurationMap.getHighResolutionOutputSizes] on API 23+.
+     */
+    private fun queryCamera2StillJpegSizesForCurrentLens(): List<Size> {
+        return try {
+            val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val facing = when (cameraLens) {
+                CameraLens.FRONT -> CameraCharacteristics.LENS_FACING_FRONT
+                CameraLens.BACK -> CameraCharacteristics.LENS_FACING_BACK
+            }
+            val sizes = mutableListOf<Size>()
+            for (cameraId in manager.cameraIdList) {
+                val characteristics = manager.getCameraCharacteristics(cameraId)
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) != facing) continue
+                val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                    ?: continue
+                map.getOutputSizes(AndroidImageFormat.JPEG)?.let { sizes.addAll(it) }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    map.getHighResolutionOutputSizes(AndroidImageFormat.JPEG)?.let { sizes.addAll(it) }
+                }
+            }
+            sizes.distinctBy { it.width to it.height }
+        } catch (e: Exception) {
+            Log.w("CameraK", "queryCamera2StillJpegSizes(${cameraLens.name}): ${e.message}")
+            emptyList()
         }
     }
 
@@ -822,7 +1016,12 @@ actual class CameraController(
                     val path = cacheFile.absolutePath
                     imageProcessingExecutor.execute {
                         val byteArray = try {
-                            cacheFile.readBytes()
+                            cacheFile.readBytes().also { bytes ->
+                                Log.d(
+                                    "CameraK",
+                                    "captureSaved lens=${cameraLens.name} ${JpegDebugProbe.describe(bytes)}",
+                                )
+                            }
                         } catch (e: Exception) {
                             cacheFile.delete()
                             Handler(Looper.getMainLooper()).post {
@@ -1208,11 +1407,23 @@ actual class CameraController(
             System.gc()
         }
 
-        cameraLens = if (cameraLens == CameraLens.BACK) CameraLens.FRONT else CameraLens.BACK
+        val previousLens = cameraLens
+        val nextLens = if (cameraLens == CameraLens.BACK) CameraLens.FRONT else CameraLens.BACK
+        cameraLens = nextLens
+        attachVideoToCameraSession = captureModeIsVideo
         if (cameraLens == CameraLens.FRONT) {
             flashMode = FlashMode.OFF
         }
-        previewView?.let { bindCamera(it) }
+        val view = previewView
+        if (view == null) return
+        bindCamera(view) {
+            if (camera == null) {
+                Log.e("CameraK", "toggleCameraLens: bind failed for $nextLens; reverting to $previousLens")
+                cameraLens = previousLens
+                attachVideoToCameraSession = captureModeIsVideo
+                bindCamera(view)
+            }
+        }
     }
 
     actual fun getCameraLens(): CameraLens? = cameraLens
@@ -1247,6 +1458,21 @@ actual class CameraController(
 
     actual fun addImageCaptureListener(listener: (ByteArray) -> Unit) {
         imageCaptureListeners.add(listener)
+    }
+
+    actual fun applyCaptureModeSessionPreset(isVideoMode: Boolean) {
+        if (captureModeIsVideo == isVideoMode) return
+        captureModeIsVideo = isVideoMode
+        val wantAttach = isVideoMode
+        if (attachVideoToCameraSession == wantAttach) return
+        updateVideoAttachmentForCaptureMode()
+        Log.d(
+            "CameraK",
+            "applyCaptureModeSessionPreset isVideoMode=$isVideoMode lens=$cameraLens attachVideo=$attachVideoToCameraSession",
+        )
+        previewView?.let { view ->
+            Handler(Looper.getMainLooper()).post { bindCamera(view) }
+        }
     }
 
     actual fun setPreviewStabilizationEnabled(enabled: Boolean) {
@@ -1344,15 +1570,23 @@ actual class CameraController(
      * Preview-only stabilization does not match native camera quality on many OEMs.
      */
     private fun VideoCapture.Builder<Recorder>.applyVideoStabilizationWhenEnabled(
-        recorder: Recorder,
         bindSelector: CameraSelector,
+        targetFrameRateFps: Int,
     ): VideoCapture.Builder<Recorder> {
         if (!previewStabilizationEnabled) return this
+        // CameraX/HAL typically stabilizes encoded video only at <= 30 fps; 60 fps + EIS often muxes at 30.
+        if (targetFrameRateFps > 30) {
+            Log.d(
+                "CameraK",
+                "videoStabilization: skipped (targetFps=$targetFrameRateFps); use preview EIS only for 60 fps",
+            )
+            return this
+        }
         val provider = cameraProvider ?: return this
         return try {
             val cameraInfo = provider.getCameraInfo(bindSelector)
             val supported = Recorder.getVideoCapabilities(cameraInfo).isStabilizationSupported
-            Log.d("CameraK", "videoStabilization: deviceSupported=$supported previewStabOn=true")
+            Log.d("CameraK", "videoStabilization: deviceSupported=$supported targetFps=$targetFrameRateFps")
             if (supported) {
                 setVideoStabilizationEnabled(true)
             } else {
@@ -1388,16 +1622,19 @@ actual class CameraController(
             } else {
                 recorderBuilder
             }.build()
-            /** Tight [60,60] is rejected or ignored on some Samsung builds; [30,60] lets the pipeline pick up to 60. */
+            /**
+             * Prefer a fixed 60 when probing chose 60 and video EIS is off (EIS forces ~30 fps).
+             * Fall back to [30, 60] only if [60, 60] build fails on the device.
+             */
             val fpsRange = if (targetFrameRateFps == 60) {
-                Range.create(30, 60)
+                Range.create(60, 60)
             } else {
                 Range.create(targetFrameRateFps, targetFrameRateFps)
             }
             var appliedMode = "explicitFps"
             videoCapture = try {
                 val built = VideoCapture.Builder(recorder)
-                    .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
+                    .applyVideoStabilizationWhenEnabled(bindSelector, targetFrameRateFps)
                     .setTargetFrameRate(fpsRange)
                     .build()
                 Log.d(
@@ -1410,24 +1647,36 @@ actual class CameraController(
                 built
             } catch (e: Exception) {
                 if (targetFrameRateFps == 60) {
-                    Log.w("CameraK", "videoCaptureBuild: 60 fps failed (${e.message}) → trying 30 fps")
+                    Log.w("CameraK", "videoCaptureBuild: [60,60] failed (${e.message}) → trying [30,60] then 30")
                     try {
-                        val built30 = VideoCapture.Builder(recorder)
-                            .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
-                            .setTargetFrameRate(Range.create(30, 30))
-                            .build()
-                        appliedMode = "fallbackExplicit30After60Failed"
-                        Log.d("CameraK", "videoCaptureBuild: success setTargetFrameRate fps=30 (fallback after 60)")
-                        built30
-                    } catch (e2: Exception) {
-                        appliedMode = "defaultNoTargetFpsAfter30Failed"
-                        Log.w(
-                            "CameraK",
-                            "videoCaptureBuild: 30 fps failed (${e2.message}) → builder without fps hint",
-                        )
+                        appliedMode = "fallbackRange30to60After60FixedFailed"
                         VideoCapture.Builder(recorder)
-                            .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
+                            .applyVideoStabilizationWhenEnabled(bindSelector, targetFrameRateFps)
+                            .setTargetFrameRate(Range.create(30, 60))
                             .build()
+                            .also {
+                                Log.d("CameraK", "videoCaptureBuild: success setTargetFrameRate range=[30,60]")
+                            }
+                    } catch (eRange: Exception) {
+                        try {
+                            appliedMode = "fallbackExplicit30After60Failed"
+                            VideoCapture.Builder(recorder)
+                                .applyVideoStabilizationWhenEnabled(bindSelector, 30)
+                                .setTargetFrameRate(Range.create(30, 30))
+                                .build()
+                                .also {
+                                    Log.d("CameraK", "videoCaptureBuild: success setTargetFrameRate fps=30")
+                                }
+                        } catch (e2: Exception) {
+                            appliedMode = "defaultNoTargetFpsAfter30Failed"
+                            Log.w(
+                                "CameraK",
+                                "videoCaptureBuild: 30 fps failed (${e2.message}) → builder without fps hint",
+                            )
+                            VideoCapture.Builder(recorder)
+                                .applyVideoStabilizationWhenEnabled(bindSelector, 30)
+                                .build()
+                        }
                     }
                 } else {
                     appliedMode = "defaultNoTargetFps"
@@ -1436,13 +1685,14 @@ actual class CameraController(
                         "videoCaptureBuild: ${targetFrameRateFps} fps failed (${e.message}) → builder without fps hint",
                     )
                     VideoCapture.Builder(recorder)
-                        .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
+                        .applyVideoStabilizationWhenEnabled(bindSelector, targetFrameRateFps)
                         .build()
                 }
             }
             Log.d(
                 "CameraK",
-                "videoCaptureBuild: summary requestedFps=$targetFrameRateFps appliedMode=$appliedMode",
+                "videoCaptureBuild: summary lens=$cameraLens quality=$quality " +
+                    "(${quality.width}x${quality.height}) requestedFps=$targetFrameRateFps appliedMode=$appliedMode",
             )
         } catch (e: Exception) {
             Log.w("CameraK", "VideoCapture use case not supported: ${e.message}")
@@ -1458,13 +1708,22 @@ actual class CameraController(
             }
         }
 
+    actual suspend fun extractVideoThumbnailFromFile(filePath: String, isFrontCamera: Boolean): ImageBitmap? = null
+
     @android.annotation.SuppressLint("MissingPermission")
-    actual suspend fun startRecording(configuration: VideoConfiguration): String = suspendCancellableCoroutine { cont ->
+    actual suspend fun startRecording(configuration: VideoConfiguration): String {
+        return suspendCancellableCoroutine { cont ->
         val vc = videoCapture ?: run {
             cont.resumeWithException(IllegalStateException("VideoCapture use case not available"))
             return@suspendCancellableCoroutine
         }
 
+        recordingUsedFrontLens = cameraLens == CameraLens.FRONT
+        Log.d(
+            "CameraK",
+            "[RindleVideoDbg] phase=RECORD_START lens=$cameraLens front=$recordingUsedFrontLens " +
+                "includeVideoInSession=${shouldIncludeVideoInCameraSession()}",
+        )
         val outputFile = createVideoOutputFile(configuration)
         recordingOutputFile = outputFile
         val outputOptions = FileOutputOptions.Builder(outputFile).build()
@@ -1493,10 +1752,14 @@ actual class CameraController(
                             ),
                         )
                     } else {
-                        // Return raw result; app saves to gallery in callback via VideoSaveUtils (same as photos)
+                        val path = file?.absolutePath ?: ""
+                        Log.d(
+                            "CameraK",
+                            "[RindleVideoDbg] phase=RECORD_FINALIZE_RAW | ${VideoFileDbgProbe.describe(path)}",
+                        )
                         recordingFinalizeChannel.trySend(
                             VideoCaptureResult.Success(
-                                filePath = file?.absolutePath ?: "",
+                                filePath = path,
                                 durationMs = event.recordingStats.recordedDurationNanos / 1_000_000,
                             ),
                         )
@@ -1507,15 +1770,39 @@ actual class CameraController(
         }
 
         cont.resume(outputFile.absolutePath)
+        }
     }
 
     actual suspend fun stopRecording(): VideoCaptureResult {
         val recording = activeRecording ?: return VideoCaptureResult.Error(
             IllegalStateException("No active recording"),
         )
+        val recordedWithFrontLens = recordingUsedFrontLens
+        recordingUsedFrontLens = false
         recording.stop()
         activeRecording = null
-        return recordingFinalizeChannel.receive()
+        val result = recordingFinalizeChannel.receive()
+        if (!recordedWithFrontLens || result !is VideoCaptureResult.Success) {
+            return result
+        }
+        val mirrored = withContext(NonCancellable) {
+            FrontCameraVideoExportHelper.mirrorToMatchPreviewInPlace(
+                context = context,
+                filePath = result.filePath,
+            )
+        }
+        if (!mirrored) {
+            Log.w(
+                "CameraK",
+                "[RindleVideoDbg] phase=RECORD_MIRROR_EXPORT_FAILED path=${result.filePath}",
+            )
+        } else {
+            Log.d(
+                "CameraK",
+                "[RindleVideoDbg] phase=RECORD_MIRROR_EXPORT_OK | ${VideoFileDbgProbe.describe(result.filePath)}",
+            )
+        }
+        return result
     }
 
     actual suspend fun pauseRecording() {

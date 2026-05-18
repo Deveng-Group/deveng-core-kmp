@@ -360,7 +360,9 @@ fun DefaultCameraPreview(
     var nightModeSupported by remember { mutableStateOf(controller.isNightModeSupported()) }
     var captureMode by remember { mutableStateOf(CameraCaptureMode.Photo) }
     LaunchedEffect(captureMode) {
-        controller.setPreviewStabilizationEnabled(captureMode == CameraCaptureMode.Video)
+        val isVideoMode = captureMode == CameraCaptureMode.Video
+        controller.setPreviewStabilizationEnabled(isVideoMode)
+        controller.applyCaptureModeSessionPreset(isVideoMode)
     }
     var isWideSelfie by remember { mutableStateOf(true) }
     var shutterEffectTrigger by remember { mutableStateOf(0) }

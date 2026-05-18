@@ -33,6 +33,7 @@ class AndroidCameraControllerBuilder(private val context: Context, private val l
     private var returnFilePath: Boolean = false
     private var aspectRatio: AspectRatio = AspectRatio.RATIO_9_16
     private var targetResolution: Pair<Int, Int>? = null
+    private var targetResolutionFront: Pair<Int, Int>? = null
     private val plugins = mutableListOf<CameraPlugin>()
 
     override fun setFlashMode(flashMode: FlashMode): CameraControllerBuilder {
@@ -85,6 +86,11 @@ class AndroidCameraControllerBuilder(private val context: Context, private val l
         return this
     }
 
+    override fun setResolutionFront(width: Int, height: Int): CameraControllerBuilder {
+        this.targetResolutionFront = width to height
+        return this
+    }
+
     override fun setImageFormat(imageFormat: ImageFormat): CameraControllerBuilder {
         this.imageFormat = imageFormat
         return this
@@ -121,6 +127,7 @@ class AndroidCameraControllerBuilder(private val context: Context, private val l
             returnFilePath = returnFilePath,
             aspectRatio = aspectRatio,
             targetResolution = targetResolution,
+            targetResolutionFront = targetResolutionFront,
         )
         plugins.forEach {
             it.initialize(cameraController)

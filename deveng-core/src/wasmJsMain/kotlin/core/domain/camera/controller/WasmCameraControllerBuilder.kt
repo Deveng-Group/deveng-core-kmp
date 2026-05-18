@@ -57,4 +57,6 @@ class WasmCameraControllerBuilder : CameraControllerBuilder {
     override fun setAspectRatio(aspectRatio: AspectRatio): CameraControllerBuilder = this
 
     override fun setResolution(width: Int, height: Int): CameraControllerBuilder = this
+
+    override fun setResolutionFront(width: Int, height: Int): CameraControllerBuilder = this
 }

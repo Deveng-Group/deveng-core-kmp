@@ -1,5 +1,6 @@
 package core.domain.camera.controller
 
+import core.domain.camera.ios.IosStillCaptureResolutionPicker
 import core.domain.camera.utils.capNSDataJpegToMaxPhotoDimensions
 import core.domain.camera.enums.AspectRatio
 import core.domain.camera.enums.CameraDeviceType
@@ -41,7 +42,8 @@ class CustomCameraController(
     val qualityPrioritization: QualityPrioritization,
     private var initialCameraLens: CameraLens = CameraLens.BACK,
     private val aspectRatio: AspectRatio = AspectRatio.RATIO_9_16,
-    private val targetResolution: Pair<Int, Int>? = null,
+    private val targetResolutionBack: Pair<Int, Int>? = null,
+    private val targetResolutionFront: Pair<Int, Int>? = null,
 ) : NSObject(),
     AVCapturePhotoCaptureDelegateProtocol {
     var captureSession: AVCaptureSession? = null
@@ -98,7 +100,7 @@ class CustomCameraController(
                 captureSession?.beginConfiguration()
 
                 // Start with a fast preset; prefer target resolution if provided
-                val initialPreset = targetResolution?.toPreset() ?: AVCaptureSessionPresetHigh
+                val initialPreset = effectiveTargetResolution()?.toPreset() ?: AVCaptureSessionPresetHigh
                 captureSession?.sessionPreset = initialPreset
 
                 if (!setupInputs(cameraDeviceType)) {
@@ -115,10 +117,7 @@ class CustomCameraController(
 
                 // Switch to target resolution/aspect ratio preset on main queue once initial setup completes
                 dispatch_async(dispatch_get_main_queue()) {
-                    captureSession?.beginConfiguration()
-                    val finalPreset = targetResolution?.toPreset() ?: aspectRatio.toSessionPreset()
-                    captureSession?.sessionPreset = finalPreset
-                    captureSession?.commitConfiguration()
+                    applySessionPresetForCaptureMode(captureModeIsVideo)
                     // Prefer stabilization and full-quality capture path unless caller explicitly chose SPEED.
                     highQualityEnabled = qualityPrioritization != QualityPrioritization.SPEED
                     onSessionReady?.invoke()
@@ -135,15 +134,95 @@ class CustomCameraController(
         }
     }
 
+    private fun effectiveTargetResolution(): Pair<Int, Int>? {
+        val useFront = when {
+            currentCamera != null -> isUsingFrontCamera
+            else -> initialCameraLens == CameraLens.FRONT
+        }
+        return if (useFront) {
+            targetResolutionFront ?: targetResolutionBack
+        } else {
+            targetResolutionBack
+        }
+    }
+
+    /**
+     * Maps short/long sides to an AVCaptureSessionPreset tier.
+     * [reference] is usually Swift-reported best size under cap; falls back to [cap].
+     */
+    private fun presetForShortLong(short: Int, long: Int): String? = when {
+        long >= 3840 && short >= 2160 -> AVCaptureSessionPreset3840x2160
+        long >= 3648 && short >= 2052 -> AVCaptureSessionPreset3840x2160
+        long >= 3088 && short >= 1737 -> AVCaptureSessionPresetPhoto ?: AVCaptureSessionPreset3840x2160
+        long >= 1920 && short >= 1080 -> AVCaptureSessionPreset1920x1080
+        long >= 1280 && short >= 720 -> AVCaptureSessionPreset1280x720
+        else -> null
+    }
+
     private fun Pair<Int, Int>.toPreset(): String? {
         val short = minOf(first, second)
         val long = maxOf(first, second)
-        return when {
-            long >= 3840 && short >= 2160 -> AVCaptureSessionPreset3840x2160
-            long >= 1920 && short >= 1080 -> AVCaptureSessionPreset1920x1080
-            long >= 1280 && short >= 720 -> AVCaptureSessionPreset1280x720
-            else -> null
+        return presetForShortLong(short, long)
+    }
+
+    private fun resolveSessionPresetForCurrentLens(): String? {
+        val cap = effectiveTargetResolution()
+        val deviceBest = IosStillCaptureResolutionPicker.logAndPickBest(
+            isFrontCamera = isUsingFrontCamera,
+            cap = cap,
+        )
+        val reference = deviceBest ?: cap
+        return reference?.toPreset() ?: cap?.toPreset()
+    }
+
+    /** Last UI capture mode; used when switching lenses so preset matches Photo vs Video tab. */
+    var captureModeIsVideo: Boolean = false
+
+    /** Invoked after session preset changes so movie-file mirroring can be re-applied. */
+    var onMovieOutputConfigurationNeeded: (() -> Unit)? = null
+
+    /**
+     * Session preset follows explicit Photo / Video UI mode (not record start/stop).
+     * Video: 1080p (~1080×1920 portrait). Photo: device best still preset under cap.
+     */
+    fun applySessionPresetForCaptureMode(isVideoMode: Boolean) {
+        captureModeIsVideo = isVideoMode
+        if (isVideoMode) {
+            applySessionPresetForVideoMode()
+        } else {
+            applySessionPresetForPhotoMode()
         }
+    }
+
+    private fun applySessionPresetForPhotoMode() {
+        val preset = resolveSessionPresetForCurrentLens() ?: aspectRatio.toSessionPreset() ?: return
+        applySessionPreset(preset, reason = "photoMode")
+        restoreVideoFrameDurationToAutomatic()
+    }
+
+    private fun applySessionPresetForVideoMode() {
+        val videoPreset = AVCaptureSessionPreset1920x1080 ?: AVCaptureSessionPreset1280x720 ?: return
+        applySessionPreset(videoPreset, reason = "videoMode")
+        applyPreferredVideoRecordingFrameRatePrefer60Else30()
+    }
+
+    private fun applySessionPreset(preset: String, reason: String) {
+        val session = captureSession ?: return
+        session.beginConfiguration()
+        if (session.canSetSessionPreset(preset)) {
+            session.sessionPreset = preset
+            NSLog(
+                "CameraK",
+                "sessionPreset=$preset reason=$reason lens=${if (isUsingFrontCamera) "front" else "back"}",
+            )
+        } else {
+            NSLog(
+                "CameraK",
+                "sessionPreset not supported preset=$preset reason=$reason lens=${if (isUsingFrontCamera) "front" else "back"}",
+            )
+        }
+        session.commitConfiguration()
+        onMovieOutputConfigurationNeeded?.invoke()
     }
 
     private fun setupPhotoOutput() {
@@ -574,8 +653,34 @@ class CustomCameraController(
     }
 
     /**
+     * Resets fixed frame duration so photo preview is not locked to recording fps.
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun restoreVideoFrameDurationToAutomatic() {
+        val camera = currentCamera ?: return
+        camera.lockForConfiguration(null)
+        try {
+            val ranges = camera.activeFormat.videoSupportedFrameRateRanges as? NSArray
+            val range =
+                if (ranges != null && ranges.count.toInt() > 0) {
+                    ranges.objectAtIndex(0u) as? AVFrameRateRange
+                } else {
+                    null
+                }
+            if (range != null) {
+                camera.activeVideoMinFrameDuration = range.minFrameDuration
+                camera.activeVideoMaxFrameDuration = range.maxFrameDuration
+            }
+        } catch (e: Exception) {
+            NSLog("CameraK: restoreVideoFrameDurationToAutomatic failed: ${e.message}")
+        } finally {
+            camera.unlockForConfiguration()
+        }
+    }
+
+    /**
      * Locks the device and sets fixed video frame duration to **60 fps** when the active format
-     * reports support; otherwise **30 fps**. Call immediately before starting movie file recording.
+     * reports support; otherwise **30 fps**. Applied when entering video UI mode, not on record tap.
      */
     @OptIn(ExperimentalForeignApi::class)
     fun applyPreferredVideoRecordingFrameRatePrefer60Else30() {
@@ -883,6 +988,7 @@ class CustomCameraController(
             }
 
             if (success) {
+                applySessionPresetForCaptureMode(captureModeIsVideo)
                 // Force preview layer to pick up new input (iOS can leave connection stale)
                 cameraPreviewLayer?.let { layer ->
                     layer.session = null
@@ -944,9 +1050,16 @@ class CustomCameraController(
         }
 
         val imageData = didFinishProcessingPhoto.fileDataRepresentation()
-        val tr = targetResolution
+        val tr = effectiveTargetResolution()
         val cappedData = if (tr != null && imageData != null) {
-            capNSDataJpegToMaxPhotoDimensions(imageData, tr.first, tr.second)
+            capNSDataJpegToMaxPhotoDimensions(imageData, tr.first, tr.second).also { capped ->
+                if (capped.length != imageData.length) {
+                    NSLog(
+                        "CameraK",
+                        "captureCapped lens=${if (isUsingFrontCamera) "front" else "back"} cap=$tr",
+                    )
+                }
+            }
         } else {
             imageData
         }

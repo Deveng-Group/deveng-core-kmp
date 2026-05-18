@@ -22,6 +22,7 @@ serialization = "1.8.0"
 atomicfu = "0.29.0"
 kermit = "2.0.8"
 camera-core = "1.5.1"
+media3 = "1.5.1"
 startupRuntime = "1.2.0"
 coil-mp = "3.3.0"
 javacvPlatform = "1.5.12"
@@ -49,6 +50,9 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camera-core" }
 androidx-camera-extensions = { module = "androidx.camera:camera-extensions", version.ref = "camera-core" }
 androidx-camera-video = { module = "androidx.camera:camera-video", version.ref = "camera-core" }
+androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
+androidx-media3-effect = { module = "androidx.media3:media3-effect", version.ref = "media3" }
+androidx-media3-transformer = { module = "androidx.media3:media3-transformer", version.ref = "media3" }
 androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 coil3 = { module = "io.coil-kt.coil3:coil", version.ref = "coil-mp" }
 coil3-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil-mp" }

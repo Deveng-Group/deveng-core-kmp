@@ -49,6 +49,9 @@ actual fun rememberCameraKState(
                                 config.targetResolution?.let { (width, height) ->
                                     setResolution(width, height)
                                 }
+                                config.targetResolutionFront?.let { (width, height) ->
+                                    setResolutionFront(width, height)
+                                }
                             }.build()
                     }
                 },

@@ -235,11 +235,13 @@ sealed class CameraKEvent {
  * @property qualityPrioritization Quality vs performance trade-off.
  * @property cameraDeviceType Preferred camera device type.
  * @property aspectRatio Aspect ratio for preview and capture.
- * @property targetResolution Upper bound (width × height) in pixels for **still capture**, or null
+ * @property targetResolution Upper bound (width × height) in pixels for **back** still capture, or null
  *   for auto. On Android, preview keeps [aspectRatio] only; still capture uses a max short/long
  *   side filter plus highest-area selection among supported sizes so common devices can reach the
- *   cap when the sensor lists that size (e.g. 1440×2560) instead of a smaller 16:9 intermediate.
+ *   cap when the sensor lists that size (e.g. 2160×3840) instead of a smaller 16:9 intermediate.
  *   On Apple hosts, shortest/longest sides map to an AVCaptureSessionPreset tier.
+ * @property targetResolutionFront Optional upper bound for **front** still capture; when null, uses
+ *   [targetResolution]. Use platform-specific caps in the app (e.g. back 2160×3840, front 2052×3648).
  * @property directory Directory for saving captured images.
  * @property returnFilePath If true, returns file path instead of byte array (faster).
  *
@@ -265,6 +267,7 @@ data class CameraConfiguration(
     val cameraDeviceType: CameraDeviceType = CameraDeviceType.DEFAULT,
     val aspectRatio: AspectRatio = AspectRatio.RATIO_9_16,
     val targetResolution: Pair<Int, Int>? = null,
+    val targetResolutionFront: Pair<Int, Int>? = null,
     val directory: Directory = Directory.PICTURES,
     val returnFilePath: Boolean = true,
 )

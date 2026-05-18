@@ -17,8 +17,8 @@ import core.domain.camera.video.VideoConfiguration
 expect class CameraController {
 
     /**
-     * When true, a still photo must be taken before [startRecording] for the video thumbnail
-     * (iOS — preview snapshots are blank). When false, use [captureRecordingThumbnailFrame] after start.
+     * When true, a still photo is taken before [startRecording] for the video thumbnail (legacy).
+     * Prefer [extractVideoThumbnailFromFile] after stop on iOS; Android uses [captureRecordingThumbnailFrame].
      */
     val usesPhotoCaptureForVideoThumbnail: Boolean
 
@@ -218,6 +218,13 @@ expect class CameraController {
     fun setPreviewStabilizationEnabled(enabled: Boolean)
 
     /**
+     * Aligns the native capture session with photo vs video UI mode (iOS: session preset).
+     * Call when the user switches between photo and video in the camera UI — not when recording
+     * starts or stops. No-op on platforms that do not multiplex still/video through one preset.
+     */
+    fun applyCaptureModeSessionPreset(isVideoMode: Boolean)
+
+    /**
      * Returns true if the device supports a real night photography extension (e.g. CameraX
      * ExtensionMode.NIGHT on Android). When false, the night mode button has no hardware backing
      * and callers can decide to hide it or fall back to a software approach.
@@ -291,9 +298,16 @@ expect class CameraController {
 
     /**
      * Captures a still frame for video thumbnails from the live preview (Android).
-     * Not used on iOS when [usesPhotoCaptureForVideoThumbnail] is true.
      */
     suspend fun captureRecordingThumbnailFrame(): ImageBitmap?
+
+    /**
+     * Decodes the first video frame for gallery/chrome thumbnails (iOS). No-op on other platforms.
+     */
+    suspend fun extractVideoThumbnailFromFile(
+        filePath: String,
+        isFrontCamera: Boolean = false,
+    ): ImageBitmap?
 
     /**
      * Starts video recording to a file.

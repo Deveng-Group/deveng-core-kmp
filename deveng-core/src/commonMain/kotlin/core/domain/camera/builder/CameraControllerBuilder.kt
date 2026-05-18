@@ -74,4 +74,9 @@ interface CameraControllerBuilder {
      * Platforms may fall back to the closest supported resolution if an exact match is unavailable.
      */
     fun setResolution(width: Int, height: Int): CameraControllerBuilder
+
+    /**
+     * Upper bound for **front** still capture. When omitted, [setResolution] applies to both lenses.
+     */
+    fun setResolutionFront(width: Int, height: Int): CameraControllerBuilder
 }

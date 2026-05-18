@@ -17,6 +17,7 @@ import core.domain.camera.utils.fixOrientation
 import core.domain.camera.utils.toByteArray
 import core.domain.camera.utils.toUIImage
 import core.util.bytearray.toImageBitmap
+import core.domain.camera.ios.IosFrontCameraVideoBridge
 import core.domain.camera.video.VideoCaptureResult
 import core.domain.camera.video.VideoConfiguration
 import core.domain.camera.video.VideoQuality
@@ -67,6 +68,7 @@ import platform.UIKit.UIImagePNGRepresentation
 import platform.UIKit.UIPinchGestureRecognizer
 import platform.UIKit.UITapGestureRecognizer
 import platform.UIKit.UIViewController
+import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_HIGH
 import platform.darwin.DISPATCH_TIME_NOW
 import platform.darwin.dispatch_after
@@ -96,15 +98,17 @@ actual class CameraController(
     internal var returnFilePath: Boolean,
     internal var plugins: MutableList<CameraPlugin>,
     internal var targetResolution: Pair<Int, Int>? = null,
+    internal var targetResolutionFront: Pair<Int, Int>? = null,
 ) : UIViewController(null, null) {
-    actual val usesPhotoCaptureForVideoThumbnail: Boolean = true
+    actual val usesPhotoCaptureForVideoThumbnail: Boolean = false
 
     private var isCapturing = atomic(false)
     private val customCameraController = CustomCameraController(
         qualityPrioritization = qualityPriority,
         initialCameraLens = cameraLens,
         aspectRatio = aspectRatio,
-        targetResolution = targetResolution,
+        targetResolutionBack = targetResolution,
+        targetResolutionFront = targetResolutionFront,
     )
     private var imageCaptureListeners = mutableListOf<(ByteArray) -> Unit>()
     private var metadataOutput = AVCaptureMetadataOutput()
@@ -251,6 +255,28 @@ actual class CameraController(
         }
     }
 
+    /**
+     * Preview stays mirrored on the front lens for selfie UX; recorded files must not be mirrored
+     * (same as still capture — [CustomCameraController.captureImage] uses setVideoMirrored(false)).
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    private fun configureMovieFileOutputVideoConnection() {
+        val output = movieFileOutput ?: return
+        val connections = output.connections as? platform.Foundation.NSArray ?: return
+        val count = connections.count.toInt()
+        for (i in 0 until count) {
+            val connection = connections.objectAtIndex(i.toULong()) as? platform.AVFoundation.AVCaptureConnection
+                ?: continue
+            if (connection.isVideoOrientationSupported()) {
+                connection.videoOrientation = currentVideoOrientation()
+            }
+            if (connection.isVideoMirroringSupported()) {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.setVideoMirrored(false)
+            }
+        }
+    }
+
     private fun setupCamera() {
         customCameraController.onSessionReady = {
             try {
@@ -273,6 +299,7 @@ actual class CameraController(
                 if (customCameraController.captureSession?.canAddOutput(movieOutput) == true) {
                     customCameraController.captureSession?.addOutput(movieOutput)
                     movieFileOutput = movieOutput
+                    configureMovieFileOutputVideoConnection()
                 }
             } catch (e: Exception) {
                 platform.Foundation.NSLog("CameraK Error: movie output - ${e.message}")
@@ -282,6 +309,10 @@ actual class CameraController(
             addAudioInputIfNeeded()
 
             startSession()
+        }
+
+        customCameraController.onMovieOutputConfigurationNeeded = {
+            configureMovieFileOutputVideoConnection()
         }
 
         try {
@@ -640,6 +671,7 @@ actual class CameraController(
         }
 
         customCameraController.switchCamera()
+        configureMovieFileOutputVideoConnection()
         // Sync with actual state (controller may have restored previous lens or succeeded on retry)
         cameraLens = customCameraController.getCurrentLens()
         if (cameraLens == CameraLens.FRONT) {
@@ -683,6 +715,10 @@ actual class CameraController(
 
     actual fun setPreviewStabilizationEnabled(enabled: Boolean) {}
 
+    actual fun applyCaptureModeSessionPreset(isVideoMode: Boolean) {
+        customCameraController.applySessionPresetForCaptureMode(isVideoMode)
+    }
+
     actual fun isNightModeSupported(): Boolean = false
 
     actual fun setNightMode(enabled: Boolean) {}
@@ -707,12 +743,17 @@ actual class CameraController(
         memoryManager.clearBufferPools()
     }
 
-    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? {
-        return when (val result = takePictureToFile()) {
-            is ImageCaptureResult.Success -> result.bitmap
-            is ImageCaptureResult.Error -> null
-        }
-    }
+    actual suspend fun captureRecordingThumbnailFrame(): ImageBitmap? = null
+
+    actual suspend fun extractVideoThumbnailFromFile(
+        filePath: String,
+        isFrontCamera: Boolean,
+    ): ImageBitmap? =
+        core.domain.camera.ios.extractVideoThumbnailFromFile(
+            filePath = filePath,
+            // [stopRecording] already unmirror-exports when the bridge is set; flip pixels only as fallback.
+            compensateMirroredRecording = isFrontCamera && IosFrontCameraVideoBridge.unmirrorRecordedVideoInPlace == null,
+        )
 
     @OptIn(ExperimentalForeignApi::class)
     actual suspend fun startRecording(configuration: VideoConfiguration): String = suspendCancellableCoroutine { cont ->
@@ -741,15 +782,9 @@ actual class CameraController(
         val delegate = VideoRecordingDelegate()
         videoRecordingDelegate = delegate
 
-        // Set video orientation on the movie file output connection
-        output.connectionWithMediaType(platform.AVFoundation.AVMediaTypeVideo)?.let { connection ->
-            if (connection.isVideoOrientationSupported()) {
-                connection.videoOrientation = currentVideoOrientation()
-            }
-        }
+        configureMovieFileOutputVideoConnection()
 
         dispatch_async(dispatch_get_main_queue()) {
-            customCameraController.applyPreferredVideoRecordingFrameRatePrefer60Else30()
             output.startRecordingToOutputFileURL(fileURL, recordingDelegate = delegate)
         }
 
@@ -765,9 +800,25 @@ actual class CameraController(
             return@suspendCancellableCoroutine
         }
 
+        val recordedWithFrontLens = customCameraController.getCurrentLens() == CameraLens.FRONT
         delegate.onFinished = { result ->
-            // Return raw result; app saves to gallery in callback via VideoSaveUtils (same as photos)
-            cont.resume(result)
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0u)) {
+                val finalResult =
+                    if (recordedWithFrontLens && result is VideoCaptureResult.Success) {
+                        val ok = IosFrontCameraVideoBridge.unmirrorRecordedVideoInPlace?.invoke(result.filePath) == true
+                        if (!ok) {
+                            platform.Foundation.NSLog(
+                                "CameraK: front video unmirror failed path=${result.filePath}",
+                            )
+                        }
+                        result
+                    } else {
+                        result
+                    }
+                dispatch_async(dispatch_get_main_queue()) {
+                    cont.resume(finalResult)
+                }
+            }
         }
 
         dispatch_async(dispatch_get_main_queue()) {

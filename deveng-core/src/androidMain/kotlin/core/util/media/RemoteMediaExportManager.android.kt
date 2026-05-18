@@ -9,6 +9,10 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.FileProvider
+import core.util.image.ExifExportDiagnostics
+import core.util.image.JpegDebugProbe
+import core.util.image.PhotoSaveUtils
+import core.util.video.VideoFileDbgProbe
 import java.io.File
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +24,7 @@ actual class RemoteMediaExportManager(
 ) {
     private companion object {
         const val TAG = "RemoteMediaExportManager"
+        private const val EXPORT_TAG = ExifExportDiagnostics.LOG_TAG
     }
 
     actual suspend fun shareSingleFileFromUrl(
@@ -122,15 +127,32 @@ actual class RemoteMediaExportManager(
             return@withContext false
         }
         return@withContext runCatching {
+            Log.d(EXPORT_TAG, "saveSingle START fileName=$fileName mimeType=$mimeType url=${urlForLog(fileUrl)}")
             val bytes = URL(fileUrl).openStream().use { inputStream ->
                 inputStream.readBytes()
             }
-            saveBytesToMediaStore(
+            Log.d(
+                EXPORT_TAG,
+                "saveSingle DOWNLOADED size=${bytes.size} ${JpegDebugProbe.describe(bytes)} " +
+                    ExifExportDiagnostics.describeExif(bytes),
+            )
+            val exportBytes = normalizeImageBytesForExport(bytes, mimeType, fileName)
+            if (mimeType.startsWith("video/")) {
+                logDownloadedVideoProbe(
+                    phase = "GALLERY_SAVE_SINGLE_DOWNLOADED",
+                    fileName = fileName,
+                    fileBytes = exportBytes,
+                )
+            }
+            val saved = saveBytesToMediaStore(
                 fileName = fileName,
                 mimeType = mimeType,
-                fileBytes = bytes,
+                fileBytes = exportBytes,
             )
+            Log.d(EXPORT_TAG, "saveSingle DONE saved=$saved fileName=$fileName")
+            saved
         }.onFailure { throwable ->
+            Log.e(EXPORT_TAG, "saveSingle FAILED fileName=$fileName url=${urlForLog(fileUrl)}", throwable)
             Log.e(TAG, "saveSingleFileFromUrl failed url=$fileUrl", throwable)
         }.getOrDefault(false)
     }
@@ -147,14 +169,37 @@ actual class RemoteMediaExportManager(
                 if (remoteFile.fileUrl.isBlank()) {
                     return@forEach
                 }
+                Log.d(
+                    EXPORT_TAG,
+                    "saveBulk item fileName=${remoteFile.fileName} mime=${remoteFile.mimeType} " +
+                        "url=${urlForLog(remoteFile.fileUrl)}",
+                )
                 val bytes = URL(remoteFile.fileUrl).openStream().use { inputStream ->
                     inputStream.readBytes()
+                }
+                Log.d(
+                    EXPORT_TAG,
+                    "saveBulk DOWNLOADED fileName=${remoteFile.fileName} size=${bytes.size} " +
+                        "${JpegDebugProbe.describe(bytes)} ${ExifExportDiagnostics.describeExif(bytes)}",
+                )
+                val exportBytes = normalizeImageBytesForExport(
+                    bytes = bytes,
+                    mimeType = remoteFile.mimeType,
+                    fileName = remoteFile.fileName,
+                )
+                if (remoteFile.mimeType.startsWith("video/")) {
+                    logDownloadedVideoProbe(
+                        phase = "GALLERY_SAVE_BULK_DOWNLOADED",
+                        fileName = remoteFile.fileName,
+                        fileBytes = exportBytes,
+                    )
                 }
                 val isSaved = saveBytesToMediaStore(
                     fileName = remoteFile.fileName,
                     mimeType = remoteFile.mimeType,
-                    fileBytes = bytes,
+                    fileBytes = exportBytes,
                 )
+                Log.d(EXPORT_TAG, "saveBulk item DONE fileName=${remoteFile.fileName} saved=$isSaved")
                 if (isSaved) {
                     successfulSaveCount++
                 }
@@ -204,14 +249,64 @@ actual class RemoteMediaExportManager(
         return true
     }
 
+    /**
+     * Coil in-app respects EXIF; many system gallery apps use raw pixel dimensions unless
+     * orientation is baked into pixels with ORIENTATION_NORMAL.
+     */
+    private fun logDownloadedVideoProbe(phase: String, fileName: String, fileBytes: ByteArray) {
+        val temp = File.createTempFile("gallery_video_probe_", ".mp4", context.cacheDir)
+        try {
+            temp.writeBytes(fileBytes)
+            Log.d(
+                EXPORT_TAG,
+                "[RindleVideoDbg] phase=$phase fileName=$fileName downloadBytes=${fileBytes.size} | " +
+                    VideoFileDbgProbe.describe(temp.absolutePath),
+            )
+        } catch (e: Exception) {
+            Log.w(
+                EXPORT_TAG,
+                "[RindleVideoDbg] phase=$phase fileName=$fileName probeFailed err=${e.message}",
+            )
+        } finally {
+            temp.delete()
+        }
+    }
+
+    private fun normalizeImageBytesForExport(
+        bytes: ByteArray,
+        mimeType: String,
+        fileName: String,
+    ): ByteArray {
+        if (!mimeType.startsWith("image/")) {
+            Log.d(EXPORT_TAG, "normalize SKIP non-image fileName=$fileName mimeType=$mimeType")
+            return bytes
+        }
+        Log.d(EXPORT_TAG, "normalize CALL imageBytesWithNormalOrientation fileName=$fileName")
+        return PhotoSaveUtils.imageBytesWithNormalOrientation(bytes)
+    }
+
+    private fun urlForLog(fileUrl: String): String = try {
+        val url = URL(fileUrl)
+        val path = url.path?.takeLast(80).orEmpty()
+        "${url.host}$path"
+    } catch (_: Exception) {
+        "(invalid-url)"
+    }
+
     private fun saveBytesToMediaStore(
         fileName: String,
         mimeType: String,
         fileBytes: ByteArray,
     ): Boolean {
         if (fileBytes.isEmpty()) {
+            Log.w(EXPORT_TAG, "mediaStore SKIP empty fileName=$fileName")
             return false
         }
+        Log.d(
+            EXPORT_TAG,
+            "mediaStore INSERT fileName=$fileName mimeType=$mimeType size=${fileBytes.size} " +
+                "${JpegDebugProbe.describe(fileBytes)} ${ExifExportDiagnostics.describeExif(fileBytes)}",
+        )
 
         val normalizedFileName = fileName.ifBlank { "media_${System.currentTimeMillis()}" }
         val relativePath = when {
@@ -247,8 +342,10 @@ actual class RemoteMediaExportManager(
                 }
                 resolver.update(itemUri, publishedValues, null, null)
             }
+            Log.d(EXPORT_TAG, "mediaStore OK uri=$itemUri fileName=$fileName")
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(EXPORT_TAG, "mediaStore FAILED fileName=$fileName", e)
             resolver.delete(itemUri, null, null)
             false
         }
