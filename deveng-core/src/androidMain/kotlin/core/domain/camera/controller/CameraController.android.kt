@@ -429,7 +429,10 @@ actual class CameraController(
                 }
 
             configureCaptureUseCase(imageCaptureResolutionSelector, displayRotation)
-            configureVideoCaptureUseCase(targetFrameRateFps = videoTargetFps)
+            configureVideoCaptureUseCase(
+                targetFrameRateFps = videoTargetFps,
+                bindSelector = lifecycleBindSelector,
+            )
 
             val useCaseGroupBuilder = UseCaseGroup.Builder()
                 .addUseCase(preview!!)
@@ -632,6 +635,22 @@ actual class CameraController(
         // Intentionally left blank.
     }
 
+    /**
+     * Prefer zero-shutter-lag so the saved frame matches the moment the user tapped capture,
+     * not a later preview frame after camera motion. ZSL is incompatible with flash ON/AUTO.
+     */
+    @OptIn(ExperimentalZeroShutterLag::class)
+    private fun resolveStillImageCaptureMode(): Int = when (qualityPriority) {
+        QualityPrioritization.QUALITY, QualityPrioritization.NONE ->
+            ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
+        QualityPrioritization.SPEED, QualityPrioritization.BALANCED ->
+            if (flashMode == FlashMode.OFF) {
+                ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
+            } else {
+                ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
+            }
+    }
+
     @OptIn(ExperimentalZeroShutterLag::class, ExperimentalCamera2Interop::class)
     private fun configureCaptureUseCase(
         resolutionSelector: ResolutionSelector,
@@ -639,14 +658,7 @@ actual class CameraController(
     ) {
         val builder = ImageCapture.Builder()
             .setFlashMode(flashMode.toCameraXFlashMode())
-            .setCaptureMode(
-                when (qualityPriority) {
-                    QualityPrioritization.QUALITY, QualityPrioritization.NONE ->
-                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
-                    QualityPrioritization.SPEED -> ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG
-                    QualityPrioritization.BALANCED -> ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY
-                },
-            )
+            .setCaptureMode(resolveStillImageCaptureMode())
             .setResolutionSelector(resolutionSelector)
             .setTargetRotation(displayRotation)
         applyWideSelfieInterop(builder)
@@ -1327,9 +1339,35 @@ actual class CameraController(
     // Video Recording
     // ═══════════════════════════════════════════════════════════════
 
+    /**
+     * Enables EIS on the encoded video stream when [previewStabilizationEnabled] is true (video mode).
+     * Preview-only stabilization does not match native camera quality on many OEMs.
+     */
+    private fun VideoCapture.Builder<Recorder>.applyVideoStabilizationWhenEnabled(
+        recorder: Recorder,
+        bindSelector: CameraSelector,
+    ): VideoCapture.Builder<Recorder> {
+        if (!previewStabilizationEnabled) return this
+        val provider = cameraProvider ?: return this
+        return try {
+            val cameraInfo = provider.getCameraInfo(bindSelector)
+            val supported = Recorder.getVideoCapabilities(cameraInfo).isStabilizationSupported
+            Log.d("CameraK", "videoStabilization: deviceSupported=$supported previewStabOn=true")
+            if (supported) {
+                setVideoStabilizationEnabled(true)
+            } else {
+                this
+            }
+        } catch (e: Exception) {
+            Log.w("CameraK", "videoStabilization: not applied (${e.message})")
+            this
+        }
+    }
+
     private fun configureVideoCaptureUseCase(
         quality: VideoQuality = VideoQuality.FHD,
         targetFrameRateFps: Int,
+        bindSelector: CameraSelector,
     ) {
         try {
             val cameraXQuality = when (quality) {
@@ -1359,6 +1397,7 @@ actual class CameraController(
             var appliedMode = "explicitFps"
             videoCapture = try {
                 val built = VideoCapture.Builder(recorder)
+                    .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
                     .setTargetFrameRate(fpsRange)
                     .build()
                 Log.d(
@@ -1374,6 +1413,7 @@ actual class CameraController(
                     Log.w("CameraK", "videoCaptureBuild: 60 fps failed (${e.message}) → trying 30 fps")
                     try {
                         val built30 = VideoCapture.Builder(recorder)
+                            .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
                             .setTargetFrameRate(Range.create(30, 30))
                             .build()
                         appliedMode = "fallbackExplicit30After60Failed"
@@ -1383,17 +1423,21 @@ actual class CameraController(
                         appliedMode = "defaultNoTargetFpsAfter30Failed"
                         Log.w(
                             "CameraK",
-                            "videoCaptureBuild: 30 fps failed (${e2.message}) → VideoCapture.withOutput (no fps hint)",
+                            "videoCaptureBuild: 30 fps failed (${e2.message}) → builder without fps hint",
                         )
-                        VideoCapture.withOutput(recorder)
+                        VideoCapture.Builder(recorder)
+                            .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
+                            .build()
                     }
                 } else {
                     appliedMode = "defaultNoTargetFps"
                     Log.w(
                         "CameraK",
-                        "videoCaptureBuild: ${targetFrameRateFps} fps failed (${e.message}) → VideoCapture.withOutput",
+                        "videoCaptureBuild: ${targetFrameRateFps} fps failed (${e.message}) → builder without fps hint",
                     )
-                    VideoCapture.withOutput(recorder)
+                    VideoCapture.Builder(recorder)
+                        .applyVideoStabilizationWhenEnabled(recorder, bindSelector)
+                        .build()
                 }
             }
             Log.d(

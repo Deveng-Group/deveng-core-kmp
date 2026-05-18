@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.State
@@ -85,9 +86,7 @@ import core.presentation.component.CustomIconButton
 import core.presentation.theme.CoreRegularTextStyle
 import core.presentation.theme.LocalComponentTheme
 import core.util.multiplatform.Platform
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 private enum class CameraCaptureMode { Photo, Video }
@@ -310,7 +309,7 @@ private fun formatRecordingProgress(elapsedMs: Long, maxDurationMs: Long): Strin
  * @param showTapToFocusExclusionDebugOverlay When true, draws a very faint red overlay on regions where tap-to-focus is suppressed (for tuning/debug).
  * @param hostPlatform Host OS for tap-to-focus exposure slider placement: [Platform.IOS] or [Platform.NATIVE] places the slider to the right of the reticle; [Platform.ANDROID] keeps it below the ring (also used for [Platform.WEB] and [Platform.DESKTOP]). The app must pass the correct value; core does not detect the platform.
  * @param thumbnailSaveInProgress When true, shows a progress indicator on the last-capture thumbnail and blocks thumbnail taps (e.g. while persisting to disk). Thumbnail is also blocked for the in-flight interval from shutter until [onImageCaptured] returns.
- * @param onPhotoCaptureEngaged Invoked synchronously when the user triggers still capture, before any suspend work — use to flip app-level “saving” UI immediately and avoid thumbnail races.
+ * @param onPhotoCaptureEngaged Invoked after the still-capture request is queued (before [onImageCaptured]) — use to flip app-level “saving” UI and avoid thumbnail races.
  * @param onPhotoCaptureFailed Invoked when still capture throws before [onImageCaptured] runs; pair with [onPhotoCaptureEngaged] to clear app state.
  * @param modifier Modifier for the root layout.
  */
@@ -540,9 +539,8 @@ fun DefaultCameraPreview(
     }
 
     val capturePhotoDuringPreview: () -> Unit = {
-        onPhotoCaptureEngaged()
         awaitingThumbnailUnlockAfterCapture = true
-        scope.launch {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 val mode = controller.getFlashMode() ?: FlashMode.OFF
                 val deferShutterUntilAfterCapture =
@@ -551,9 +549,10 @@ fun DefaultCameraPreview(
                     showShutterFlash = true
                     shutterEffectTrigger++
                 }
-                val result = withContext(Dispatchers.Default) {
-                    controller.takePictureToFile()
-                }
+                // Queue CameraX capture before engagement callbacks / recomposition so the frame
+                // matches the tap instant (Android ZSL + no main-queue deferral).
+                val result = controller.takePictureToFile()
+                onPhotoCaptureEngaged()
                 if (result is ImageCaptureResult.Success) {
                     lastCapturedBitmap = result.bitmap
                     lastCapturedWithFrontLens = currentCameraLens == CameraLens.FRONT

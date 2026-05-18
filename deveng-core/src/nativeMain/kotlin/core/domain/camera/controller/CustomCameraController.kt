@@ -705,9 +705,7 @@ class CustomCameraController(
             }
         }
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH.toLong(), 0u)) {
-            photoOutput?.capturePhotoWithSettings(settings, delegate = this)
-        }
+        photoOutput?.capturePhotoWithSettings(settings, delegate = this)
     }
 
     fun captureImage() {
