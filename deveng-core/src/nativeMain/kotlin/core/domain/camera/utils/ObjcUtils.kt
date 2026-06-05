@@ -54,6 +54,7 @@ fun ByteArray.toNSData(): NSData = memScoped {
 @OptIn(ExperimentalForeignApi::class)
 fun NSData.toByteArray(reuseBuffer: ByteArray? = null): ByteArray {
     val length = this.length.toInt()
+    if (length == 0) return ByteArray(0)
 
     val buffer =
         if (reuseBuffer != null && reuseBuffer.size >= length) {

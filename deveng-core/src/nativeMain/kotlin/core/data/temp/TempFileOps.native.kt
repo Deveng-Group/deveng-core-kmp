@@ -43,6 +43,7 @@ actual class TempFileOps actual constructor() {
     actual fun readFile(path: String): ByteArray? {
         val resolved = normalizedPath(path)
         val data = fileManager.contentsAtPath(resolved) ?: return null
+        if (data.length == 0UL) return null
         return data.toByteArray()
     }
 
